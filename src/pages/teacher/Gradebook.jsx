@@ -293,7 +293,7 @@ export default function Gradebook() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col" style={{ maxHeight: '700px' }}>
+                <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col max-h-[500px] lg:max-h-[700px]">
                     <div className="p-4 border-b border-slate-100 space-y-3 flex-shrink-0">
                         <h3 className="font-bold text-slate-800">Daftar Siswa</h3>
 
