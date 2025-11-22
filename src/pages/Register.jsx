@@ -39,7 +39,7 @@ export default function Register() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (role === 'teacher' && teacherCode !== 'TEACHER123') {
+        if (role === 'teacher' && teacherCode !== 'weLoveMB2!') {
             return setError('Kode guru salah');
         }
 
