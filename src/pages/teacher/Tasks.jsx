@@ -367,13 +367,13 @@ export default function Tasks() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all border border-slate-100 group"
+                                className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md transition-all border border-slate-100 group"
                             >
-                                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                                <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
                                     <div className="flex-1">
-                                        <h3 className="text-xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors mb-2">{task.title}</h3>
+                                        <h3 className="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors mb-1.5">{task.title}</h3>
 
-                                        <p className="text-slate-600 mb-4 line-clamp-2">{task.description}</p>
+                                        <p className="text-sm text-slate-600 mb-3 line-clamp-1 leading-relaxed">{task.description}</p>
 
                                         <div className="flex flex-wrap gap-3 text-sm">
                                             {/* Deadline with inline status badge */}
@@ -410,7 +410,7 @@ export default function Tasks() {
                                     </div>
 
                                     {/* Action Buttons */}
-                                    <div className="flex items-center gap-2 pt-4 md:pt-0 border-t md:border-t-0 border-slate-100">
+                                    <div className="flex items-center gap-2 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
                                         <button
                                             onClick={() => setSelectedTask(task)}
                                             className="text-green-600 bg-green-50 hover:bg-green-100 p-2 rounded-xl transition-all"
