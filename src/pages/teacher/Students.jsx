@@ -4,7 +4,10 @@ import { collection, query, where, getDocs, deleteDoc, doc, updateDoc, serverTim
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Trash2, Users, TrendingUp, Award, BookOpen, Filter, ChevronLeft, ChevronRight, ArrowUpDown, Edit2, X, Save, School, AlertTriangle } from 'lucide-react';
 
+import { useAuth } from '../../contexts/AuthContext';
+
 export default function Students() {
+    const { currentUser } = useAuth();
     const [students, setStudents] = useState([]);
     const [classesMap, setClassesMap] = useState({}); // id -> name mapping
     const [classesList, setClassesList] = useState([]); // full class objects for dropdown
@@ -27,32 +30,49 @@ export default function Students() {
     const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
-        loadData();
-    }, []);
+        if (currentUser) {
+            loadData();
+        }
+    }, [currentUser]);
 
     const loadData = async () => {
         setLoading(true);
         try {
-            // Load classes
-            const classesSnap = await getDocs(collection(db, 'classes'));
+            // Load classes created by this teacher
+            const classesQuery = query(
+                collection(db, 'classes'),
+                where('createdBy', '==', currentUser.uid)
+            );
+            const classesSnap = await getDocs(classesQuery);
             const map = {};
             const list = [];
+            const classIds = [];
+
             classesSnap.forEach(doc => {
                 const data = doc.data();
                 map[doc.id] = data.name;
                 list.push({ id: doc.id, ...data });
+                classIds.push(doc.id);
             });
             setClassesMap(map);
             setClassesList(list);
 
-            // Load students
-            const q = query(collection(db, 'users'), where('role', '==', 'student'));
-            const snapshot = await getDocs(q);
-            const studentsList = snapshot.docs.map(doc => ({
-                id: doc.id,
-                uid: doc.data().uid,
-                ...doc.data()
-            }));
+            // Load students only from these classes
+            let studentsList = [];
+            if (classIds.length > 0) {
+                // Firestore 'in' query is limited to 10 items, so we might need to batch or just filter client-side if list is small
+                // For now, let's fetch all students and filter client-side for simplicity and robustness
+                // In production with many students, we should optimize this
+                const q = query(collection(db, 'users'), where('role', '==', 'student'));
+                const snapshot = await getDocs(q);
+                studentsList = snapshot.docs
+                    .map(doc => ({
+                        id: doc.id,
+                        uid: doc.data().uid,
+                        ...doc.data()
+                    }))
+                    .filter(student => classIds.includes(student.classId));
+            }
             setStudents(studentsList);
 
             // Load stats for each student

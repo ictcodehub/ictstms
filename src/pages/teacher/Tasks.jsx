@@ -5,7 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit2, Trash2, X, GraduationCap, Calendar, Clock, FileText, AlertCircle, CheckCircle2, Eye, Users, Search, Filter, ArrowUpDown } from 'lucide-react';
 import TaskDetail from './TaskDetail';
 
+import { useAuth } from '../../contexts/AuthContext';
+
 export default function Tasks() {
+    const { currentUser } = useAuth();
     const [tasks, setTasks] = useState([]);
     const [classes, setClasses] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -28,18 +31,28 @@ export default function Tasks() {
     });
 
     useEffect(() => {
-        loadData();
-    }, []);
+        if (currentUser) {
+            loadData();
+        }
+    }, [currentUser]);
 
     const loadData = async () => {
         setLoading(true);
         try {
-            // Load classes
-            const classesSnap = await getDocs(collection(db, 'classes'));
+            // Load classes created by this teacher
+            const classesQuery = query(
+                collection(db, 'classes'),
+                where('createdBy', '==', currentUser.uid)
+            );
+            const classesSnap = await getDocs(classesQuery);
             setClasses(classesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-            // Load tasks
-            const q = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'));
+            // Load tasks created by this teacher
+            const q = query(
+                collection(db, 'tasks'),
+                where('createdBy', '==', currentUser.uid),
+                orderBy('createdAt', 'desc')
+            );
             const tasksSnap = await getDocs(q);
             setTasks(tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         } catch (error) {
@@ -100,6 +113,7 @@ export default function Tasks() {
             } else {
                 await addDoc(collection(db, 'tasks'), {
                     ...formData,
+                    createdBy: currentUser.uid,
                     createdAt: serverTimestamp()
                 });
             }
