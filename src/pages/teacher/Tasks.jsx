@@ -160,13 +160,26 @@ export default function Tasks() {
 
     const formatDeadline = (deadline) => {
         const date = new Date(deadline);
-        return date.toLocaleString('id-ID', {
+        return date.toLocaleDateString('id-ID', {
             day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            month: 'short',
+            year: 'numeric'
         });
+    };
+
+    const getDeadlineColor = (deadline) => {
+        const date = new Date(deadline);
+        const now = new Date();
+        const diffTime = date - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) {
+            return 'bg-red-50 text-red-600 border-red-200'; // Overdue
+        } else if (diffDays <= 3) {
+            return 'bg-amber-50 text-amber-600 border-amber-200'; // Soon
+        } else {
+            return 'bg-emerald-50 text-emerald-600 border-emerald-200'; // Safe
+        }
     };
 
     // Filter and sort logic
@@ -227,7 +240,7 @@ export default function Tasks() {
 
     // Show TaskDetail if a task is selected
     if (selectedTask) {
-        return <TaskDetail task={selectedTask} onBack={() => setSelectedTask(null)} />;
+        return <TaskDetail task={selectedTask} classes={classes} onBack={() => setSelectedTask(null)} />;
     }
 
     return (
@@ -373,82 +386,107 @@ export default function Tasks() {
                         )}
                     </div>
                 ) : (
-                    <div className="grid gap-4">
-                        {displayTasks.map((task, index) => (
-                            <motion.div
-                                key={task.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                                className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md transition-all border border-slate-100 group"
-                            >
-                                <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors mb-1.5">{task.title}</h3>
-
-                                        <p className="text-sm text-slate-600 mb-3 line-clamp-1 leading-relaxed">{task.description}</p>
-
-                                        <div className="flex flex-wrap gap-3 text-sm">
-                                            {/* Deadline with inline status badge */}
-                                            <div className="flex items-center gap-2 text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg">
-                                                <div className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${isOverdue(task.deadline)
-                                                    ? 'bg-red-100 text-red-700'
-                                                    : 'bg-emerald-100 text-emerald-700'
-                                                    }`}>
-                                                    {isOverdue(task.deadline) ? <AlertCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                                                    {isOverdue(task.deadline) ? 'Terlambat' : 'Aktif'}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-slate-50/50 border-b border-slate-200">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">No</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Detail Tugas</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kelas</th>
+                                        <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Tenggat Waktu</th>
+                                        <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {displayTasks.map((task, index) => (
+                                        <motion.tr
+                                            key={task.id}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ delay: index * 0.03 }}
+                                            className="hover:bg-blue-50/30 transition-colors group"
+                                        >
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
+                                                {startIndex + index + 1}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="max-w-md">
+                                                    <h3 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors mb-1">
+                                                        {task.title}
+                                                    </h3>
+                                                    <p className="text-xs text-slate-500 line-clamp-1">
+                                                        {task.description || 'Tidak ada deskripsi'}
+                                                    </p>
                                                 </div>
-                                                <Calendar className="h-4 w-4 text-blue-500" />
-                                                <span className="font-medium">
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-wrap gap-1">
+                                                    {task.assignedClasses?.map(classId => {
+                                                        const cls = classes.find(c => c.id === classId);
+                                                        return cls ? (
+                                                            <span key={classId} className="text-xs text-blue-600 bg-blue-50 px-1.5 py-1 rounded-lg border border-blue-200 font-medium">
+                                                                {cls.name}
+                                                            </span>
+                                                        ) : null;
+                                                    })}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center whitespace-nowrap">
+                                                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getDeadlineColor(task.deadline)}`}>
+                                                    <Calendar className="h-3 w-3" />
                                                     {formatDeadline(task.deadline)}
-                                                </span>
-                                            </div>
-
-                                            {/* Assigned Classes Badge */}
-                                            <button
-                                                onClick={async () => {
-                                                    const taskClasses = classes.filter(c => task.assignedClasses?.includes(c.id));
-                                                    setSelectedTaskClasses(taskClasses);
-                                                    setShowClassModal(true);
-                                                    await loadClassStats(taskClasses);
-                                                }}
-                                                className="flex items-center gap-2 text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer"
-                                            >
-                                                <GraduationCap className="h-4 w-4 text-blue-500" />
-                                                <span>
-                                                    {task.assignedClasses?.length || 0} Kelas
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex items-center gap-2 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
-                                        <button
-                                            onClick={() => setSelectedTask(task)}
-                                            className="text-green-600 bg-green-50 hover:bg-green-100 p-2 rounded-xl transition-all"
-                                            title="Lihat detail"
-                                        >
-                                            <Eye className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleOpenModal(task)}
-                                            className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition-all"
-                                            title="Edit tugas"
-                                        >
-                                            <Edit2 className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(task.id, task.title)}
-                                            className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition-all"
-                                            title="Hapus tugas"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center whitespace-nowrap">
+                                                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${isOverdue(task.deadline)
+                                                    ? 'bg-slate-100 text-slate-600 border-slate-200'
+                                                    : 'bg-green-50 text-green-600 border-green-200'
+                                                    }`}>
+                                                    {isOverdue(task.deadline) ? (
+                                                        <>
+                                                            <Clock className="h-3 w-3" />
+                                                            Berakhir
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <CheckCircle2 className="h-3 w-3" />
+                                                            Aktif
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center whitespace-nowrap">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={() => setSelectedTask(task)}
+                                                        className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-all"
+                                                        title="Lihat detail"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleOpenModal(task)}
+                                                        className="text-amber-600 bg-amber-50 hover:bg-amber-100 p-2 rounded-lg transition-all"
+                                                        title="Edit tugas"
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(task.id, task.title)}
+                                                        className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-all"
+                                                        title="Hapus tugas"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </motion.tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
 

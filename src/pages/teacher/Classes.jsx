@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query, where } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, X, Users as UsersIcon, Edit2, BookOpen, TrendingUp, Award, GraduationCap, BarChart3, Calendar, MapPin, Star, Users } from 'lucide-react';
+import { Plus, Trash2, X, Users as UsersIcon, Edit2, BookOpen, TrendingUp, Award, GraduationCap, BarChart3, Calendar, MapPin, Star, Users, Search, ArrowUpDown } from 'lucide-react';
 import ClassDetail from './ClassDetail';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -15,7 +15,10 @@ export default function Classes() {
     const [formData, setFormData] = useState({ name: '', subject: '' });
     const [classStats, setClassStats] = useState({});
     const [hoveredCard, setHoveredCard] = useState(null);
+
     const [loading, setLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('newest'); // newest, oldest, a-z, z-a
 
     useEffect(() => {
         if (currentUser) {
@@ -84,6 +87,13 @@ export default function Classes() {
         }
     };
 
+    // Auto-select first class
+    useEffect(() => {
+        if (classes.length > 0 && !selectedClass) {
+            setSelectedClass(classes[0]);
+        }
+    }, [classes]);
+
     const handleOpenModal = (cls = null) => {
         if (cls) {
             setEditingClass(cls);
@@ -139,32 +149,32 @@ export default function Classes() {
         }
     };
 
-    const totalStudents = Object.values(classStats).reduce((sum, stat) => sum + stat.studentCount, 0);
-    const totalTasks = Object.values(classStats).reduce((sum, stat) => sum + stat.taskCount, 0);
-    const overallAvg = classes.length > 0
-        ? (Object.values(classStats).reduce((sum, stat) => sum + parseFloat(stat.avgGrade || 0), 0) / classes.length).toFixed(1)
-        : 0;
-
-    const stats = [
-        { label: 'Total Kelas', value: classes.length, icon: Users, color: 'from-blue-500 to-cyan-500' },
-        { label: 'Total Siswa', value: totalStudents, icon: GraduationCap, color: 'from-sky-500 to-indigo-500' },
-        { label: 'Total Tugas', value: totalTasks, icon: BookOpen, color: 'from-cyan-500 to-teal-500' },
-        { label: 'Rata-rata Nilai', value: overallAvg, icon: Star, color: 'from-indigo-500 to-purple-500' },
-    ];
-
-    if (selectedClass) {
-        return <ClassDetail classData={selectedClass} classes={classes} onBack={() => setSelectedClass(null)} />;
-    }
+    const filteredClasses = classes.filter(cls =>
+        cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cls.subject?.toLowerCase().includes(searchTerm.toLowerCase())
+    ).sort((a, b) => {
+        switch (sortBy) {
+            case 'newest':
+                return (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0);
+            case 'oldest':
+                return (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0);
+            case 'a-z':
+                return a.name.localeCompare(b.name);
+            case 'z-a':
+                return b.name.localeCompare(a.name);
+            default:
+                return 0;
+        }
+    });
 
     return (
-        <div className="space-y-8">
-            {/* Header Section */}
+        <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
                         Manajemen Kelas
                     </h1>
-                    <p className="text-slate-500 mt-1">Kelola kelas dan siswa Anda dengan mudah</p>
+                    <p className="text-slate-500 mt-1">Kelola kelas, siswa, dan aktivitas pembelajaran</p>
                 </div>
                 <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -177,134 +187,121 @@ export default function Classes() {
                 </motion.button>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, index) => (
-                    <motion.div
-                        key={index}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className={`bg-gradient-to-br ${stat.color} p-6 rounded-2xl text-white shadow-xl relative overflow-hidden group`}
-                    >
-                        <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-500"></div>
-                        <div className="relative z-10">
-                            <div className="bg-white/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 backdrop-blur-sm">
-                                <stat.icon className="h-6 w-6 text-white" />
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Sidebar - Class List */}
+                <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col h-[calc(100vh-12rem)] sticky top-6">
+                    <div className="p-4 border-b border-slate-100 space-y-3 flex-shrink-0">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-bold text-slate-800">Daftar Kelas</h3>
+                            <div className="relative group">
+                                <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                    <ArrowUpDown className="h-4 w-4" />
+                                </button>
+                                <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden hidden group-hover:block z-10">
+                                    <button onClick={() => setSortBy('newest')} className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 ${sortBy === 'newest' ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>Terbaru</button>
+                                    <button onClick={() => setSortBy('oldest')} className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 ${sortBy === 'oldest' ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>Terlama</button>
+                                    <button onClick={() => setSortBy('a-z')} className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 ${sortBy === 'a-z' ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>Nama (A-Z)</button>
+                                    <button onClick={() => setSortBy('z-a')} className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 ${sortBy === 'z-a' ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>Nama (Z-A)</button>
+                                </div>
                             </div>
-                            <p className="text-white/80 text-sm font-medium">{stat.label}</p>
-                            <h3 className="text-3xl font-bold mt-1">{stat.value}</h3>
                         </div>
-                    </motion.div>
-                ))}
-            </div>
 
-            {/* Classes Grid */}
-            {loading ? (
-                <div className="flex justify-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                </div>
-            ) : classes.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-3xl border-2 border-dashed border-slate-200">
-                    <div className="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Users className="h-10 w-10 text-blue-500" />
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Cari Kelas..."
+                                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-slate-50 focus:bg-white transition-all"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-800 mb-2">Belum ada kelas</h3>
-                    <p className="text-slate-500 mb-8 max-w-md mx-auto">Mulai dengan membuat kelas baru untuk mengelola siswa dan tugas Anda.</p>
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors"
-                    >
-                        Buat Kelas Pertama
-                    </button>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                    {classes.map((cls, index) => {
-                        const stats = classStats[cls.id] || { studentCount: 0, taskCount: 0, avgGrade: 0 };
-                        return (
-                            <motion.div
-                                key={cls.id}
-                                layout
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.3 }}
-                                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-slate-200 group cursor-pointer"
-                                onClick={() => setSelectedClass(cls)}
-                            >
-                                {/* Simplified Header */}
-                                <div className="bg-slate-50 border-b border-slate-200 p-6">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                                                <UsersIcon className="h-6 w-6 text-blue-600" />
+
+                    <div className="overflow-y-auto flex-1 p-2 space-y-2 custom-scrollbar">
+                        {loading ? (
+                            <div className="flex justify-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            </div>
+                        ) : filteredClasses.length === 0 ? (
+                            <div className="text-center py-8 text-slate-500 text-sm">
+                                {searchTerm ? 'Kelas tidak ditemukan' : 'Belum ada kelas'}
+                            </div>
+                        ) : (
+                            filteredClasses.map((cls) => {
+                                const isSelected = selectedClass?.id === cls.id;
+                                const stats = classStats[cls.id] || { studentCount: 0 };
+
+                                return (
+                                    <div
+                                        key={cls.id}
+                                        onClick={() => setSelectedClass(cls)}
+                                        className={`p-3 rounded-xl cursor-pointer transition-all border ${isSelected
+                                            ? 'bg-blue-50 border-blue-200 shadow-sm'
+                                            : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-100'
+                                            }`}
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-500'
+                                                }`}>
+                                                <UsersIcon className="h-5 w-5" />
                                             </div>
-                                            <div>
-                                                <h3 className="text-lg font-bold text-slate-800">{cls.name}</h3>
-                                                <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5">
-                                                    <BookOpen className="h-3 w-3" />
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className={`font-bold text-sm truncate ${isSelected ? 'text-blue-900' : 'text-slate-800'}`}>
+                                                    {cls.name}
+                                                </h4>
+                                                <p className="text-xs text-slate-500 truncate mb-1.5">
                                                     {cls.subject}
                                                 </p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${isSelected ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                                                        }`}>
+                                                        {stats.studentCount} Siswa
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleOpenModal(cls);
-                                                }}
-                                                className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition-all"
-                                                title="Edit kelas"
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDelete(cls.id);
-                                                }}
-                                                className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition-all"
-                                                title="Hapus kelas"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
+                                            {isSelected && (
+                                                <div className="flex flex-col gap-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleOpenModal(cls);
+                                                        }}
+                                                        className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                                                    >
+                                                        <Edit2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                </div>
-
-                                {/* Stats Content */}
-                                <div className="p-6">
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="text-center">
-                                            <div className="flex items-center justify-center gap-1.5 mb-1">
-                                                <Users className="h-4 w-4 text-blue-500" />
-                                            </div>
-                                            <div className="text-2xl font-bold text-slate-800">{stats.studentCount}</div>
-                                            <div className="text-xs text-slate-500 font-medium">Siswa</div>
-                                        </div>
-                                        <div className="text-center border-x border-slate-100">
-                                            <div className="flex items-center justify-center gap-1.5 mb-1">
-                                                <BookOpen className="h-4 w-4 text-cyan-500" />
-                                            </div>
-                                            <div className="text-2xl font-bold text-slate-800">{stats.taskCount}</div>
-                                            <div className="text-xs text-slate-500 font-medium">Tugas</div>
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="flex items-center justify-center gap-1.5 mb-1">
-                                                <Award className={`h-4 w-4 ${stats.avgGrade >= 80 ? 'text-green-500' : stats.avgGrade >= 60 ? 'text-amber-500' : 'text-slate-400'}`} />
-                                            </div>
-                                            <div className={`text-2xl font-bold ${stats.avgGrade >= 80 ? 'text-green-600' : stats.avgGrade >= 60 ? 'text-amber-600' : 'text-slate-800'}`}>
-                                                {stats.avgGrade}
-                                            </div>
-                                            <div className="text-xs text-slate-500 font-medium">Rata-rata</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        );
-                    })}
+                                );
+                            })
+                        )}
+                    </div>
                 </div>
-            )}
+
+                {/* Main Content - Class Detail */}
+                <div className="lg:col-span-3">
+                    {selectedClass ? (
+                        <ClassDetail
+                            classData={selectedClass}
+                            classes={classes}
+                            onBack={() => setSelectedClass(null)}
+                        />
+                    ) : (
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 h-[calc(100vh-12rem)] flex flex-col items-center justify-center text-center p-8">
+                            <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mb-4">
+                                <GraduationCap className="h-10 w-10 text-slate-400" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-800 mb-2">Pilih Kelas</h3>
+                            <p className="text-slate-500 max-w-md">
+                                Pilih salah satu kelas dari daftar di samping untuk melihat detail, mengelola siswa, dan memantau aktivitas.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
 
             {/* Modal */}
             <AnimatePresence>
@@ -374,7 +371,7 @@ export default function Classes() {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
         </div >
     );
 }

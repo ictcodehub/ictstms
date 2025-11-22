@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, query, where, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, Filter, MoreVertical, Mail, Plus, Edit2, Trash2, X, Save, UserPlus, BookOpen, Award, CheckCircle, Lock, School } from 'lucide-react';
+import { ArrowLeft, Search, Filter, MoreVertical, Mail, Plus, Edit2, Trash2, X, Save, UserPlus, BookOpen, Award, CheckCircle, Lock, School, Star, TrendingUp, Users } from 'lucide-react';
 
 export default function ClassDetail({ classData, classes, onBack }) {
     const [students, setStudents] = useState([]);
@@ -135,25 +135,87 @@ export default function ClassDetail({ classData, classes, onBack }) {
         return 'bg-amber-50 text-amber-600 border-amber-200';
     };
 
+    const classStats = {
+        avgGrade: students.length > 0
+            ? (students.reduce((acc, s) => acc + parseFloat(s.stats.avgGrade || 0), 0) / students.length).toFixed(1)
+            : 0,
+        completionRate: students.length > 0
+            ? Math.round(students.reduce((acc, s) => acc + (s.stats.completionRate || 0), 0) / students.length)
+            : 0,
+        totalStudents: students.length,
+        totalTasks: students.length > 0 ? students[0].stats.totalTasks : 0
+    };
+
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={onBack}
-                        className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-all shadow-sm"
-                    >
-                        <ArrowLeft className="h-5 w-5" />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-800">{classData.name}</h1>
-                        <p className="text-slate-500 text-sm flex items-center gap-2">
-                            <BookOpen className="h-4 w-4" />
-                            {classData.subject}
-                        </p>
+            {/* Stats Dashboard */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"
+                >
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                            <Star className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-500 font-medium">Rata-rata Kelas</p>
+                            <p className="text-2xl font-bold text-slate-800">{classStats.avgGrade}</p>
+                        </div>
                     </div>
-                </div>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"
+                >
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-500 font-medium">Penyelesaian</p>
+                            <p className="text-2xl font-bold text-slate-800">{classStats.completionRate}%</p>
+                        </div>
+                    </div>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"
+                >
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                            <Users className="h-5 w-5 text-indigo-600" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-500 font-medium">Total Siswa</p>
+                            <p className="text-2xl font-bold text-slate-800">{classStats.totalStudents}</p>
+                        </div>
+                    </div>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"
+                >
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
+                            <BookOpen className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-500 font-medium">Total Tugas</p>
+                            <p className="text-2xl font-bold text-slate-800">{classStats.totalTasks}</p>
+                        </div>
+                    </div>
+                </motion.div>
             </div>
 
             {/* Toolbar */}
@@ -356,6 +418,6 @@ export default function ClassDetail({ classData, classes, onBack }) {
                     </div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }

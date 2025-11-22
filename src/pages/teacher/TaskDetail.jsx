@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Users, CheckCircle2, Clock, XCircle, Award, FileText, Calendar, BookOpen, Save, X, Edit2 } from 'lucide-react';
+import { ArrowLeft, Users, CheckCircle2, Clock, XCircle, Award, FileText, Calendar, BookOpen, Save, X, Edit2, Filter } from 'lucide-react';
 
-export default function TaskDetail({ task, onBack }) {
+export default function TaskDetail({ task, classes = [], onBack }) {
     const [students, setStudents] = useState([]);
     const [submissions, setSubmissions] = useState({});
     const [loading, setLoading] = useState(true);
@@ -13,6 +13,7 @@ export default function TaskDetail({ task, onBack }) {
     const [gradeData, setGradeData] = useState({ grade: '', feedback: '' });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
+    const [filterClass, setFilterClass] = useState('all');
 
     // Validate task object
     if (!task) {
@@ -131,7 +132,8 @@ export default function TaskDetail({ task, onBack }) {
             await updateDoc(doc(db, 'submissions', currentSubmission.submission.id), {
                 grade: grade,
                 feedback: gradeData.feedback,
-                gradedAt: serverTimestamp()
+                gradedAt: serverTimestamp(),
+                status: 'graded'
             });
 
             // Update local state
@@ -140,7 +142,8 @@ export default function TaskDetail({ task, onBack }) {
                 [currentSubmission.student.uid || currentSubmission.student.id]: {
                     ...prev[currentSubmission.student.uid || currentSubmission.student.id],
                     grade: grade,
-                    feedback: gradeData.feedback
+                    feedback: gradeData.feedback,
+                    status: 'graded'
                 }
             }));
 
@@ -186,14 +189,63 @@ export default function TaskDetail({ task, onBack }) {
         }
     };
 
-    // Calculate statistics
+    // Helper for submission time styling
+    const getSubmissionTimeStyle = (submittedAt, deadline) => {
+        if (!submittedAt || !deadline) return 'bg-slate-50 text-slate-600 border-slate-200';
+
+        const submitDate = submittedAt.toDate ? submittedAt.toDate() : new Date(submittedAt);
+        const deadlineDate = deadline.toDate ? deadline.toDate() : new Date(deadline);
+
+        // Late submission
+        if (submitDate > deadlineDate) {
+            return 'bg-red-50 text-red-700 border-red-200';
+        }
+
+        // H-1 submission (within 24 hours before deadline)
+        const oneDayBefore = new Date(deadlineDate.getTime() - (24 * 60 * 60 * 1000));
+        if (submitDate >= oneDayBefore) {
+            return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+        }
+
+        // Early submission
+        return 'bg-green-50 text-green-700 border-green-200';
+    };
+
+    // Helper for date time (DD MMM YYYY, HH:mm)
+    const formatDateTime = (date) => {
+        if (!date) return '-';
+        try {
+            const d = date.toDate ? date.toDate() : new Date(date);
+            if (isNaN(d.getTime())) return 'Invalid Date';
+            return d.toLocaleString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (e) {
+            return '-';
+        }
+    };
+
+    // Filter students based on selected class
+    const filteredStudents = filterClass === 'all'
+        ? students
+        : students.filter(student => student.classId === filterClass);
+
+    // Calculate statistics based on filtered students
+    const filteredSubmissions = filteredStudents
+        .map(student => submissions[student.uid] || submissions[student.id])
+        .filter(Boolean);
+
     const stats = {
-        total: students.length,
-        submitted: Object.keys(submissions).length,
-        graded: Object.values(submissions).filter(s => s.grade !== undefined && s.grade !== null).length,
-        avgGrade: Object.values(submissions).filter(s => s.grade !== undefined && s.grade !== null).length > 0
-            ? (Object.values(submissions).filter(s => s.grade !== undefined && s.grade !== null).reduce((sum, s) => sum + s.grade, 0) /
-                Object.values(submissions).filter(s => s.grade !== undefined && s.grade !== null).length).toFixed(1)
+        total: filteredStudents.length,
+        submitted: filteredSubmissions.length,
+        graded: filteredSubmissions.filter(s => s.grade !== undefined && s.grade !== null).length,
+        avgGrade: filteredSubmissions.filter(s => s.grade !== undefined && s.grade !== null).length > 0
+            ? (filteredSubmissions.filter(s => s.grade !== undefined && s.grade !== null).reduce((sum, s) => sum + s.grade, 0) /
+                filteredSubmissions.filter(s => s.grade !== undefined && s.grade !== null).length).toFixed(1)
             : 0
     };
 
@@ -253,8 +305,8 @@ export default function TaskDetail({ task, onBack }) {
                 </div>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-cyan-50 rounded-xl flex items-center justify-center">
-                            <Award className="h-6 w-6 text-cyan-600" />
+                        <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
+                            <FileText className="h-6 w-6 text-amber-600" />
                         </div>
                         <div>
                             <p className="text-xs text-slate-500 font-medium">Sudah Dinilai</p>
@@ -264,8 +316,8 @@ export default function TaskDetail({ task, onBack }) {
                 </div>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center">
-                            <Award className="h-6 w-6 text-indigo-600" />
+                        <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                            <Award className="h-6 w-6 text-purple-600" />
                         </div>
                         <div>
                             <p className="text-xs text-slate-500 font-medium">Rata-rata</p>
@@ -275,37 +327,62 @@ export default function TaskDetail({ task, onBack }) {
                 </div>
             </div>
 
-            {/* Submissions Table */}
+            {/* Student List */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                {loading ? (
-                    <div className="flex justify-center py-12">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <h2 className="text-lg font-bold text-slate-800">Daftar Siswa</h2>
+
+                    {/* Class Filter */}
+                    <div className="relative">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <select
+                            value={filterClass}
+                            onChange={(e) => setFilterClass(e.target.value)}
+                            className="pl-10 pr-8 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm appearance-none bg-white cursor-pointer min-w-[200px]"
+                        >
+                            <option value="all">Semua Kelas</option>
+                            {task?.assignedClasses?.map(classId => {
+                                const cls = classes.find(c => c.id === classId);
+                                return cls ? (
+                                    <option key={classId} value={classId}>{cls.name}</option>
+                                ) : null;
+                            })}
+                        </select>
                     </div>
-                ) : students.length === 0 ? (
-                    <div className="text-center py-16">
-                        <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Users className="h-8 w-8 text-slate-400" />
-                        </div>
-                        <h3 className="text-lg font-bold text-slate-800">Tidak ada siswa</h3>
-                        <p className="text-slate-500">Belum ada siswa di kelas yang ditugaskan.</p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-slate-50/50 border-b border-slate-200">
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-slate-50/50 border-b border-slate-200">
+                            <tr>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kelas</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Waktu Submit</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nilai</th>
+                                <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {loading ? (
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">No</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Waktu Submit</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Nilai</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider w-32">Aksi</th>
+                                    <td colSpan="6" className="px-6 py-12 text-center">
+                                        <div className="flex justify-center">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {students.map((student, index) => {
+                            ) : filteredStudents.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                                        Tidak ada siswa ditemukan untuk filter ini.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredStudents.map((student, index) => {
+                                    const { status, label, color, bgColor, borderColor } = getSubmissionStatus(student);
                                     const submission = submissions[student.uid] || submissions[student.id];
-                                    const statusInfo = getSubmissionStatus(student);
+                                    const cls = classes.find(c => c.id === student.classId);
 
                                     return (
                                         <motion.tr
@@ -313,36 +390,43 @@ export default function TaskDetail({ task, onBack }) {
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             transition={{ delay: index * 0.03 }}
-                                            className="hover:bg-blue-50/30 transition-colors group"
+                                            className="hover:bg-slate-50/50 transition-colors"
                                         >
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
-                                                {index + 1}
-                                            </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                                                        {student.name?.charAt(0)?.toUpperCase() || '?'}
+                                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                                                        {student.name?.charAt(0) || '?'}
                                                     </div>
                                                     <div>
-                                                        <div className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
-                                                            {student.name || 'Tanpa Nama'}
-                                                        </div>
-                                                        <div className="text-xs text-slate-500">{student.email}</div>
+                                                        <p className="text-sm font-bold text-slate-800">{student.name || 'Unknown'}</p>
+                                                        <p className="text-xs text-slate-500">{student.email}</p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusInfo.bgColor} ${statusInfo.color} ${statusInfo.borderColor}`}>
-                                                    {statusInfo.status === 'submitted' && <CheckCircle2 className="h-3 w-3" />}
-                                                    {statusInfo.status === 'late' && <Clock className="h-3 w-3" />}
-                                                    {statusInfo.status === 'not_submitted' && <XCircle className="h-3 w-3" />}
-                                                    {statusInfo.label}
+                                            <td className="px-6 py-4">
+                                                <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-1 rounded-lg border border-blue-200 font-medium">
+                                                    {cls?.name || 'Unknown Class'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-center text-sm text-slate-600">
-                                                {submission ? formatDate(submission.submittedAt) : '-'}
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${bgColor} ${color} ${borderColor}`}>
+                                                    {status === 'submitted' && <CheckCircle2 className="h-3 w-3" />}
+                                                    {status === 'late' && <Clock className="h-3 w-3" />}
+                                                    {status === 'not_submitted' && <XCircle className="h-3 w-3" />}
+                                                    {label}
+                                                </span>
                                             </td>
-                                            <td className="px-6 py-4 text-center">
+                                            <td className="px-6 py-4 text-left">
+                                                {submission ? (
+                                                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getSubmissionTimeStyle(submission.submittedAt, task.deadline)}`}>
+                                                        <Calendar className="h-3 w-3" />
+                                                        {formatDateTime(submission.submittedAt)}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400">-</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4">
                                                 {submission?.grade !== undefined && submission?.grade !== null ? (
                                                     <div className={`inline-flex items-center gap-1.5 font-bold ${submission.grade >= 80 ? 'text-green-600' :
                                                         submission.grade >= 60 ? 'text-amber-600' :
@@ -355,7 +439,7 @@ export default function TaskDetail({ task, onBack }) {
                                                     <span className="text-slate-400">-</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 text-center">
+                                            <td className="px-6 py-4 text-right">
                                                 <button
                                                     onClick={() => handleGradeClick(student)}
                                                     disabled={!submission}
@@ -376,11 +460,11 @@ export default function TaskDetail({ task, onBack }) {
                                             </td>
                                         </motion.tr>
                                     );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Grading Modal */}
