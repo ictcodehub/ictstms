@@ -99,6 +99,7 @@ export default function TeacherOverview() {
 
                 return {
                     id: subDoc.id,
+                    taskId: sub.taskId,
                     studentName,
                     className,
                     taskTitle,
@@ -137,6 +138,15 @@ export default function TeacherOverview() {
         if (seconds < 3600) return `${Math.floor(seconds / 60)} menit yang lalu`;
         if (seconds < 86400) return `${Math.floor(seconds / 3600)} jam yang lalu`;
         return `${Math.floor(seconds / 86400)} hari yang lalu`;
+    };
+
+    const handleActivityClick = (activity) => {
+        // Navigate to tasks page with the selected task ID
+        navigate('/teacher/tasks', {
+            state: {
+                selectedTaskId: activity.taskId
+            }
+        });
     };
 
     return (
@@ -207,7 +217,8 @@ export default function TeacherOverview() {
                                             key={activity.id}
                                             initial={{ opacity: 0, x: -20 }}
                                             animate={{ opacity: 1, x: 0 }}
-                                            className="flex gap-4 p-4 rounded-xl hover:bg-blue-50/50 transition-colors border border-slate-100"
+                                            onClick={() => handleActivityClick(activity)}
+                                            className="flex gap-4 p-4 rounded-xl hover:bg-blue-50 transition-all border border-slate-100 cursor-pointer hover:shadow-md hover:border-blue-200"
                                         >
                                             <div className={`w-12 h-12 rounded-xl ${activity.hasGrade ? 'bg-gradient-to-br from-green-500 to-emerald-500' : 'bg-gradient-to-br from-blue-500 to-cyan-500'} flex items-center justify-center flex-shrink-0 text-white font-bold text-lg shadow-md`}>
                                                 {activity.initial}

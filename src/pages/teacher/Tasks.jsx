@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query, where } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +11,7 @@ import { sortClasses } from '../../utils/classSort';
 
 export default function Tasks() {
     const { currentUser } = useAuth();
+    const location = useLocation();
     const [tasks, setTasks] = useState([]);
     const [classes, setClasses] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -38,6 +40,18 @@ export default function Tasks() {
             loadData();
         }
     }, [currentUser]);
+
+    // Auto-select task from navigation state (from activity feed)
+    useEffect(() => {
+        if (location.state?.selectedTaskId && tasks.length > 0) {
+            const task = tasks.find(t => t.id === location.state.selectedTaskId);
+            if (task) {
+                setSelectedTask(task);
+                // Clear the state to prevent re-selecting on subsequent renders
+                window.history.replaceState({}, document.title);
+            }
+        }
+    }, [location.state, tasks]);
 
     const loadData = async () => {
         setLoading(true);
