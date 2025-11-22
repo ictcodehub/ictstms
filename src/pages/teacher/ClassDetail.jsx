@@ -19,6 +19,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
+        setSelectedStudent(null); // Reset selected student when class changes
         loadClassData();
     }, [classData.id]);
 
