@@ -4,6 +4,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import TeacherDashboard from './pages/teacher/Dashboard';
 import StudentDashboard from './pages/student/Dashboard';
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminDashboard from './pages/admin/Dashboard';
+import UserManagement from './pages/admin/UserManagement';
 
 
 // Protected Route Component
@@ -15,6 +18,7 @@ const ProtectedRoute = ({ children, role }) => {
   if (!currentUser) return <Navigate to="/login" />;
 
   if (role && userRole !== role) {
+    if (userRole === 'admin') return <Navigate to="/admin" />;
     return <Navigate to={userRole === 'teacher' ? '/teacher' : '/student'} />;
   }
 
@@ -29,6 +33,7 @@ const RootRedirect = () => {
 
   if (!currentUser) return <Navigate to="/login" />;
 
+  if (userRole === 'admin') return <Navigate to="/admin" />;
   return <Navigate to={userRole === 'teacher' ? '/teacher' : '/student'} />;
 };
 
@@ -53,6 +58,16 @@ function App() {
               <StudentDashboard />
             </ProtectedRoute>
           } />
+
+          {/* Admin Routes */}
+          <Route path="/admin" element={
+            <ProtectedRoute role="admin">
+              <AdminLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} />
+          </Route>
 
           {/* Default Redirect */}
           <Route path="/" element={<RootRedirect />} />

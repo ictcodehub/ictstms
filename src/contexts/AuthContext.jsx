@@ -17,13 +17,27 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                setCurrentUser(user);
                 // Fetch role
                 try {
                     const docRef = doc(db, "users", user.uid);
                     const docSnap = await getDoc(docRef);
                     if (docSnap.exists()) {
-                        setUserRole(docSnap.data().role);
+                        const userData = docSnap.data();
+                        if (userData.status === 'banned') {
+                            await signOut(auth);
+                            setCurrentUser(null);
+                            setUserRole(null);
+                            alert("Akun Anda telah dinonaktifkan. Hubungi admin.");
+                        } else {
+                            setCurrentUser(user);
+                            setUserRole(userData.role);
+                        }
+                    } else {
+                        // Profile doesn't exist? Maybe deleted.
+                        // For now, allow login but role is null, or force logout?
+                        // Let's allow login but role is null, ProtectedRoute will handle it.
+                        setCurrentUser(user);
+                        setUserRole(null);
                     }
                 } catch (error) {
                     console.error("Error fetching user role:", error);
