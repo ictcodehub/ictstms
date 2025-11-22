@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, X, Users as UsersIcon, Edit2, BookOpen, TrendingUp, Award, GraduationCap, BarChart3, Calendar, MapPin, Star, Users, Search, ArrowUpDown } from 'lucide-react';
 import ClassDetail from './ClassDetail';
 import { useAuth } from '../../contexts/AuthContext';
+import { sortClasses } from '../../utils/classSort';
 
 export default function Classes() {
     const { currentUser } = useAuth();
@@ -18,7 +19,7 @@ export default function Classes() {
 
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortBy, setSortBy] = useState('newest'); // newest, oldest, a-z, z-a
+    const [sortBy, setSortBy] = useState('a-z'); // newest, oldest, a-z, z-a
 
     useEffect(() => {
         if (currentUser) {
@@ -152,20 +153,26 @@ export default function Classes() {
     const filteredClasses = classes.filter(cls =>
         cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         cls.subject?.toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort((a, b) => {
-        switch (sortBy) {
-            case 'newest':
-                return (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0);
-            case 'oldest':
-                return (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0);
-            case 'a-z':
-                return a.name.localeCompare(b.name);
-            case 'z-a':
-                return b.name.localeCompare(a.name);
-            default:
-                return 0;
-        }
-    });
+    );
+
+    // Apply sorting
+    let sortedClasses = [...filteredClasses];
+    switch (sortBy) {
+        case 'newest':
+            sortedClasses.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+            break;
+        case 'oldest':
+            sortedClasses.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
+            break;
+        case 'a-z':
+            sortedClasses = sortClasses(filteredClasses);
+            break;
+        case 'z-a':
+            sortedClasses = sortClasses(filteredClasses).reverse();
+            break;
+        default:
+            break;
+    }
 
     return (
         <div className="space-y-6">
@@ -223,12 +230,12 @@ export default function Classes() {
                             <div className="flex justify-center py-8">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                             </div>
-                        ) : filteredClasses.length === 0 ? (
+                        ) : sortedClasses.length === 0 ? (
                             <div className="text-center py-8 text-slate-500 text-sm">
                                 {searchTerm ? 'Kelas tidak ditemukan' : 'Belum ada kelas'}
                             </div>
                         ) : (
-                            filteredClasses.map((cls) => {
+                            sortedClasses.map((cls) => {
                                 const isSelected = selectedClass?.id === cls.id;
                                 const stats = classStats[cls.id] || { studentCount: 0 };
 
