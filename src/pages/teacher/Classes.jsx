@@ -4,8 +4,10 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, X, Users as UsersIcon, Edit2, BookOpen, TrendingUp, Award, GraduationCap, BarChart3, Calendar, MapPin, Star, Users } from 'lucide-react';
 import ClassDetail from './ClassDetail';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Classes() {
+    const { currentUser } = useAuth();
     const [classes, setClasses] = useState([]);
     const [selectedClass, setSelectedClass] = useState(null);
     const [showModal, setShowModal] = useState(false);
@@ -16,13 +18,19 @@ export default function Classes() {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        loadClasses();
-    }, []);
+        if (currentUser) {
+            loadClasses();
+        }
+    }, [currentUser]);
 
     const loadClasses = async () => {
         setLoading(true);
         try {
-            const q = query(collection(db, 'classes'), orderBy('createdAt', 'desc'));
+            const q = query(
+                collection(db, 'classes'),
+                where('createdBy', '==', currentUser.uid),
+                orderBy('createdAt', 'desc')
+            );
             const snapshot = await getDocs(q);
             const classesList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setClasses(classesList);
@@ -102,6 +110,7 @@ export default function Classes() {
                 await addDoc(collection(db, 'classes'), {
                     name: formData.name,
                     subject: formData.subject,
+                    createdBy: currentUser.uid,
                     createdAt: serverTimestamp()
                 });
             }
