@@ -4,21 +4,42 @@
 
 :root {
   --primary-color: #2563eb;
-  /* blue-600 */
   --secondary-color: #0891b2;
-  /* cyan-600 */
   --background-color: #f0f9ff;
-  /* sky-50 */
   --surface-color: #ffffff;
   --error-color: #ef4444;
-  /* red-500 */
   --text-primary: #1e293b;
-  /* slate-800 */
   --text-secondary: #64748b;
-  /* slate-500 */
   --border-radius: 12px;
   --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --transition: all 0.3s ease;
+}
+
+/* Responsive Font Scaling */
+html {
+  font-size: 16px;
+  /* Mobile: 100% */
+}
+
+@media (min-width: 768px) and (max-width: 1365px) {
+  html {
+    font-size: 14.4px;
+    /* Tablet: 90% */
+  }
+}
+
+@media (min-width: 1366px) and (max-width: 1919px) {
+  html {
+    font-size: 12.8px;
+    /* Desktop 1366x768: 80% */
+  }
+}
+
+@media (min-width: 1920px) {
+  html {
+    font-size: 16px;
+    /* Large Desktop: 100% */
+  }
 }
 
 body {
@@ -28,7 +49,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -40,17 +60,14 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: #93c5fd;
-  /* blue-300 */
   border-radius: 4px;
   transition: background 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #60a5fa;
-  /* blue-400 */
 }
 
-/* Firefox Scrollbar */
 * {
   scrollbar-width: thin;
   scrollbar-color: #93c5fd #f0f9ff;
