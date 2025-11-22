@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { Mail, Lock, AlertCircle, School, ArrowRight, LogIn, Eye, EyeOff } from 'lucide-react';
@@ -10,8 +10,12 @@ export default function Login() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth();
+    const { login, currentUser } = useAuth();
     const navigate = useNavigate();
+
+    if (currentUser) {
+        return <Navigate to="/" />;
+    }
 
     const handleLogin = async (e) => {
         e.preventDefault();
