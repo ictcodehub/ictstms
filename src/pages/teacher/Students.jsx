@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Trash2, Users, TrendingUp, Award, BookOpen, Filter, ChevronLeft, ChevronRight, ArrowUpDown, Edit2, X, Save, School, AlertTriangle } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { sortClasses } from '../../utils/classSort';
 
 export default function Students() {
     const { currentUser } = useAuth();
@@ -55,7 +56,7 @@ export default function Students() {
                 classIds.push(doc.id);
             });
             setClassesMap(map);
-            setClassesList(list);
+            setClassesList(sortClasses(list));
 
             // Load students only from these classes
             let studentsList = [];
@@ -341,8 +342,8 @@ export default function Students() {
                                 onChange={(e) => setSelectedClass(e.target.value)}
                             >
                                 <option value="all">Semua Kelas</option>
-                                {Object.entries(classesMap).map(([id, name]) => (
-                                    <option key={id} value={id}>{name}</option>
+                                {classesList.map((cls) => (
+                                    <option key={cls.id} value={cls.id}>{cls.name}</option>
                                 ))}
                             </select>
                             <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">

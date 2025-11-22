@@ -6,6 +6,7 @@ import { Plus, Edit2, Trash2, X, GraduationCap, Calendar, Clock, FileText, Alert
 import TaskDetail from './TaskDetail';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { sortClasses } from '../../utils/classSort';
 
 export default function Tasks() {
     const { currentUser } = useAuth();
@@ -45,7 +46,8 @@ export default function Tasks() {
                 where('createdBy', '==', currentUser.uid)
             );
             const classesSnap = await getDocs(classesQuery);
-            setClasses(classesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            const classList = classesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setClasses(sortClasses(classList));
 
             // Load tasks created by this teacher
             const q = query(

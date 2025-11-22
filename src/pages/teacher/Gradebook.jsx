@@ -4,6 +4,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Search, TrendingUp, Users, FileText, Target, CheckCircle, Clock, AlertCircle, ArrowUpDown } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { sortClasses } from '../../utils/classSort';
 
 export default function Gradebook() {
     const { currentUser } = useAuth();
@@ -40,7 +41,8 @@ export default function Gradebook() {
             );
             const classesSnap = await getDocs(classesQuery);
             const teacherClassIds = classesSnap.docs.map(doc => doc.id);
-            setClasses(classesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            const classList = classesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setClasses(sortClasses(classList));
 
             // 2. Load Students in these classes
             let studentsList = [];

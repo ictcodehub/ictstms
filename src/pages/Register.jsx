@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { UserPlus, Mail, Lock, User, AlertCircle, School, ArrowRight, GraduationCap, BookOpen, Eye, EyeOff } from 'lucide-react';
+import { sortClasses } from '../utils/classSort';
 
 export default function Register() {
     const [email, setEmail] = useState('');
@@ -32,7 +33,7 @@ export default function Register() {
                 id: doc.id,
                 ...doc.data()
             }));
-            setClasses(classesData);
+            setClasses(sortClasses(classesData));
         } catch (error) {
             console.error('Error loading classes:', error);
         }
@@ -219,7 +220,7 @@ export default function Register() {
                                     <option value="">-- Pilih Kelas --</option>
                                     {classes.map((cls) => (
                                         <option key={cls.id} value={cls.id}>
-                                            {cls.name} - {cls.subject}
+                                            {cls.name}
                                         </option>
                                     ))}
                                 </select>
