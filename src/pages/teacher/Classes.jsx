@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query, where } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,6 +10,7 @@ import { sortClasses } from '../../utils/classSort';
 
 export default function Classes() {
     const { currentUser } = useAuth();
+    const location = useLocation();
     const [classes, setClasses] = useState([]);
     const [selectedClass, setSelectedClass] = useState(null);
     const [showModal, setShowModal] = useState(false);
@@ -96,6 +98,18 @@ export default function Classes() {
             setSelectedClass(sorted[0]);
         }
     }, [classes]);
+
+    // Auto-select class from navigation state (from new student activity)
+    useEffect(() => {
+        if (location.state?.selectedClassId && classes.length > 0) {
+            const cls = classes.find(c => c.id === location.state.selectedClassId);
+            if (cls) {
+                setSelectedClass(cls);
+                // Clear the state to prevent re-selecting on subsequent renders
+                window.history.replaceState({}, document.title);
+            }
+        }
+    }, [location.state, classes]);
 
     const handleOpenModal = (cls = null) => {
         if (cls) {

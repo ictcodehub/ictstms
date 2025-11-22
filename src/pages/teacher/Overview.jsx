@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { Users, BookOpen, ClipboardList, AlertCircle, Calendar, CheckCircle } from 'lucide-react';
+import { Users, BookOpen, ClipboardList, AlertCircle, Calendar, CheckCircle, Clock, UserPlus, Plus } from 'lucide-react';
 
 export default function TeacherOverview() {
     const { currentUser } = useAuth();
@@ -60,8 +60,6 @@ export default function TeacherOverview() {
             // 4. Load Submissions for these tasks
             let submissionsSnap = { docs: [] };
             if (teacherTaskIds.length > 0) {
-                // We fetch all submissions and filter because we can't easily query by taskId 'in' if list is huge
-                // Optimization: In a real app with huge data, we might need a better strategy or compound queries
                 const allSubmissionsSnap = await getDocs(collection(db, 'submissions'));
                 const filteredSubmissions = allSubmissionsSnap.docs.filter(doc =>
                     teacherTaskIds.includes(doc.data().taskId)
@@ -73,12 +71,15 @@ export default function TeacherOverview() {
                 return grade === null || grade === undefined;
             });
 
+            // Collect all activities
+            const allActivities = [];
+
+            // 1. Submission Activities
             const recentSubs = submissionsSnap.docs
                 .filter(doc => doc.data().submittedAt)
-                .sort((a, b) => b.data().submittedAt?.toMillis() - a.data().submittedAt?.toMillis())
-                .slice(0, 5);
+                .sort((a, b) => b.data().submittedAt?.toMillis() - a.data().submittedAt?.toMillis());
 
-            const activities = await Promise.all(recentSubs.map(async (subDoc) => {
+            for (const subDoc of recentSubs.slice(0, 10)) {
                 const sub = subDoc.data();
                 let studentName = 'Unknown Student';
                 let className = '';
@@ -95,20 +96,83 @@ export default function TeacherOverview() {
 
                 const taskDoc = tasksSnap.docs.find(t => t.id === sub.taskId);
                 const taskTitle = taskDoc?.data()?.title || 'Unknown Task';
-                const initial = studentName.charAt(0).toUpperCase();
 
-                return {
+                allActivities.push({
                     id: subDoc.id,
+                    type: 'submission',
+                    timestamp: sub.submittedAt?.toDate(),
                     taskId: sub.taskId,
                     studentName,
                     className,
                     taskTitle,
-                    time: sub.submittedAt?.toDate(),
                     hasGrade: sub.grade !== null && sub.grade !== undefined,
                     grade: sub.grade,
-                    initial
-                };
-            }));
+                    initial: studentName.charAt(0).toUpperCase()
+                });
+            }
+
+            // 2. New Student Activities (within 7 days)
+            const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            studentsSnap.docs.forEach(doc => {
+                const student = doc.data();
+                const createdAt = student.createdAt;
+                if (createdAt && createdAt.toMillis() > sevenDaysAgo) {
+                    const classDoc = classesSnap.docs.find(c => c.id === student.classId);
+                    const className = classDoc?.data()?.name || 'Unknown Class';
+
+                    allActivities.push({
+                        id: `student-${doc.id}`,
+                        type: 'new_student',
+                        timestamp: createdAt.toDate(),
+                        studentName: student.name || student.email?.split('@')[0] || 'Unknown Student',
+                        className,
+                        classId: student.classId,
+                        initial: (student.name || 'U').charAt(0).toUpperCase()
+                    });
+                }
+            });
+
+            // 3. Deadline Reminder Activities (within 3 days)
+            const now = new Date();
+            const threeDaysLater = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
+            tasksSnap.docs.forEach(doc => {
+                const task = doc.data();
+                const deadline = new Date(task.deadline);
+                if (deadline > now && deadline <= threeDaysLater) {
+                    const daysUntil = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+
+                    allActivities.push({
+                        id: `deadline-${doc.id}`,
+                        type: 'deadline',
+                        timestamp: deadline,
+                        taskTitle: task.title,
+                        taskId: doc.id,
+                        daysUntilDeadline: daysUntil,
+                        initial: '⏰'
+                    });
+                }
+            });
+
+            // 4. New Task Activities (within 7 days)
+            tasksSnap.docs.forEach(doc => {
+                const task = doc.data();
+                const createdAt = task.createdAt;
+                if (createdAt && createdAt.toMillis() > sevenDaysAgo) {
+                    allActivities.push({
+                        id: `newtask-${doc.id}`,
+                        type: 'new_task',
+                        timestamp: createdAt.toDate(),
+                        taskTitle: task.title,
+                        taskId: doc.id,
+                        initial: '➕'
+                    });
+                }
+            });
+
+            // Sort all activities by timestamp (most recent first) and limit to 10
+            const sortedActivities = allActivities
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, 10);
 
             setStats({
                 totalStudents: studentsSnap.size,
@@ -116,7 +180,7 @@ export default function TeacherOverview() {
                 activeTasks: activeTasks.length,
                 needsGrading: needsGrading.length
             });
-            setRecentActivities(activities);
+            setRecentActivities(sortedActivities);
         } catch (error) {
             console.error('Error loading overview data:', error);
         } finally {
@@ -141,12 +205,109 @@ export default function TeacherOverview() {
     };
 
     const handleActivityClick = (activity) => {
-        // Navigate to tasks page with the selected task ID
-        navigate('/teacher/tasks', {
-            state: {
-                selectedTaskId: activity.taskId
-            }
-        });
+        switch (activity.type) {
+            case 'submission':
+            case 'deadline':
+            case 'new_task':
+                // Navigate to tasks page with the selected task ID
+                navigate('/teacher/tasks', {
+                    state: {
+                        selectedTaskId: activity.taskId
+                    }
+                });
+                break;
+            case 'new_student':
+                // Navigate to classes page with the selected class ID
+                navigate('/teacher/classes', {
+                    state: {
+                        selectedClassId: activity.classId
+                    }
+                });
+                break;
+            default:
+                break;
+        }
+    };
+
+    const getActivityIcon = (activity) => {
+        switch (activity.type) {
+            case 'submission':
+                return activity.hasGrade ? 'bg-gradient-to-br from-green-500 to-emerald-500' : 'bg-gradient-to-br from-blue-500 to-cyan-500';
+            case 'new_student':
+                return 'bg-gradient-to-br from-purple-500 to-pink-500';
+            case 'deadline':
+                return 'bg-gradient-to-br from-orange-500 to-amber-500';
+            case 'new_task':
+                return 'bg-gradient-to-br from-cyan-500 to-teal-500';
+            default:
+                return 'bg-gradient-to-br from-slate-500 to-gray-500';
+        }
+    };
+
+    const getActivityMessage = (activity) => {
+        switch (activity.type) {
+            case 'submission':
+                return (
+                    <>
+                        <span className="text-blue-600">{activity.studentName}</span> mengumpulkan tugas
+                    </>
+                );
+            case 'new_student':
+                return (
+                    <>
+                        Siswa baru <span className="text-purple-600">{activity.studentName}</span> bergabung
+                    </>
+                );
+            case 'deadline':
+                return (
+                    <>
+                        Deadline tugas dalam <span className="text-orange-600">{activity.daysUntilDeadline} hari</span>
+                    </>
+                );
+            case 'new_task':
+                return (
+                    <>
+                        Tugas baru dibuat
+                    </>
+                );
+            default:
+                return 'Aktivitas';
+        }
+    };
+
+    const getActivityBadge = (activity) => {
+        switch (activity.type) {
+            case 'submission':
+                return activity.hasGrade ? (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg font-semibold">
+                        Nilai: {activity.grade}
+                    </span>
+                ) : (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-lg font-semibold">
+                        Perlu Dinilai
+                    </span>
+                );
+            case 'new_student':
+                return (
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-lg font-semibold">
+                        Siswa Baru
+                    </span>
+                );
+            case 'deadline':
+                return (
+                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-lg font-semibold">
+                        Mendesak
+                    </span>
+                );
+            case 'new_task':
+                return (
+                    <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-1 rounded-lg font-semibold">
+                        Baru
+                    </span>
+                );
+            default:
+                return null;
+        }
     };
 
     return (
@@ -220,14 +381,14 @@ export default function TeacherOverview() {
                                             onClick={() => handleActivityClick(activity)}
                                             className="flex gap-4 p-4 rounded-xl hover:bg-blue-50 transition-all border border-slate-100 cursor-pointer hover:shadow-md hover:border-blue-200"
                                         >
-                                            <div className={`w-12 h-12 rounded-xl ${activity.hasGrade ? 'bg-gradient-to-br from-green-500 to-emerald-500' : 'bg-gradient-to-br from-blue-500 to-cyan-500'} flex items-center justify-center flex-shrink-0 text-white font-bold text-lg shadow-md`}>
+                                            <div className={`w-12 h-12 rounded-xl ${getActivityIcon(activity)} flex items-center justify-center flex-shrink-0 text-white font-bold text-lg shadow-md`}>
                                                 {activity.initial}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="flex-1">
                                                         <p className="text-sm font-semibold text-slate-800">
-                                                            <span className="text-blue-600">{activity.studentName}</span> mengumpulkan tugas
+                                                            {getActivityMessage(activity)}
                                                         </p>
                                                         <p className="text-sm text-slate-600 truncate font-medium">{activity.taskTitle}</p>
                                                         {activity.className && (
@@ -237,16 +398,8 @@ export default function TeacherOverview() {
                                                         )}
                                                     </div>
                                                     <div className="flex flex-col items-end gap-1">
-                                                        <p className="text-xs text-slate-400 whitespace-nowrap">{getTimeAgo(activity.time)}</p>
-                                                        {activity.hasGrade ? (
-                                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg font-semibold">
-                                                                Nilai: {activity.grade}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-lg font-semibold">
-                                                                Perlu Dinilai
-                                                            </span>
-                                                        )}
+                                                        <p className="text-xs text-slate-400 whitespace-nowrap">{getTimeAgo(activity.timestamp)}</p>
+                                                        {getActivityBadge(activity)}
                                                     </div>
                                                 </div>
                                             </div>
