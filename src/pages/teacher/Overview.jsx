@@ -116,7 +116,8 @@ export default function TeacherOverview() {
             studentsSnap.docs.forEach(doc => {
                 const student = doc.data();
                 const createdAt = student.createdAt;
-                if (createdAt && createdAt.toMillis() > sevenDaysAgo) {
+                // Add safety check for createdAt
+                if (createdAt && typeof createdAt.toMillis === 'function' && createdAt.toMillis() > sevenDaysAgo) {
                     const classDoc = classesSnap.docs.find(c => c.id === student.classId);
                     const className = classDoc?.data()?.name || 'Unknown Class';
 
@@ -137,19 +138,21 @@ export default function TeacherOverview() {
             const threeDaysLater = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
             tasksSnap.docs.forEach(doc => {
                 const task = doc.data();
-                const deadline = new Date(task.deadline);
-                if (deadline > now && deadline <= threeDaysLater) {
-                    const daysUntil = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+                if (task.deadline) {
+                    const deadline = new Date(task.deadline);
+                    if (deadline > now && deadline <= threeDaysLater) {
+                        const daysUntil = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
 
-                    allActivities.push({
-                        id: `deadline-${doc.id}`,
-                        type: 'deadline',
-                        timestamp: deadline,
-                        taskTitle: task.title,
-                        taskId: doc.id,
-                        daysUntilDeadline: daysUntil,
-                        initial: '⏰'
-                    });
+                        allActivities.push({
+                            id: `deadline-${doc.id}`,
+                            type: 'deadline',
+                            timestamp: deadline,
+                            taskTitle: task.title,
+                            taskId: doc.id,
+                            daysUntilDeadline: daysUntil,
+                            initial: '⏰'
+                        });
+                    }
                 }
             });
 
@@ -157,7 +160,8 @@ export default function TeacherOverview() {
             tasksSnap.docs.forEach(doc => {
                 const task = doc.data();
                 const createdAt = task.createdAt;
-                if (createdAt && createdAt.toMillis() > sevenDaysAgo) {
+                // Add safety check for createdAt
+                if (createdAt && typeof createdAt.toMillis === 'function' && createdAt.toMillis() > sevenDaysAgo) {
                     allActivities.push({
                         id: `newtask-${doc.id}`,
                         type: 'new_task',
@@ -171,6 +175,7 @@ export default function TeacherOverview() {
 
             // Sort all activities by timestamp (most recent first) and limit to 10
             const sortedActivities = allActivities
+                .filter(a => a.timestamp) // Ensure timestamp exists
                 .sort((a, b) => b.timestamp - a.timestamp)
                 .slice(0, 10);
 
