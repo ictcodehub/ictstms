@@ -53,8 +53,20 @@ export default function Register() {
             await signup(email, password, name, role, classId);
             navigate(role === 'teacher' ? '/teacher' : '/student');
         } catch (err) {
-            setError('Gagal mendaftar. Coba lagi.');
-            console.error(err);
+            console.error("Registration Error Details:", err);
+            let errorMessage = 'Gagal mendaftar. Coba lagi.';
+
+            if (err.code === 'auth/email-already-in-use') {
+                errorMessage = 'Email sudah terdaftar. Silakan login.';
+            } else if (err.code === 'auth/weak-password') {
+                errorMessage = 'Password terlalu lemah (min. 6 karakter).';
+            } else if (err.code === 'auth/invalid-email') {
+                errorMessage = 'Format email tidak valid.';
+            } else if (err.message) {
+                errorMessage = `Error: ${err.message}`;
+            }
+
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
