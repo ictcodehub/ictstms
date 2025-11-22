@@ -273,7 +273,7 @@ export default function TeacherOverview() {
             case 'new_student':
                 return (
                     <>
-                        Siswa baru <span className="text-purple-600">{activity.studentName}</span> bergabung
+                        Siswa baru <span className="text-purple-600">{activity.studentName}</span> bergabung ke Kelas {activity.className}
                     </>
                 );
             case 'deadline':
@@ -297,29 +297,29 @@ export default function TeacherOverview() {
         switch (activity.type) {
             case 'submission':
                 return activity.hasGrade ? (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg font-semibold">
+                    <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-semibold">
                         Nilai: {activity.grade}
                     </span>
                 ) : (
-                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-lg font-semibold">
+                    <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
                         Perlu Dinilai
                     </span>
                 );
             case 'new_student':
                 return (
-                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-lg font-semibold">
+                    <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-semibold">
                         Siswa Baru
                     </span>
                 );
             case 'deadline':
                 return (
-                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-lg font-semibold">
+                    <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-semibold">
                         Mendesak
                     </span>
                 );
             case 'new_task':
                 return (
-                    <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-1 rounded-lg font-semibold">
+                    <span className="text-[10px] bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded font-semibold">
                         Baru
                     </span>
                 );
@@ -390,33 +390,38 @@ export default function TeacherOverview() {
                                     <p>Belum ada aktivitas terbaru</p>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-2">
                                     {recentActivities.map((activity) => (
                                         <motion.div
                                             key={activity.id}
                                             initial={{ opacity: 0, x: -20 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             onClick={() => handleActivityClick(activity)}
-                                            className="flex gap-4 p-4 rounded-xl hover:bg-blue-50 transition-all border border-slate-100 cursor-pointer hover:shadow-md hover:border-blue-200"
+                                            className="flex gap-3 p-3 rounded-xl hover:bg-blue-50 transition-all border border-slate-100 cursor-pointer hover:shadow-md hover:border-blue-200 items-center"
                                         >
-                                            <div className={`w-12 h-12 rounded-xl ${getActivityIcon(activity)} flex items-center justify-center flex-shrink-0 text-white font-bold text-lg shadow-md`}>
+                                            <div className={`w-10 h-10 rounded-lg ${getActivityIcon(activity)} flex items-center justify-center flex-shrink-0 text-white font-bold text-base shadow-sm`}>
                                                 {activity.initial}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-semibold text-slate-800">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-slate-800 truncate">
                                                             {getActivityMessage(activity)}
                                                         </p>
-                                                        <p className="text-sm text-slate-600 truncate font-medium">{activity.taskTitle}</p>
-                                                        {activity.className && (
-                                                            <p className="text-xs text-slate-500 mt-1">
-                                                                <span className="bg-slate-100 px-2 py-0.5 rounded">Kelas: {activity.className}</span>
-                                                            </p>
-                                                        )}
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            {activity.className && (
+                                                                <>
+                                                                    <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-bold border border-slate-200 flex-shrink-0">
+                                                                        {activity.className}
+                                                                    </span>
+                                                                    <span className="text-slate-300">•</span>
+                                                                </>
+                                                            )}
+                                                            <p className="text-xs text-slate-500 truncate">{activity.taskTitle}</p>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex flex-col items-end gap-1">
-                                                        <p className="text-xs text-slate-400 whitespace-nowrap">{getTimeAgo(activity.timestamp)}</p>
+                                                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                                        <p className="text-[10px] text-slate-400 whitespace-nowrap">{getTimeAgo(activity.timestamp)}</p>
                                                         {getActivityBadge(activity)}
                                                     </div>
                                                 </div>
