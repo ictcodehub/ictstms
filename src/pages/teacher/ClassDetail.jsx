@@ -4,10 +4,13 @@ import { collection, getDocs, query, where, doc, updateDoc, deleteDoc, serverTim
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Search, Filter, MoreVertical, Mail, Plus, Edit2, Trash2, X, Save, UserPlus, BookOpen, Award, CheckCircle, Lock, School, Star, TrendingUp, Users } from 'lucide-react';
 
+import StudentDetail from './StudentDetail';
+
 export default function ClassDetail({ classData, classes, onBack }) {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedStudent, setSelectedStudent] = useState(null);
 
     // Modal States
     const [showModal, setShowModal] = useState(false);
@@ -146,6 +149,10 @@ export default function ClassDetail({ classData, classes, onBack }) {
         totalTasks: students.length > 0 ? students[0].stats.totalTasks : 0
     };
 
+    if (selectedStudent) {
+        return <StudentDetail student={selectedStudent} onBack={() => setSelectedStudent(null)} />;
+    }
+
     return (
         <div className="space-y-6">
             {/* Stats Dashboard */}
@@ -268,7 +275,8 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         transition={{ delay: index * 0.03 }}
-                                        className="hover:bg-blue-50/30 transition-colors group"
+                                        onClick={() => setSelectedStudent(student)}
+                                        className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
                                             {index + 1}
@@ -305,14 +313,14 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                         <td className="px-6 py-4 text-center">
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
-                                                    onClick={() => handleEditClick(student)}
+                                                    onClick={(e) => { e.stopPropagation(); handleEditClick(student); }}
                                                     className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition-all"
                                                     title="Edit siswa"
                                                 >
                                                     <Edit2 className="h-4 w-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDeleteClick(student)}
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(student); }}
                                                     className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition-all"
                                                     title="Hapus siswa"
                                                 >

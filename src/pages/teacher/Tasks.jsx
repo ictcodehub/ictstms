@@ -406,7 +406,8 @@ export default function Tasks() {
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             transition={{ delay: index * 0.03 }}
-                                            className="hover:bg-blue-50/30 transition-colors group"
+                                            onClick={() => setSelectedTask(task)}
+                                            className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
                                         >
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
                                                 {startIndex + index + 1}
@@ -460,21 +461,21 @@ export default function Tasks() {
                                             <td className="px-6 py-4 text-center whitespace-nowrap">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
-                                                        onClick={() => setSelectedTask(task)}
+                                                        onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
                                                         className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-all"
                                                         title="Lihat detail"
                                                     >
                                                         <Eye className="h-4 w-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleOpenModal(task)}
+                                                        onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
                                                         className="text-amber-600 bg-amber-50 hover:bg-amber-100 p-2 rounded-lg transition-all"
                                                         title="Edit tugas"
                                                     >
                                                         <Edit2 className="h-4 w-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDelete(task.id, task.title)}
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(task.id, task.title); }}
                                                         className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-all"
                                                         title="Hapus tugas"
                                                     >

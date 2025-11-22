@@ -6,6 +6,7 @@ import { Search, Trash2, Users, TrendingUp, Award, BookOpen, Filter, ChevronLeft
 
 import { useAuth } from '../../contexts/AuthContext';
 import { sortClasses } from '../../utils/classSort';
+import StudentDetail from './StudentDetail';
 
 export default function Students() {
     const { currentUser } = useAuth();
@@ -20,6 +21,7 @@ export default function Students() {
     const [sortBy, setSortBy] = useState('name'); // name, class, grade
     const [sortOrder, setSortOrder] = useState('asc');
     const studentsPerPage = 20;
+    const [selectedStudent, setSelectedStudent] = useState(null);
 
     // Modal States
     const [showModal, setShowModal] = useState(false);
@@ -243,6 +245,10 @@ export default function Students() {
         setCurrentPage(1);
     }, [searchTerm, selectedClass, sortBy, sortOrder]);
 
+    if (selectedStudent) {
+        return <StudentDetail student={selectedStudent} onBack={() => setSelectedStudent(null)} />;
+    }
+
     return (
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -430,7 +436,8 @@ export default function Students() {
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: index * 0.02 }}
-                                                className="hover:bg-blue-50/30 transition-colors group"
+                                                onClick={() => setSelectedStudent(student)}
+                                                className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
                                             >
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                                     {globalIndex}
@@ -484,14 +491,14 @@ export default function Students() {
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button
-                                                            onClick={() => handleEditClick(student)}
+                                                            onClick={(e) => { e.stopPropagation(); handleEditClick(student); }}
                                                             className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition-all"
                                                             title="Edit siswa"
                                                         >
                                                             <Edit2 className="h-4 w-4" />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDeleteClick(student)}
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteClick(student); }}
                                                             className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition-all"
                                                             title="Hapus siswa"
                                                         >
