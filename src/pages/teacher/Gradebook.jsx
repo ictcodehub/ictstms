@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { Search, TrendingUp, Users, FileText, Target, CheckCircle, Clock, AlertCircle, ArrowUpDown } from 'lucide-react';
+import { Search, TrendingUp, Users, FileText, Target, CheckCircle, Clock, AlertCircle, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { sortClasses } from '../../utils/classSort';
@@ -18,6 +18,8 @@ export default function Gradebook() {
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState('number');
     const [sortOrder, setSortOrder] = useState('asc');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         if (currentUser) {
@@ -132,6 +134,17 @@ export default function Gradebook() {
         const matchesClass = selectedClass === 'all' || student.classId === selectedClass;
         return matchesSearch && matchesClass;
     });
+
+    // Pagination logic
+    const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const displayStudents = filteredStudents.slice(startIndex, endIndex);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, selectedClass]);
 
     const getStudentStats = (student) => {
         const studentSubs = submissions.filter(sub => sub.studentId === student.uid);
@@ -310,7 +323,7 @@ export default function Gradebook() {
                     </div>
 
                     <div className="overflow-y-auto flex-1">
-                        {filteredStudents.map((student) => {
+                        {displayStudents.map((student) => {
                             const isSelected = selectedStudent?.id === student.id;
 
                             return (
@@ -336,6 +349,29 @@ export default function Gradebook() {
                             );
                         })}
                     </div>
+                    {totalPages > 1 && (
+                        <div className="p-3 border-t border-slate-100 bg-slate-50">
+                            <div className="flex items-center justify-between gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </button>
+                                <span className="text-xs font-medium text-slate-600">
+                                    {currentPage} / {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
