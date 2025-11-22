@@ -107,15 +107,10 @@ export default function DashboardLayout({ children }) {
                 </div>
 
                 {/* Credits Section */}
-                <div className="p-4 border-t border-slate-100 bg-gradient-to-br from-slate-50 to-blue-50/30">
-                    <div className="text-center space-y-1">
-                        <p className="text-xs text-slate-600 font-medium">
-                            Made with <span className="text-red-500">❤️</span> by <span className="font-bold text-blue-600">Mr. Tio</span>
-                        </p>
-                        <p className="text-xs text-slate-400">
-                            Powered by <span className="font-semibold">Google Antigravity</span> & <span className="font-semibold">Firebase</span>
-                        </p>
-                    </div>
+                <div className="px-3 py-2 border-t border-slate-100">
+                    <p className="text-[10px] text-slate-400 font-light text-center leading-tight whitespace-nowrap">
+                        Made with <span className="text-red-400">❤️</span> by <span className="font-normal text-slate-500">Mr. Tio</span> • Powered by Google Antigravity & Firebase
+                    </p>
                 </div>
             </motion.aside>
 
