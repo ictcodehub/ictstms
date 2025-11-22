@@ -80,9 +80,35 @@ export default function DashboardLayout({ children }) {
                 className={`fixed left-0 top-0 h-full bg-white border-r border-blue-100 text-slate-600 w-64 shadow-2xl flex flex-col z-50`}
             >
                 <div className="p-6 flex-1 overflow-y-auto">
-                    <h1 className="text-2xl font-bold mb-8 tracking-tight text-blue-600">
-                        STMS <span className="font-light opacity-70 text-slate-400">{userRole === 'teacher' ? 'Teacher' : 'Student'}</span>
-                    </h1>
+                    {/* App Branding */}
+                    <div className="mb-6">
+                        <div className="flex items-center gap-3 mb-3">
+                            {/* Firebase Icon */}
+                            <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-lg flex items-center justify-center shadow-md">
+                                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M3.89 15.672L6.255.461A.542.542 0 017.27.288l2.543 4.771zm16.794 3.692l-2.25-14a.54.54 0 00-.919-.295L3.316 19.365l7.856 4.427a1.621 1.621 0 001.588 0zM14.3 7.147l-1.82-3.482a.542.542 0 00-.96 0L3.53 17.984z" />
+                                </svg>
+                            </div>
+                            <div className="flex-1">
+                                <h1 className="text-xl font-bold text-slate-800 leading-tight">
+                                    ICT Codehub
+                                </h1>
+                                <p className="text-xs text-slate-500 font-medium">
+                                    Student Task Management
+                                </p>
+                            </div>
+                        </div>
+                        {/* Role Badge - More subtle */}
+                        <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-2.5 rounded-lg border border-slate-200">
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                            <span className="font-light">
+                                {userRole === 'teacher' ? 'Teacher Dashboard' : 'Student Dashboard'}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-slate-200 mb-6"></div>
 
                     <nav className="space-y-2">
                         {menuItems.map((item) => (

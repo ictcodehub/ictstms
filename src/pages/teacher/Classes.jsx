@@ -88,10 +88,12 @@ export default function Classes() {
         }
     };
 
-    // Auto-select first class
+    // Auto-select first class from sorted list
     useEffect(() => {
         if (classes.length > 0 && !selectedClass) {
-            setSelectedClass(classes[0]);
+            // Apply default sorting to get the first class
+            const sorted = sortClasses(classes);
+            setSelectedClass(sorted[0]);
         }
     }, [classes]);
 
