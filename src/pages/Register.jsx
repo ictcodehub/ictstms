@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { UserPlus, Mail, Lock, User, AlertCircle, School, ArrowRight, GraduationCap, BookOpen, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, AlertCircle, School, ArrowRight, GraduationCap, BookOpen, Eye, EyeOff, Flame } from 'lucide-react';
 import { sortClasses } from '../utils/classSort';
 
 export default function Register() {
@@ -76,7 +76,7 @@ export default function Register() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-blue-100 p-4 relative overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-blue-100 pt-16 pb-24 px-4 relative overflow-hidden">
             {/* Decorative Background Elements */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
                 <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/20 rounded-full blur-3xl"></div>
@@ -94,12 +94,14 @@ export default function Register() {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
-                        className="bg-gradient-to-br from-blue-600 to-cyan-600 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-200"
+                        className="bg-gradient-to-br from-orange-400 to-yellow-500 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200"
                     >
-                        <UserPlus className="h-10 w-10 text-white" />
+                        <svg className="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3.89 15.672L6.255.461A.542.542 0 017.27.288l2.543 4.771zm16.794 3.692l-2.25-14a.54.54 0 00-.919-.295L3.316 19.365l7.856 4.427a1.621 1.621 0 001.588 0zM14.3 7.147l-1.82-3.482a.542.542 0 00-.96 0L3.53 17.984z" />
+                        </svg>
                     </motion.div>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-2">Buat Akun</h2>
-                    <p className="text-gray-500">Mulai perjalanan belajarmu hari ini</p>
+                    <h2 className="text-3xl font-bold text-slate-800 mb-2">Create Account</h2>
+                    <p className="text-slate-500">Start your learning journey today</p>
                 </div>
 
                 {error && (
@@ -115,7 +117,7 @@ export default function Register() {
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700 ml-1">Nama Lengkap</label>
+                        <label className="text-sm font-semibold text-gray-700 ml-1">Full Name</label>
                         <div className="relative group">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <User className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -124,7 +126,7 @@ export default function Register() {
                                 type="text"
                                 required
                                 className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all group-hover:bg-white"
-                                placeholder="Nama Lengkap"
+                                placeholder="Full Name"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                             />
@@ -141,7 +143,7 @@ export default function Register() {
                                 type="email"
                                 required
                                 className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all group-hover:bg-white"
-                                placeholder="nama@sekolah.id"
+                                placeholder="name@school.id"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
@@ -173,7 +175,7 @@ export default function Register() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700 ml-1">Peran</label>
+                        <label className="text-sm font-semibold text-gray-700 ml-1">Role</label>
                         <div className="grid grid-cols-2 gap-4">
                             <button
                                 type="button"
@@ -184,7 +186,7 @@ export default function Register() {
                                     }`}
                             >
                                 <GraduationCap className={`h-6 w-6 mb-2 ${role === 'student' ? 'text-blue-600' : 'text-gray-400'}`} />
-                                <span className="font-medium">Siswa</span>
+                                <span className="font-medium">Student</span>
                             </button>
                             <button
                                 type="button"
@@ -195,7 +197,7 @@ export default function Register() {
                                     }`}
                             >
                                 <BookOpen className={`h-6 w-6 mb-2 ${role === 'teacher' ? 'text-blue-600' : 'text-gray-400'}`} />
-                                <span className="font-medium">Guru</span>
+                                <span className="font-medium">Teacher</span>
                             </button>
                         </div>
                     </div>
@@ -206,7 +208,7 @@ export default function Register() {
                             animate={{ opacity: 1, height: 'auto' }}
                             className="space-y-2"
                         >
-                            <label className="text-sm font-semibold text-gray-700 ml-1">Pilih Kelas</label>
+                            <label className="text-sm font-semibold text-gray-700 ml-1">Select Class</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <School className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -217,7 +219,7 @@ export default function Register() {
                                     value={classId}
                                     onChange={(e) => setClassId(e.target.value)}
                                 >
-                                    <option value="">-- Pilih Kelas --</option>
+                                    <option value="">-- Select Class --</option>
                                     {classes.map((cls) => (
                                         <option key={cls.id} value={cls.id}>
                                             {cls.name}
@@ -234,7 +236,7 @@ export default function Register() {
                             animate={{ opacity: 1, height: 'auto' }}
                             className="space-y-2"
                         >
-                            <label className="text-sm font-semibold text-gray-700 ml-1">Kode Guru</label>
+                            <label className="text-sm font-semibold text-gray-700 ml-1">Teacher Code</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <School className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -243,7 +245,7 @@ export default function Register() {
                                     type={showTeacherCode ? "text" : "password"}
                                     required
                                     className="w-full pl-11 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all group-hover:bg-white"
-                                    placeholder="Masukkan kode khusus guru"
+                                    placeholder="Enter teacher code"
                                     value={teacherCode}
                                     onChange={(e) => setTeacherCode(e.target.value)}
                                 />
@@ -268,7 +270,7 @@ export default function Register() {
                             <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
                             <>
-                                Daftar Sekarang <ArrowRight className="h-5 w-5" />
+                                Register Now <ArrowRight className="h-5 w-5" />
                             </>
                         )}
                     </motion.button>
@@ -276,13 +278,20 @@ export default function Register() {
 
                 <div className="mt-8 text-center">
                     <p className="text-gray-500">
-                        Sudah punya akun?{' '}
+                        Already have an account?{' '}
                         <Link to="/login" className="font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors">
-                            Masuk disini
+                            Login here
                         </Link>
                     </p>
                 </div>
             </motion.div>
+
+            {/* Credits Footer */}
+            <div className="fixed bottom-0 left-0 w-full bg-white/60 backdrop-blur-md border-t border-white/40 py-4 text-center z-10">
+                <p className="text-xs text-slate-600 font-medium flex items-center justify-center gap-1">
+                    Made with <Flame className="h-3 w-3 text-orange-500 fill-orange-500 animate-pulse" /> by Mr. Tio • Powered by Google Antigravity & Firebase
+                </p>
+            </div>
         </div>
     );
 }

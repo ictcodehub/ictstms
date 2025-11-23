@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { Mail, Lock, AlertCircle, School, ArrowRight, LogIn, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle, ArrowRight, LogIn, Eye, EyeOff, CheckCircle, Flame } from 'lucide-react';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -34,7 +34,7 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-blue-100 p-4 relative overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-blue-100 pt-16 pb-24 px-4 relative overflow-hidden">
             {/* Decorative Background Elements */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/20 rounded-full blur-3xl"></div>
@@ -52,12 +52,14 @@ export default function Login() {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
-                        className="bg-gradient-to-br from-blue-600 to-cyan-600 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-200"
+                        className="bg-gradient-to-br from-orange-400 to-yellow-500 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200"
                     >
-                        <School className="h-10 w-10 text-white" />
+                        <svg className="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3.89 15.672L6.255.461A.542.542 0 017.27.288l2.543 4.771zm16.794 3.692l-2.25-14a.54.54 0 00-.919-.295L3.316 19.365l7.856 4.427a1.621 1.621 0 001.588 0zM14.3 7.147l-1.82-3.482a.542.542 0 00-.96 0L3.53 17.984z" />
+                        </svg>
                     </motion.div>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-2">Selamat Datang</h2>
-                    <p className="text-gray-500">Masuk untuk mengakses dashboard pembelajaran</p>
+                    <h2 className="text-3xl font-bold text-slate-800 mb-2">ICT Codehub</h2>
+                    <p className="text-slate-500">Student Task Management Platform</p>
                 </div>
 
                 {error && (
@@ -156,6 +158,13 @@ export default function Login() {
                     </p>
                 </div>
             </motion.div>
+
+            {/* Credits Footer */}
+            <div className="absolute bottom-0 left-0 w-full bg-white/60 backdrop-blur-md border-t border-white/40 py-4 text-center z-10">
+                <p className="text-xs text-slate-600 font-medium flex items-center justify-center gap-1">
+                    Made with <Flame className="h-3 w-3 text-orange-500 fill-orange-500 animate-pulse" /> by Mr. Tio • Powered by Google Antigravity & Firebase
+                </p>
+            </div>
         </div>
     );
 }
