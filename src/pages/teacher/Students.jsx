@@ -526,7 +526,7 @@ export default function Students() {
                                         className="px-4 py-2 border border-slate-200 rounded-xl hover:bg-white hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm font-medium text-slate-600"
                                     >
                                         <ChevronLeft className="h-4 w-4" />
-                                        Prev
+                                        Sebelumnya
                                     </button>
                                     <div className="flex items-center gap-1">
                                         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -560,7 +560,7 @@ export default function Students() {
                                         disabled={currentPage === totalPages}
                                         className="px-4 py-2 border border-slate-200 rounded-xl hover:bg-white hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm font-medium text-slate-600"
                                     >
-                                        Next
+                                        Berikutnya
                                         <ChevronRight className="h-4 w-4" />
                                     </button>
                                 </div>

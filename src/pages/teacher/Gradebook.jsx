@@ -448,7 +448,7 @@ export default function Gradebook() {
                                                         onClick={() => handleSort('deadline')}
                                                     >
                                                         <div className="flex items-center gap-2">
-                                                            Deadline
+                                                            Tenggat
                                                             <ArrowUpDown className="h-3 w-3" />
                                                         </div>
                                                     </th>

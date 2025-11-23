@@ -209,7 +209,7 @@ export default function StudentDetail({ student, onBack }) {
                         <thead className="bg-slate-50/50 border-b border-slate-200">
                             <tr>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Judul Tugas</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Deadline</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Tenggat</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Waktu Submit</th>
                                 <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Nilai</th>
@@ -258,7 +258,7 @@ export default function StudentDetail({ student, onBack }) {
                                         <td className="px-6 py-4 text-center">
                                             {task.submission?.grade !== undefined && task.submission?.grade !== null ? (
                                                 <span className={`font-bold ${task.submission.grade >= 80 ? 'text-green-600' :
-                                                        task.submission.grade >= 60 ? 'text-amber-600' : 'text-red-600'
+                                                    task.submission.grade >= 60 ? 'text-amber-600' : 'text-red-600'
                                                     }`}>
                                                     {task.submission.grade}
                                                 </span>

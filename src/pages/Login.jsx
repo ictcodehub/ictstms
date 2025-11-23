@@ -26,7 +26,7 @@ export default function Login() {
             await login(email, password, rememberMe);
             navigate('/');
         } catch (err) {
-            setError('Gagal masuk. Periksa email dan password Anda.');
+            setError('Login failed. Please check your email and password.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -126,10 +126,10 @@ export default function Login() {
                                 checked={rememberMe}
                                 onChange={(e) => setRememberMe(e.target.checked)}
                             />
-                            <span className="text-sm text-slate-600 font-medium group-hover:text-blue-600 transition-colors">Ingat Saya</span>
+                            <span className="text-sm text-slate-600 font-medium group-hover:text-blue-600 transition-colors">Remember Me</span>
                         </label>
                         <Link to="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline">
-                            Lupa Password?
+                            Forgot Password?
                         </Link>
                     </div>
 
@@ -143,7 +143,7 @@ export default function Login() {
                             <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
                             <>
-                                Masuk <LogIn className="h-5 w-5" />
+                                Login <LogIn className="h-5 w-5" />
                             </>
                         )}
                     </button>
@@ -151,9 +151,9 @@ export default function Login() {
 
                 <div className="mt-8 text-center">
                     <p className="text-gray-500">
-                        Belum punya akun?{' '}
+                        Don't have an account?{' '}
                         <Link to="/register" className="font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors">
-                            Daftar disini
+                            Register here
                         </Link>
                     </p>
                 </div>

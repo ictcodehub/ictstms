@@ -70,7 +70,7 @@ export default function Tasks() {
 
     const handleSubmit = async (taskId) => {
         if (!submissionText.trim()) {
-            alert('Mohon isi jawaban tugas');
+            alert('Please fill in your answer');
             return;
         }
 
@@ -89,14 +89,14 @@ export default function Tasks() {
                 teacherComment: ''
             });
 
-            alert('Tugas berhasil dikumpulkan!');
+            alert('Task submitted successfully!');
             setSubmissionText('');
             setSubmitting(null);
             setExpandedTask(null);
             loadData();
         } catch (error) {
             console.error('Error submitting task:', error);
-            alert('Gagal mengumpulkan tugas: ' + error.message);
+            alert('Failed to submit task: ' + error.message);
             setSubmitting(null);
         }
     };
@@ -144,7 +144,7 @@ export default function Tasks() {
                 <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
                     Tugas Saya
                 </h1>
-                <p className="text-slate-500 mt-1">Kelola dan kerjakan tugas-tugasmu di sini.</p>
+                <p className="text-slate-500 mt-1">Manage and complete your tasks here.</p>
             </div>
 
             <div className="flex flex-col md:flex-row gap-4">
@@ -152,7 +152,7 @@ export default function Tasks() {
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
                     <input
                         type="text"
-                        placeholder="Cari tugas..."
+                        placeholder="Search tasks..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
@@ -183,8 +183,8 @@ export default function Tasks() {
                     <div className="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <BookOpen className="h-10 w-10 text-blue-300" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-800 mb-2">Tidak ada tugas ditemukan</h3>
-                    <p className="text-slate-500">Coba ubah filter atau kata kunci pencarianmu.</p>
+                    <h3 className="text-xl font-bold text-slate-800 mb-2">No tasks found</h3>
+                    <p className="text-slate-500">Try changing your filter or search keywords.</p>
                 </div>
             ) : (
                 <div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
@@ -205,7 +205,7 @@ export default function Tasks() {
                                     rowClass = "bg-white hover:bg-slate-50";
                                     gradeDisplay = (
                                         <div className="text-right">
-                                            <span className="block text-xs font-bold text-emerald-600 uppercase tracking-wider">Nilai</span>
+                                            <span className="block text-xs font-bold text-emerald-600 uppercase tracking-wider">Grade</span>
                                             <span className="text-sm font-bold text-emerald-700">{submission.grade}</span>
                                         </div>
                                     );
@@ -214,7 +214,7 @@ export default function Tasks() {
                                     rowClass = "bg-amber-100/70 hover:bg-amber-100";
                                     gradeDisplay = (
                                         <div className="text-right">
-                                            <span className="block text-xs font-bold text-amber-700 uppercase tracking-wider">Nilai</span>
+                                            <span className="block text-xs font-bold text-amber-700 uppercase tracking-wider">Grade</span>
                                             <span className="text-sm font-bold text-amber-700">-</span>
                                         </div>
                                     );
@@ -248,7 +248,7 @@ export default function Tasks() {
                                                     </h3>
                                                     {status.type === 'overdue' && (
                                                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 uppercase tracking-wide">
-                                                            Terlewat
+                                                            Overdue
                                                         </span>
                                                     )}
                                                 </div>
@@ -285,7 +285,7 @@ export default function Tasks() {
                                             >
                                                 <div className="p-6 md:pl-[4.5rem]">
                                                     <div className="mb-6">
-                                                        <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Deskripsi</h4>
+                                                        <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Description</h4>
                                                         <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{task.description}</p>
                                                     </div>
 
@@ -293,7 +293,7 @@ export default function Tasks() {
                                                         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
                                                             <div className="flex items-center gap-2 mb-3">
                                                                 <CheckCircle className="h-5 w-5 text-green-500" />
-                                                                <p className="text-sm font-bold text-slate-700">Jawaban Anda</p>
+                                                                <p className="text-sm font-bold text-slate-700">Your Answer</p>
                                                             </div>
                                                             <p className="text-slate-600 text-sm whitespace-pre-wrap mb-4 pl-7">{submission.content}</p>
 
@@ -303,7 +303,7 @@ export default function Tasks() {
                                                                         <div className="bg-emerald-100 p-1 rounded">
                                                                             <CheckCircle className="h-4 w-4 text-emerald-600" />
                                                                         </div>
-                                                                        <span className="text-sm font-bold text-emerald-700">Nilai: {submission.grade}</span>
+                                                                        <span className="text-sm font-bold text-emerald-700">Grade: {submission.grade}</span>
                                                                     </div>
                                                                     {submission.teacherComment && (
                                                                         <p className="text-slate-600 text-sm italic">"{submission.teacherComment}"</p>
@@ -313,11 +313,11 @@ export default function Tasks() {
                                                         </div>
                                                     ) : (
                                                         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-                                                            <h4 className="text-sm font-bold text-slate-700 mb-3">Kumpulkan Tugas</h4>
+                                                            <h4 className="text-sm font-bold text-slate-700 mb-3">Submit Task</h4>
                                                             <textarea
                                                                 value={submissionText}
                                                                 onChange={(e) => setSubmissionText(e.target.value)}
-                                                                placeholder="Tulis jawabanmu di sini..."
+                                                                placeholder="Write your answer here..."
                                                                 className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all min-h-[150px] text-sm mb-4"
                                                             />
                                                             <div className="flex justify-end">
@@ -329,12 +329,12 @@ export default function Tasks() {
                                                                     {isSubmitting ? (
                                                                         <>
                                                                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                                            Mengirim...
+                                                                            Submitting...
                                                                         </>
                                                                     ) : (
                                                                         <>
                                                                             <Send className="h-4 w-4" />
-                                                                            Kirim Jawaban
+                                                                            Submit Answer
                                                                         </>
                                                                     )}
                                                                 </button>

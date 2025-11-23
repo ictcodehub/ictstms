@@ -119,10 +119,10 @@ export default function Overview() {
     };
 
     const statCards = [
-        { label: 'Total Tugas', value: stats.totalTasks, icon: BookOpen, color: 'from-blue-500 to-cyan-500', link: '/student/tasks' },
+        { label: 'Total Tasks', value: stats.totalTasks, icon: BookOpen, color: 'from-blue-500 to-cyan-500', link: '/student/tasks' },
         { label: 'Selesai', value: stats.completed, icon: CheckCircle, color: 'from-emerald-500 to-teal-500', link: '/student/tasks' },
-        { label: 'Belum Selesai', value: stats.pending, icon: Clock, color: 'from-amber-500 to-orange-500', link: '/student/tasks' },
-        { label: 'Terlambat', value: stats.overdue, icon: AlertCircle, color: 'from-red-500 to-pink-500', link: '/student/tasks' },
+        { label: 'Pending', value: stats.pending, icon: Clock, color: 'from-amber-500 to-orange-500', link: '/student/tasks' },
+        { label: 'Overdue', value: stats.overdue, icon: AlertCircle, color: 'from-red-500 to-pink-500', link: '/student/tasks' },
     ];
 
     const CircularProgress = ({ value }) => {
@@ -171,7 +171,7 @@ export default function Overview() {
         <div className="space-y-8">
             <div>
                 <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
-                    Dashboard Siswa
+                    Student Dashboard
                 </h1>
                 <p className="text-slate-500 mt-1">Selamat datang, lihat progress belajarmu hari ini.</p>
             </div>
@@ -212,13 +212,13 @@ export default function Overview() {
                             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                                 <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                     <BookOpen className="h-5 w-5 text-blue-500" />
-                                    Tugas Terbaru
+                                    Recent Tasks
                                 </h3>
                                 <button
                                     onClick={() => navigate('/student/tasks')}
                                     className="text-sm text-blue-600 font-medium hover:text-blue-700 flex items-center gap-1"
                                 >
-                                    Lihat Semua <ChevronRight className="h-4 w-4" />
+                                    View All <ChevronRight className="h-4 w-4" />
                                 </button>
                             </div>
 
@@ -228,7 +228,7 @@ export default function Overview() {
                                         <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <BookOpen className="h-8 w-8 text-blue-300" />
                                         </div>
-                                        <p>Belum ada tugas yang diberikan.</p>
+                                        <p>No tasks assigned yet.</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-0">
@@ -237,11 +237,11 @@ export default function Overview() {
                                             <div className="flex items-center gap-3 flex-1">
                                                 <span className="w-6 text-center text-sm font-semibold text-slate-600">No</span>
                                                 <div className="w-10"></div>
-                                                <span className="text-sm font-semibold text-slate-600">Detail Tugas</span>
+                                                <span className="text-sm font-semibold text-slate-600">Task Details</span>
                                             </div>
                                             <div className="flex items-center gap-4 pl-4">
                                                 <span className="text-sm font-semibold text-slate-600 min-w-[160px] text-center">Status</span>
-                                                <span className="text-sm font-semibold text-slate-600 min-w-[45px] text-center">Nilai</span>
+                                                <span className="text-sm font-semibold text-slate-600 min-w-[45px] text-center">Grade</span>
                                             </div>
                                         </div>
 
@@ -289,10 +289,10 @@ export default function Overview() {
                                                     let timingText = '';
                                                     if (isEarly) {
                                                         if (diffDays > 0) timingText = `Lebih Cepat ${diffDays} hari`;
-                                                        else timingText = `Tepat Waktu`;
+                                                        else timingText = `On Time`;
                                                     } else {
                                                         if (diffDays > 0) timingText = `Telat ${diffDays} hari`;
-                                                        else timingText = `Terlambat`;
+                                                        else timingText = `Late`;
                                                     }
 
                                                     if (!isGraded) {
@@ -303,8 +303,8 @@ export default function Overview() {
                                                                     <Send className="h-4 w-4" />
                                                                 </div>
                                                                 <div className="flex flex-col items-end min-w-0 text-right">
-                                                                    <span className="text-xs font-bold text-amber-700 truncate w-full">Diserahkan</span>
-                                                                    <span className="text-[10px] font-medium text-amber-600 truncate w-full">Menunggu Nilai</span>
+                                                                    <span className="text-xs font-bold text-amber-700 truncate w-full">Submitted</span>
+                                                                    <span className="text-[10px] font-medium text-amber-600 truncate w-full">Awaiting Grade</span>
                                                                 </div>
                                                             </div>
                                                         );
@@ -335,8 +335,8 @@ export default function Overview() {
                                                                     <Send className="h-4 w-4" />
                                                                 </div>
                                                                 <div className="flex flex-col items-end min-w-0 text-right">
-                                                                    <span className="text-xs font-bold text-amber-700 truncate w-full">Diserahkan</span>
-                                                                    <span className="text-[10px] font-medium text-amber-600 truncate w-full">Menunggu Nilai</span>
+                                                                    <span className="text-xs font-bold text-amber-700 truncate w-full">Submitted</span>
+                                                                    <span className="text-[10px] font-medium text-amber-600 truncate w-full">Awaiting Grade</span>
                                                                 </div>
                                                             </div>
                                                         );
@@ -348,7 +348,7 @@ export default function Overview() {
                                                                 </div>
                                                                 <div className="flex flex-col items-end min-w-0 text-right">
                                                                     <span className="text-xs font-bold text-emerald-700 truncate w-full">Selesai</span>
-                                                                    <span className="text-[10px] font-medium text-emerald-600 truncate w-full">Tepat Waktu</span>
+                                                                    <span className="text-[10px] font-medium text-emerald-600 truncate w-full">On Time</span>
                                                                 </div>
                                                             </div>
                                                         );
@@ -427,7 +427,7 @@ export default function Overview() {
                                     </h3>
                                     <p className="text-blue-100 text-sm">
                                         {stats.weeklyProgress === 100
-                                            ? "Luar biasa! Semua tugas telah selesai. 🎉"
+                                            ? "Excellent! All tasks completed. 🎉"
                                             : stats.weeklyProgress >= 75
                                                 ? "Sedikit lagi! Kamu hampir menyelesaikan semua tugas. 🚀"
                                                 : stats.weeklyProgress >= 50
@@ -440,7 +440,7 @@ export default function Overview() {
                                     <CircularProgress value={stats.weeklyProgress} />
                                     <div className="mt-4 text-center">
                                         <p className="text-2xl font-bold text-white">{stats.completed} / {stats.totalTasks}</p>
-                                        <p className="text-sm font-medium text-blue-200">Tugas Selesai</p>
+                                        <p className="text-sm font-medium text-blue-200">Tasks Completed</p>
                                     </div>
                                 </div>
 

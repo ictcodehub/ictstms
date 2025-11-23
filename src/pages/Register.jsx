@@ -43,11 +43,11 @@ export default function Register() {
         e.preventDefault();
 
         if (role === 'teacher' && teacherCode !== 'weLoveMB2!') {
-            return setError('Kode guru salah');
+            return setError('Incorrect teacher code');
         }
 
         if (role === 'student' && !classId) {
-            return setError('Pilih kelas terlebih dahulu');
+            return setError('Please select a class first');
         }
 
         try {
@@ -57,14 +57,14 @@ export default function Register() {
             navigate(role === 'teacher' ? '/teacher' : '/student');
         } catch (err) {
             console.error("Registration Error Details:", err);
-            let errorMessage = 'Gagal mendaftar. Coba lagi.';
+            let errorMessage = 'Registration failed. Please try again.';
 
             if (err.code === 'auth/email-already-in-use') {
-                errorMessage = 'Email sudah terdaftar. Silakan login.';
+                errorMessage = 'Email already registered. Please login.';
             } else if (err.code === 'auth/weak-password') {
-                errorMessage = 'Password terlalu lemah (min. 6 karakter).';
+                errorMessage = 'Password too weak (min. 6 characters).';
             } else if (err.code === 'auth/invalid-email') {
-                errorMessage = 'Format email tidak valid.';
+                errorMessage = 'Invalid email format.';
             } else if (err.message) {
                 errorMessage = `Error: ${err.message}`;
             }

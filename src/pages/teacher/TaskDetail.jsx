@@ -21,10 +21,10 @@ export default function TaskDetail({ task, classes = [], onBack }) {
         return (
             <div className="p-8">
                 <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-                    <h2 className="text-xl font-bold text-red-800 mb-2">Error: Task Not Found</h2>
-                    <p className="text-red-600 mb-4">Task data is missing or undefined.</p>
+                    <h2 className="text-xl font-bold text-red-800 mb-2">Error: Tugas Tidak Ditemukan</h2>
+                    <p className="text-red-600 mb-4">Data tugas hilang atau tidak terdefinisi.</p>
                     <button onClick={onBack} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">
-                        Back to Tasks
+                        Kembali ke Tugas
                     </button>
                 </div>
             </div>
@@ -36,11 +36,11 @@ export default function TaskDetail({ task, classes = [], onBack }) {
         return (
             <div className="p-8">
                 <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-                    <h2 className="text-xl font-bold text-red-800 mb-2">Error Loading Task Detail</h2>
+                    <h2 className="text-xl font-bold text-red-800 mb-2">Error Memuat Detail Tugas</h2>
                     <p className="text-red-600 mb-4">{error.message}</p>
                     <pre className="text-xs bg-white p-4 rounded overflow-auto max-h-64">{error.stack}</pre>
                     <button onClick={onBack} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">
-                        Back to Tasks
+                        Kembali ke Tugas
                     </button>
                 </div>
             </div>
@@ -526,14 +526,14 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                         {student.name?.charAt(0) || '?'}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-bold text-slate-800">{student.name || 'Unknown'}</p>
+                                                        <p className="text-sm font-bold text-slate-800">{student.name || 'Tidak Diketahui'}</p>
                                                         <p className="text-xs text-slate-500">{student.email}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-1 rounded-lg border border-blue-200 font-medium">
-                                                    {cls?.name || 'Unknown Class'}
+                                                    {cls?.name || 'Kelas Tidak Diketahui'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">

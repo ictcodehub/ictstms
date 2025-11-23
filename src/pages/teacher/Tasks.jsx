@@ -517,7 +517,7 @@ export default function Tasks() {
                                 disabled={currentPage === 1}
                                 className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
                             >
-                                Prev
+                                Sebelumnya
                             </button>
                             <div className="flex gap-1">
                                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -551,7 +551,7 @@ export default function Tasks() {
                                 disabled={currentPage === totalPages}
                                 className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
                             >
-                                Next
+                                Berikutnya
                             </button>
                         </div>
                     </div>

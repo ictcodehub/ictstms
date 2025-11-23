@@ -107,7 +107,7 @@ export default function Grades() {
                             <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-500"></div>
                             <div className="relative z-10 flex items-center justify-between">
                                 <div>
-                                    <p className="text-white/80 text-sm font-medium mb-1">Tugas Dinilai</p>
+                                    <p className="text-white/80 text-sm font-medium mb-1">Graded Tasks</p>
                                     <p className="text-4xl font-bold">{grades.length}</p>
                                 </div>
                                 <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
@@ -161,7 +161,7 @@ export default function Grades() {
                                                 No
                                             </th>
                                             <th className="px-6 py-4 text-left text-sm font-bold text-slate-500 uppercase tracking-wider">
-                                                Tugas
+                                                Task
                                             </th>
                                             <th className="px-6 py-4 text-center text-sm font-bold text-slate-500 uppercase tracking-wider">
                                                 Nilai

@@ -34,17 +34,17 @@ export default function DashboardLayout({ children }) {
     }, []);
 
     const teacherMenuItems = [
-        { path: '/teacher', icon: LayoutDashboard, label: 'Ringkasan' },
-        { path: '/teacher/classes', icon: Users, label: 'Kelas' },
-        { path: '/teacher/students', icon: GraduationCap, label: 'Siswa' },
-        { path: '/teacher/tasks', icon: BookOpen, label: 'Tugas' },
-        { path: '/teacher/gradebook', icon: ClipboardList, label: 'Rekap Nilai' },
+        { path: '/teacher', icon: LayoutDashboard, label: 'Overview' },
+        { path: '/teacher/classes', icon: Users, label: 'Classes' },
+        { path: '/teacher/students', icon: GraduationCap, label: 'Students' },
+        { path: '/teacher/tasks', icon: BookOpen, label: 'Tasks' },
+        { path: '/teacher/gradebook', icon: ClipboardList, label: 'Gradebook' },
     ];
 
     const studentMenuItems = [
-        { path: '/student', icon: LayoutDashboard, label: 'Ringkasan' },
-        { path: '/student/tasks', icon: BookOpen, label: 'Tugas Saya' },
-        { path: '/student/grades', icon: ClipboardList, label: 'Nilai Saya' },
+        { path: '/student', icon: LayoutDashboard, label: 'Overview' },
+        { path: '/student/tasks', icon: BookOpen, label: 'My Tasks' },
+        { path: '/student/grades', icon: ClipboardList, label: 'My Grades' },
     ];
 
     const menuItems = userRole === 'teacher' ? teacherMenuItems : studentMenuItems;
