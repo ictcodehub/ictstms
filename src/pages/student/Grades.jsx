@@ -157,16 +157,16 @@ export default function Grades() {
                                 <table className="w-full">
                                     <thead className="bg-slate-50/50 border-b border-slate-100">
                                         <tr>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">
+                                            <th className="px-6 py-4 text-left text-sm font-bold text-slate-500 uppercase tracking-wider w-16">
                                                 No
                                             </th>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            <th className="px-6 py-4 text-left text-sm font-bold text-slate-500 uppercase tracking-wider">
                                                 Tugas
                                             </th>
-                                            <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            <th className="px-6 py-4 text-center text-sm font-bold text-slate-500 uppercase tracking-wider">
                                                 Nilai
                                             </th>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            <th className="px-6 py-4 text-left text-sm font-bold text-slate-500 uppercase tracking-wider">
                                                 Komentar
                                             </th>
                                         </tr>
@@ -195,7 +195,7 @@ export default function Grades() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                    <span className={`px-4 py-1.5 inline-flex text-lg leading-5 font-bold rounded-xl ${grade.grade >= 90 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                    <span className={`px-4 py-1.5 inline-flex text-xs leading-5 font-bold rounded-xl ${grade.grade >= 90 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
                                                         grade.grade >= 80 ? 'bg-teal-50 text-teal-600 border border-teal-100' :
                                                             grade.grade >= 70 ? 'bg-blue-50 text-blue-600 border border-blue-100' :
                                                                 grade.grade >= 60 ? 'bg-amber-50 text-amber-600 border border-amber-100' :

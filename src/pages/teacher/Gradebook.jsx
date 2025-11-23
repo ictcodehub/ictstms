@@ -473,8 +473,10 @@ export default function Gradebook() {
                                                             {index + 1}
                                                         </td>
                                                         <td className="px-4 py-4">
-                                                            <div className="text-sm font-semibold text-slate-800">{task.title}</div>
-                                                            <div className="text-xs text-slate-500 line-clamp-1">{task.description}</div>
+                                                            <div>
+                                                                <div className="text-sm font-semibold text-slate-800">{task.title}</div>
+                                                                <div className="text-xs text-slate-500 line-clamp-1">{task.description}</div>
+                                                            </div>
                                                         </td>
                                                         <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
                                                             {task.deadline ? new Date(task.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
