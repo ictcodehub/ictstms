@@ -7,6 +7,7 @@ import { Search, Trash2, Users, TrendingUp, Award, BookOpen, Filter, ChevronLeft
 import { useAuth } from '../../contexts/AuthContext';
 import { sortClasses } from '../../utils/classSort';
 import StudentDetail from './StudentDetail';
+import TaskDetail from './TaskDetail';
 
 export default function Students() {
     const { currentUser } = useAuth();
@@ -22,6 +23,7 @@ export default function Students() {
     const [sortOrder, setSortOrder] = useState('asc');
     const studentsPerPage = 20;
     const [selectedStudent, setSelectedStudent] = useState(null);
+    const [selectedTask, setSelectedTask] = useState(null);
 
     // Modal States
     const [showModal, setShowModal] = useState(false);
@@ -245,8 +247,24 @@ export default function Students() {
         setCurrentPage(1);
     }, [searchTerm, selectedClass, sortBy, sortOrder]);
 
+    if (selectedTask) {
+        return (
+            <TaskDetail
+                task={selectedTask}
+                classes={classesList}
+                onBack={() => setSelectedTask(null)}
+            />
+        );
+    }
+
     if (selectedStudent) {
-        return <StudentDetail student={selectedStudent} onBack={() => setSelectedStudent(null)} />;
+        return (
+            <StudentDetail
+                student={selectedStudent}
+                onBack={() => setSelectedStudent(null)}
+                onTaskClick={(task) => setSelectedTask(task)}
+            />
+        );
     }
 
     return (

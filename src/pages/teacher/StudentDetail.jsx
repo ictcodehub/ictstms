@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Calendar, CheckCircle2, Clock, XCircle, BookOpen, Award, TrendingUp, FileText } from 'lucide-react';
+import { ArrowLeft, Calendar, CheckCircle2, Clock, XCircle, BookOpen, Award, TrendingUp, FileText, Send, AlertCircle, CheckCircle } from 'lucide-react';
 
-export default function StudentDetail({ student, onBack }) {
+export default function StudentDetail({ student, onBack, onTaskClick, hideSubmissionTime }) {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -31,7 +31,6 @@ export default function StudentDetail({ student, onBack }) {
             const tasksList = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             // 2. Get all submissions by this student
-            // Try both uid and id for backward compatibility
             const submissionsQuery = query(
                 collection(db, 'submissions')
             );
@@ -50,7 +49,8 @@ export default function StudentDetail({ student, onBack }) {
                 const isOverdue = !isSubmitted && new Date(task.deadline) < new Date();
 
                 let status = 'missing';
-                if (isSubmitted) status = isLate ? 'late' : 'submitted';
+                if (submission?.grade !== undefined && submission?.grade !== null) status = 'graded';
+                else if (isSubmitted) status = isLate ? 'late' : 'submitted';
                 else if (!isOverdue) status = 'pending';
 
                 return {
@@ -61,8 +61,23 @@ export default function StudentDetail({ student, onBack }) {
                 };
             });
 
-            // Sort by deadline (newest first)
-            mergedTasks.sort((a, b) => new Date(b.deadline) - new Date(a.deadline));
+            // Sort by priority: not submitted (missing/pending) > ungraded > graded
+            mergedTasks.sort((a, b) => {
+                // Priority 1: Not submitted tasks (missing or pending)
+                const aNotSubmitted = a.status === 'missing' || a.status === 'pending';
+                const bNotSubmitted = b.status === 'missing' || b.status === 'pending';
+                if (aNotSubmitted && !bNotSubmitted) return -1;
+                if (!aNotSubmitted && bNotSubmitted) return 1;
+
+                // Priority 2: Ungraded submissions
+                const aUngraded = a.submission && (a.submission.grade === undefined || a.submission.grade === null);
+                const bUngraded = b.submission && (b.submission.grade === undefined || b.submission.grade === null);
+                if (aUngraded && !bUngraded) return -1;
+                if (!aUngraded && bUngraded) return 1;
+
+                // Priority 3: Sort by deadline (newest first)
+                return new Date(b.deadline) - new Date(a.deadline);
+            });
 
             setTasks(mergedTasks);
 
@@ -89,7 +104,7 @@ export default function StudentDetail({ student, onBack }) {
         if (!date) return '-';
         try {
             const d = date.toDate ? date.toDate() : new Date(date);
-            return d.toLocaleDateString('id-ID', {
+            return d.toLocaleDateString('en-US', {
                 day: 'numeric',
                 month: 'short',
                 year: 'numeric',
@@ -103,35 +118,58 @@ export default function StudentDetail({ student, onBack }) {
 
     const getStatusBadge = (status) => {
         switch (status) {
+            case 'graded':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+                        <CheckCircle className="h-3 w-3" />
+                        Dinilai
+                    </span>
+                );
             case 'submitted':
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Tepat Waktu
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100">
+                        <Send className="h-3 w-3" />
+                        Diserahkan
                     </span>
                 );
             case 'late':
-                return (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
-                        <Clock className="h-3 w-3" />
-                        Terlambat
-                    </span>
-                );
             case 'missing':
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
-                        <XCircle className="h-3 w-3" />
-                        Belum Submit
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-700 border border-red-100">
+                        <AlertCircle className="h-3 w-3" />
+                        Terlambat
                     </span>
                 );
             default:
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                        <Clock className="h-3 w-3" />
-                        Belum Tenggat
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                        <Calendar className="h-3 w-3" />
+                        Ditugaskan
                     </span>
                 );
         }
+    };
+
+    const getDeadlineStyle = (deadline) => {
+        if (!deadline) return 'bg-slate-50 text-slate-700 border-slate-200';
+
+        const deadlineDate = deadline.toDate ? deadline.toDate() : new Date(deadline);
+        const now = new Date();
+        const diffTime = deadlineDate - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // Overdue
+        if (diffDays < 0) {
+            return 'bg-red-50 text-red-700 border-red-200';
+        }
+
+        // Due soon (within 3 days)
+        if (diffDays <= 3) {
+            return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+        }
+
+        // Safe (more than 3 days)
+        return 'bg-green-50 text-green-700 border-green-200';
     };
 
     return (
@@ -208,17 +246,20 @@ export default function StudentDetail({ student, onBack }) {
                     <table className="w-full">
                         <thead className="bg-slate-50/50 border-b border-slate-200">
                             <tr>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">No</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Judul Tugas</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Tenggat</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Waktu Submit</th>
+                                {!hideSubmissionTime && (
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Waktu Submit</th>
+                                )}
                                 <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Nilai</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-12 text-center">
+                                    <td colSpan="6" className="px-6 py-12 text-center">
                                         <div className="flex justify-center">
                                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                                         </div>
@@ -226,48 +267,62 @@ export default function StudentDetail({ student, onBack }) {
                                 </tr>
                             ) : tasks.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
                                         Belum ada tugas untuk siswa ini.
                                     </td>
                                 </tr>
                             ) : (
-                                tasks.map((task, index) => (
-                                    <motion.tr
-                                        key={task.id}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ delay: index * 0.03 }}
-                                        className="hover:bg-slate-50/50 transition-colors"
-                                    >
-                                        <td className="px-6 py-4">
-                                            <div className="font-medium text-slate-800">{task.title}</div>
-                                            <div className="text-xs text-slate-500 line-clamp-1">{task.description}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                                                <Calendar className="h-3.5 w-3.5" />
-                                                {formatDate(task.deadline)}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {getStatusBadge(task.status)}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-slate-600">
-                                            {task.submission ? formatDate(task.submission.submittedAt) : '-'}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            {task.submission?.grade !== undefined && task.submission?.grade !== null ? (
-                                                <span className={`font-bold ${task.submission.grade >= 80 ? 'text-green-600' :
-                                                    task.submission.grade >= 60 ? 'text-amber-600' : 'text-red-600'
-                                                    }`}>
-                                                    {task.submission.grade}
-                                                </span>
-                                            ) : (
-                                                <span className="text-slate-400">-</span>
+                                tasks.map((task, index) => {
+                                    const isUngraded = task.submission && (task.submission.grade === undefined || task.submission.grade === null);
+                                    const isNotSubmitted = task.status === 'missing' || task.status === 'pending';
+                                    const rowBgClass = isNotSubmitted ? 'bg-red-50 hover:bg-red-100' :
+                                        isUngraded ? 'bg-yellow-50 hover:bg-yellow-100' :
+                                            'hover:bg-slate-50/50';
+
+                                    return (
+                                        <motion.tr
+                                            key={task.id}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ delay: index * 0.03 }}
+                                            onClick={() => onTaskClick && onTaskClick(task)}
+                                            className={`${rowBgClass} transition-colors cursor-pointer`}
+                                        >
+                                            <td className="px-6 py-4 text-sm text-slate-500 font-medium">
+                                                {index + 1}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="font-medium text-slate-800 line-clamp-1 text-[13px]" title={task.title}>{task.title}</div>
+                                                <div className="text-xs text-slate-500 line-clamp-1">{task.description}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100">
+                                                    <Calendar className="h-3 w-3" />
+                                                    {task.deadline ? new Date(task.deadline.toDate ? task.deadline.toDate() : task.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {getStatusBadge(task.status)}
+                                            </td>
+                                            {!hideSubmissionTime && (
+                                                <td className="px-6 py-4 text-sm text-slate-600">
+                                                    {task.submission ? formatDate(task.submission.submittedAt) : '-'}
+                                                </td>
                                             )}
-                                        </td>
-                                    </motion.tr>
-                                ))
+                                            <td className="px-6 py-4 text-center">
+                                                {task.submission?.grade !== undefined && task.submission?.grade !== null ? (
+                                                    <span className={`font-bold text-[13px] ${task.submission.grade >= 80 ? 'text-green-600' :
+                                                        task.submission.grade >= 60 ? 'text-amber-600' : 'text-red-600'
+                                                        }`}>
+                                                        {task.submission.grade}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400">-</span>
+                                                )}
+                                            </td>
+                                        </motion.tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>

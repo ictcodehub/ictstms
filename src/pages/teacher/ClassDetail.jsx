@@ -5,12 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Search, Filter, MoreVertical, Mail, Plus, Edit2, Trash2, X, Save, UserPlus, BookOpen, Award, CheckCircle, Lock, School, Star, TrendingUp, Users } from 'lucide-react';
 
 import StudentDetail from './StudentDetail';
+import TaskDetail from './TaskDetail';
 
 export default function ClassDetail({ classData, classes, onBack }) {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedStudent, setSelectedStudent] = useState(null);
+    const [selectedTask, setSelectedTask] = useState(null);
 
     // Modal States
     const [showModal, setShowModal] = useState(false);
@@ -150,8 +152,25 @@ export default function ClassDetail({ classData, classes, onBack }) {
         totalTasks: students.length > 0 ? students[0].stats.totalTasks : 0
     };
 
+    if (selectedTask) {
+        return (
+            <TaskDetail
+                task={selectedTask}
+                classes={classes}
+                onBack={() => setSelectedTask(null)}
+            />
+        );
+    }
+
     if (selectedStudent) {
-        return <StudentDetail student={selectedStudent} onBack={() => setSelectedStudent(null)} />;
+        return (
+            <StudentDetail
+                student={selectedStudent}
+                onBack={() => setSelectedStudent(null)}
+                onTaskClick={(task) => setSelectedTask(task)}
+                hideSubmissionTime={true}
+            />
+        );
     }
 
     return (

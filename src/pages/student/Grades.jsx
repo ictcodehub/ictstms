@@ -68,9 +68,9 @@ export default function Grades() {
         <div className="space-y-8">
             <div>
                 <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
-                    Nilai Saya
+                    My Grades
                 </h1>
-                <p className="text-slate-500 mt-1">Pantau hasil belajarmu dan terus tingkatkan prestasimu.</p>
+                <p className="text-slate-500 mt-1">Track your learning results and keep improving your performance.</p>
             </div>
 
             {loading ? (
@@ -89,7 +89,7 @@ export default function Grades() {
                             <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-500"></div>
                             <div className="relative z-10 flex items-center justify-between">
                                 <div>
-                                    <p className="text-white/80 text-sm font-medium mb-1">Rata-rata Nilai</p>
+                                    <p className="text-white/80 text-sm font-medium mb-1">Average Grade</p>
                                     <p className="text-4xl font-bold">{average}</p>
                                 </div>
                                 <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
@@ -125,7 +125,7 @@ export default function Grades() {
                             <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-500"></div>
                             <div className="relative z-10 flex items-center justify-between">
                                 <div>
-                                    <p className="text-white/80 text-sm font-medium mb-1">Nilai Tertinggi</p>
+                                    <p className="text-white/80 text-sm font-medium mb-1">Highest Grade</p>
                                     <p className="text-4xl font-bold">{grades.length > 0 ? Math.max(...grades.map(g => g.grade)) : 0}</p>
                                 </div>
                                 <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
@@ -140,7 +140,7 @@ export default function Grades() {
                         <div className="p-6 border-b border-slate-100">
                             <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                 <BookOpen className="h-5 w-5 text-blue-500" />
-                                Riwayat Nilai
+                                Grade History
                             </h3>
                         </div>
 
@@ -149,8 +149,8 @@ export default function Grades() {
                                 <div className="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                                     <Award className="h-10 w-10 text-blue-300" />
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-800 mb-2">Belum ada nilai</h3>
-                                <p className="text-slate-500">Kerjakan tugasmu dan tunggu guru memberikan nilai.</p>
+                                <h3 className="text-xl font-bold text-slate-800 mb-2">No grades yet</h3>
+                                <p className="text-slate-500">Complete your tasks and wait for the teacher to grade them.</p>
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
@@ -163,11 +163,14 @@ export default function Grades() {
                                             <th className="px-6 py-4 text-left text-sm font-bold text-slate-500 uppercase tracking-wider">
                                                 Task
                                             </th>
+                                            <th className="px-6 py-4 text-left text-sm font-bold text-slate-500 uppercase tracking-wider">
+                                                Submitted At
+                                            </th>
                                             <th className="px-6 py-4 text-center text-sm font-bold text-slate-500 uppercase tracking-wider">
-                                                Nilai
+                                                Grade
                                             </th>
                                             <th className="px-6 py-4 text-left text-sm font-bold text-slate-500 uppercase tracking-wider">
-                                                Komentar
+                                                Feedback
                                             </th>
                                         </tr>
                                     </thead>
@@ -183,19 +186,23 @@ export default function Grades() {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-500">
                                                     {index + 1}
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm font-bold text-slate-800">{grade.taskTitle}</div>
-                                                    <div className="text-xs text-slate-500 mt-1">
-                                                        {grade.submittedAt?.toDate().toLocaleDateString('id-ID', {
-                                                            weekday: 'long',
-                                                            year: 'numeric',
-                                                            month: 'long',
-                                                            day: 'numeric'
-                                                        })}
+                                                <td className="px-6 py-4 max-w-[300px]">
+                                                    <div className="text-sm font-bold text-slate-800 line-clamp-2" title={grade.taskTitle}>
+                                                        {grade.taskTitle}
                                                     </div>
                                                 </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                                    {grade.submittedAt?.toDate().toLocaleDateString('en-US', {
+                                                        weekday: 'short',
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                    <span className={`px-4 py-1.5 inline-flex text-xs leading-5 font-bold rounded-xl ${grade.grade >= 90 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                    <span className={`px-4 py-1.5 inline-flex text-[13px] leading-5 font-bold rounded-xl ${grade.grade >= 90 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
                                                         grade.grade >= 80 ? 'bg-teal-50 text-teal-600 border border-teal-100' :
                                                             grade.grade >= 70 ? 'bg-blue-50 text-blue-600 border border-blue-100' :
                                                                 grade.grade >= 60 ? 'bg-amber-50 text-amber-600 border border-amber-100' :
@@ -204,9 +211,9 @@ export default function Grades() {
                                                         {grade.grade}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-6 py-4 max-w-[300px]">
                                                     {grade.comment ? (
-                                                        <div className="text-sm text-slate-600 italic bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                                        <div className="text-sm text-slate-600 italic bg-slate-50 p-3 rounded-xl border border-slate-100 line-clamp-2" title={grade.comment}>
                                                             "{grade.comment}"
                                                         </div>
                                                     ) : (

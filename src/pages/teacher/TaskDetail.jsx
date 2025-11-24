@@ -515,7 +515,8 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             transition={{ delay: index * 0.03 }}
-                                            className={`${rowBgClass} transition-colors`}
+                                            onClick={() => handleGradeClick(student)}
+                                            className={`${rowBgClass} transition-colors cursor-pointer`}
                                         >
                                             <td className="px-6 py-4 text-sm text-slate-500 font-medium">
                                                 {index + 1}
@@ -554,7 +555,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                             </td>
                                             <td className="px-6 py-4">
                                                 {submission?.grade !== undefined && submission?.grade !== null ? (
-                                                    <div className={`inline-flex items-center gap-1.5 font-bold ${submission.grade >= 80 ? 'text-green-600' :
+                                                    <div className={`inline-flex items-center gap-1.5 font-bold text-[13px] ${submission.grade >= 80 ? 'text-green-600' :
                                                         submission.grade >= 60 ? 'text-amber-600' :
                                                             'text-red-600'
                                                         }`}>
@@ -567,7 +568,10 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <button
-                                                    onClick={() => handleGradeClick(student)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleGradeClick(student);
+                                                    }}
                                                     disabled={!submission}
                                                     className={`p-2 rounded-xl transition-all ${submission
                                                         ? (submission?.grade !== undefined && submission?.grade !== null
@@ -620,20 +624,26 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                         <FileText className="h-4 w-4 text-blue-500" />
                                         <span className="font-semibold">Informasi Pengumpulan</span>
                                     </div>
-                                    <div className="space-y-1 text-sm">
+                                    <div className="flex items-start justify-between gap-4 text-sm flex-wrap">
                                         <p className="text-slate-600">
                                             <span className="font-medium">Waktu Submit:</span> {formatDate(currentSubmission.submission?.submittedAt)}
                                         </p>
-
-                                        {currentSubmission.submission?.content && (
-                                            <div className="mt-2">
-                                                <p className="font-medium text-slate-700 mb-1">Jawaban:</p>
-                                                <div className="bg-white p-3 rounded-lg border border-slate-200 text-slate-600 max-h-32 overflow-y-auto whitespace-pre-wrap">
-                                                    {currentSubmission.submission.content}
-                                                </div>
-                                            </div>
+                                        {currentSubmission.submission?.revisedAt && (
+                                            <p className="text-slate-600 flex items-center gap-1">
+                                                <Clock className="h-3 w-3 text-amber-500" />
+                                                <span className="font-medium">Last revised:</span> {formatDate(currentSubmission.submission?.revisedAt)}
+                                            </p>
                                         )}
                                     </div>
+
+                                    {currentSubmission.submission?.content && (
+                                        <div className="mt-2">
+                                            <p className="font-medium text-slate-700 mb-1">Jawaban:</p>
+                                            <div className="bg-white p-3 rounded-lg border border-slate-200 text-slate-600 max-h-32 overflow-y-auto whitespace-pre-wrap">
+                                                {currentSubmission.submission.content}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Grade Input */}
@@ -693,10 +703,11 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                     </button>
                                 </div>
                             </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-        </div>
+                        </motion.div >
+                    </div >
+                )
+                }
+            </AnimatePresence >
+        </div >
     );
 }

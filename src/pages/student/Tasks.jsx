@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
+import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Search, Filter, Hourglass, Pencil, X, Save } from 'lucide-react';
+import ToastContainer from '../../components/ToastContainer';
+import { useToast } from '../../hooks/useToast';
 
 export default function Tasks() {
     const { currentUser } = useAuth();
+    const { toasts, removeToast, showSuccess, showError, showWarning } = useToast();
     const [tasks, setTasks] = useState([]);
     const [submissions, setSubmissions] = useState({});
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(null);
     const [submissionText, setSubmissionText] = useState('');
     const [expandedTask, setExpandedTask] = useState(null);
+    const [editingTask, setEditingTask] = useState(null); // Track which task is being edited
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
 
@@ -38,7 +42,7 @@ export default function Tasks() {
             const submissionsSnap = await getDocs(submissionsQuery);
             const subs = {};
             submissionsSnap.forEach(doc => {
-                subs[doc.data().taskId] = doc.data();
+                subs[doc.data().taskId] = { id: doc.id, ...doc.data() }; // Include doc ID
             });
             setSubmissions(subs);
 
@@ -70,7 +74,7 @@ export default function Tasks() {
 
     const handleSubmit = async (taskId) => {
         if (!submissionText.trim()) {
-            alert('Please fill in your answer');
+            showWarning('Please fill in your answer');
             return;
         }
 
@@ -89,16 +93,54 @@ export default function Tasks() {
                 teacherComment: ''
             });
 
-            alert('Task submitted successfully!');
+            showSuccess('Task submitted successfully!');
             setSubmissionText('');
             setSubmitting(null);
             setExpandedTask(null);
             loadData();
         } catch (error) {
             console.error('Error submitting task:', error);
-            alert('Failed to submit task: ' + error.message);
+            showError('Failed to submit task: ' + error.message);
             setSubmitting(null);
         }
+    };
+
+    const handleUpdate = async (taskId, submissionId) => {
+        if (!submissionText.trim()) {
+            showWarning('Please fill in your answer');
+            return;
+        }
+
+        setSubmitting(taskId);
+        try {
+            const submissionRef = doc(db, 'submissions', submissionId);
+            await updateDoc(submissionRef, {
+                content: submissionText.trim(),
+                revisedAt: serverTimestamp(),
+                // We update submittedAt to current time to reflect the "latest" submission time for deadline checks
+                submittedAt: serverTimestamp()
+            });
+
+            showSuccess('Submission updated successfully!');
+            setSubmissionText('');
+            setSubmitting(null);
+            setEditingTask(null);
+            loadData();
+        } catch (error) {
+            console.error('Error updating submission:', error);
+            showError('Failed to update submission: ' + error.message);
+            setSubmitting(null);
+        }
+    };
+
+    const startEditing = (task, submission) => {
+        setEditingTask(task.id);
+        setSubmissionText(submission.content);
+    };
+
+    const cancelEditing = () => {
+        setEditingTask(null);
+        setSubmissionText('');
     };
 
     const toggleExpand = (taskId) => {
@@ -116,13 +158,13 @@ export default function Tasks() {
 
         if (submission) {
             if (submission.grade !== null && submission.grade !== undefined) {
-                return { label: 'Selesai', color: 'bg-emerald-50 text-emerald-700 border border-emerald-100', icon: CheckCircle, type: 'graded' };
+                return { label: 'Completed', color: 'bg-emerald-50 text-emerald-700 border border-emerald-100', icon: CheckCircle, type: 'graded' };
             }
-            return { label: 'Diserahkan', color: 'bg-amber-50 text-amber-700 border border-amber-100', icon: Send, type: 'submitted' };
+            return { label: 'Submitted', color: 'bg-amber-50 text-amber-700 border border-amber-100', icon: Send, type: 'submitted' };
         } else if (isOverdue) {
-            return { label: 'Terlewat', color: 'bg-red-50 text-red-700 border border-red-100', icon: AlertCircle, type: 'overdue' };
+            return { label: 'Overdue', color: 'bg-red-50 text-red-700 border border-red-100', icon: AlertCircle, type: 'overdue' };
         }
-        return { label: 'Ditugaskan', color: 'bg-blue-50 text-blue-700 border border-blue-100', icon: Calendar, type: 'pending' };
+        return { label: 'Assigned', color: 'bg-blue-50 text-blue-700 border border-blue-100', icon: Calendar, type: 'pending' };
     };
 
     const filteredTasks = tasks.filter(task => {
@@ -140,9 +182,10 @@ export default function Tasks() {
 
     return (
         <div className="space-y-8">
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
             <div>
                 <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
-                    Tugas Saya
+                    My Tasks
                 </h1>
                 <p className="text-slate-500 mt-1">Manage and complete your tasks here.</p>
             </div>
@@ -165,10 +208,10 @@ export default function Tasks() {
                         onChange={(e) => setFilterStatus(e.target.value)}
                         className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none bg-white"
                     >
-                        <option value="all">Semua Status</option>
-                        <option value="pending">Ditugaskan</option>
-                        <option value="submitted">Diserahkan</option>
-                        <option value="graded">Selesai</option>
+                        <option value="all">All Status</option>
+                        <option value="pending">Assigned</option>
+                        <option value="submitted">Submitted</option>
+                        <option value="graded">Completed</option>
                     </select>
                     <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4 pointer-events-none" />
                 </div>
@@ -188,6 +231,22 @@ export default function Tasks() {
                 </div>
             ) : (
                 <div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
+                    {/* TABLE HEADER */}
+                    <div className="flex items-center justify-between py-4 px-6 bg-slate-50 border-b border-slate-200">
+                        <div className="flex items-center gap-3 flex-1">
+                            <span className="w-6 text-center text-[13px] font-bold text-slate-500 uppercase tracking-wider">No</span>
+                            <div className="w-10"></div>
+                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Task Details</span>
+                        </div>
+                        <div className="flex items-center gap-8 pl-4">
+                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Status</span>
+                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[120px] text-center">Info</span>
+                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[60px] text-center">Grade</span>
+                            <span className="w-5"></span> {/* Space for expand icon */}
+                        </div>
+                    </div>
+
+                    {/* TABLE BODY */}
                     <div className="divide-y divide-slate-100">
                         {filteredTasks.map((task, index) => {
                             const status = getTaskStatus(task);
@@ -196,81 +255,169 @@ export default function Tasks() {
                             const isExpanded = expandedTask === task.id;
                             const isSubmitting = submitting === task.id;
 
-                            let rowClass = "bg-white hover:bg-slate-50";
-                            let gradeDisplay = null;
+                            // Row background color based on status
+                            let statusColor = "bg-white hover:bg-slate-50";
+                            const isGraded = submission && submission.grade !== null && submission.grade !== undefined;
 
-                            if (submission) {
-                                if (submission.grade !== null && submission.grade !== undefined) {
-                                    // Graded: White background
-                                    rowClass = "bg-white hover:bg-slate-50";
-                                    gradeDisplay = (
-                                        <div className="text-right">
-                                            <span className="block text-xs font-bold text-emerald-600 uppercase tracking-wider">Grade</span>
-                                            <span className="text-sm font-bold text-emerald-700">{submission.grade}</span>
+                            if (isGraded) {
+                                statusColor = "bg-white hover:bg-slate-50";
+                            } else if (submission) {
+                                statusColor = "bg-amber-50 hover:bg-amber-100/50";
+                            } else {
+                                statusColor = isOverdue ? "bg-red-100/50 hover:bg-red-100" : "bg-red-50 hover:bg-red-100/50";
+                            }
+
+                            // Grade display
+                            let gradeValue = "-";
+                            let gradeColor = "text-slate-400";
+
+                            if (isGraded) {
+                                gradeValue = submission.grade;
+                                gradeColor = "text-emerald-600";
+                            } else if (submission) {
+                                gradeColor = "text-amber-600";
+                            }
+
+                            // Status info box (similar to Overview)
+                            let statusDisplay = null;
+                            let infoDisplay = null;
+                            const deadlineDate = task.deadline ? new Date(task.deadline) : null;
+
+                            if (submission && submission.submittedAt && deadlineDate) {
+                                const submittedDate = submission.submittedAt.toDate();
+                                const diffMs = deadlineDate - submittedDate;
+                                const diffDays = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
+                                const isEarly = diffMs > 0;
+
+                                let timingText = '';
+                                if (isEarly) {
+                                    if (diffDays > 0) timingText = `${diffDays} day${diffDays > 1 ? 's' : ''} early`;
+                                    else timingText = `On Time`;
+                                } else {
+                                    if (diffDays > 0) timingText = `${diffDays} day${diffDays > 1 ? 's' : ''} late`;
+                                    else timingText = `Late`;
+                                }
+
+                                if (!isGraded) {
+                                    // Submitted but not graded
+                                    statusDisplay = (
+                                        <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                            <Send className="h-3.5 w-3.5 text-amber-600" />
+                                            <span className="text-xs font-bold text-amber-700">Submitted</span>
+                                        </div>
+                                    );
+                                    infoDisplay = (
+                                        <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                            <Hourglass className="h-3.5 w-3.5 text-amber-600" />
+                                            <span className="text-xs font-bold text-amber-700">Awaiting Grade</span>
                                         </div>
                                     );
                                 } else {
-                                    // Submitted but not graded: Stronger yellow
-                                    rowClass = "bg-amber-100/70 hover:bg-amber-100";
-                                    gradeDisplay = (
-                                        <div className="text-right">
-                                            <span className="block text-xs font-bold text-amber-700 uppercase tracking-wider">Grade</span>
-                                            <span className="text-sm font-bold text-amber-700">-</span>
+                                    // Graded
+                                    statusDisplay = (
+                                        <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isEarly ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                                            {isEarly ? <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> : <AlertCircle className="h-3.5 w-3.5 text-red-600" />}
+                                            <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>Completed</span>
+                                        </div>
+                                    );
+                                    infoDisplay = (
+                                        <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isEarly ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                                            <Clock className={`h-3.5 w-3.5 ${isEarly ? 'text-emerald-600' : 'text-red-600'}`} />
+                                            <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>{timingText}</span>
                                         </div>
                                     );
                                 }
-                            } else if (isOverdue) {
-                                // Overdue: Stronger red
-                                rowClass = "bg-red-100/80 hover:bg-red-100";
-                            } else {
-                                // Pending: Stronger red (lighter)
-                                rowClass = "bg-red-100/60 hover:bg-red-100/80";
-                            }
+                            } else if (submission && submission.submittedAt) {
+                                // Submitted without deadline
+                                if (!isGraded) {
+                                    statusDisplay = (
+                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-100">
+                                            <Send className="h-3.5 w-3.5 text-amber-600" />
+                                            <span className="text-xs font-bold text-amber-700">Submitted</span>
+                                        </div>
+                                    );
+                                    infoDisplay = (
+                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-100">
+                                            <Hourglass className="h-3.5 w-3.5 text-amber-600" />
+                                            <span className="text-xs font-bold text-amber-700">Awaiting Grade</span>
+                                        </div>
+                                    );
+                                } else {
+                                    statusDisplay = (
+                                        <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                                            <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                                            <span className="text-xs font-bold text-emerald-700">Completed</span>
+                                        </div>
+                                    );
+                                    infoDisplay = (
+                                        <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                                            <Clock className="h-3.5 w-3.5 text-emerald-600" />
+                                            <span className="text-xs font-bold text-emerald-700">On Time</span>
+                                        </div>
+                                    );
+                                }
+                            } else if (deadlineDate) {
+                                // Not submitted (Pending/Overdue)
+                                const dateText = deadlineDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
-                            if (isExpanded) rowClass += " bg-opacity-100";
+                                statusDisplay = (
+                                    <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isOverdue ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'}`}>
+                                        {isOverdue ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <Calendar className="h-3.5 w-3.5 text-blue-600" />}
+                                        <span className={`text-xs font-bold ${isOverdue ? 'text-red-700' : 'text-blue-700'}`}>
+                                            {isOverdue ? 'Overdue' : 'Assigned'}
+                                        </span>
+                                    </div>
+                                );
+                                infoDisplay = (
+                                    <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-100">
+                                        {isOverdue ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <Calendar className="h-3.5 w-3.5 text-red-600" />}
+                                        <span className="text-xs font-bold text-red-700">
+                                            {dateText}
+                                        </span>
+                                    </div>
+                                );
+                            } else {
+                                statusDisplay = <span className="text-xs text-slate-400">-</span>;
+                                infoDisplay = <span className="text-xs text-slate-400">-</span>;
+                            }
 
                             return (
                                 <div key={task.id} className="group">
                                     <div
                                         onClick={() => toggleExpand(task.id)}
-                                        className={`p-5 flex items-center justify-between cursor-pointer transition-all ${rowClass}`}
+                                        className={`flex items-center justify-between py-4 px-6 cursor-pointer transition-all ${statusColor}`}
                                     >
-                                        <div className="flex items-center gap-4 flex-1 min-w-0">
-                                            <span className="text-slate-400 font-medium w-6 text-center">{index + 1}</span>
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <span className="text-slate-400 font-medium w-6 text-center flex-shrink-0 text-sm">{index + 1}</span>
 
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors bg-white/80 shadow-sm text-blue-600`}>
-                                                <FileText className="h-5 w-5" />
+                                            <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center text-blue-600 flex-shrink-0 shadow-sm">
+                                                <BookOpen className="h-5 w-5" />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-3 mb-1">
-                                                    <h3 className="font-bold text-slate-800 truncate text-sm">
-                                                        {task.title}
-                                                    </h3>
-                                                    {status.type === 'overdue' && (
-                                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 uppercase tracking-wide">
-                                                            Overdue
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-4 text-xs text-slate-500">
-                                                    <div className={`flex items-center gap-1.5 ${isOverdue && !submission ? 'text-red-500 font-medium' : ''}`}>
-                                                        <Calendar className="h-3.5 w-3.5" />
-                                                        {task.deadline ? new Date(task.deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-'}
-                                                    </div>
-                                                </div>
+                                                <h4 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 text-[13px]" title={task.title}>{task.title}</h4>
+                                                <p className="text-sm text-slate-500 line-clamp-1">{task.description}</p>
                                             </div>
                                         </div>
-
-                                        <div className="flex items-center gap-6 pl-4">
-                                            <div className="flex items-center gap-3">
-                                                <span className={`hidden md:flex px-3 py-1 rounded-full text-xs font-bold items-center gap-1.5 ${status.color}`}>
-                                                    <status.icon className="h-3.5 w-3.5" />
-                                                    {status.label}
-                                                </span>
+                                        <div className="flex items-center gap-8 pl-4 flex-shrink-0">
+                                            <div className="text-center min-w-[100px]">
+                                                {statusDisplay}
                                             </div>
-
-                                            {gradeDisplay}
-
+                                            <div className="text-center min-w-[120px]">
+                                                {infoDisplay}
+                                            </div>
+                                            <div className="text-center min-w-[60px]">
+                                                {gradeValue === "-" ? (
+                                                    <span className="text-slate-400 text-sm font-bold">{gradeValue}</span>
+                                                ) : isGraded ? (
+                                                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-sm font-bold text-emerald-700">
+                                                        {gradeValue}
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-100 text-sm font-bold text-amber-700">
+                                                        {gradeValue}
+                                                    </span>
+                                                )}
+                                            </div>
                                             {isExpanded ? <ChevronUp className="h-5 w-5 text-slate-400" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
                                         </div>
                                     </div>
@@ -290,27 +437,96 @@ export default function Tasks() {
                                                     </div>
 
                                                     {submission ? (
-                                                        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-                                                            <div className="flex items-center gap-2 mb-3">
-                                                                <CheckCircle className="h-5 w-5 text-green-500" />
-                                                                <p className="text-sm font-bold text-slate-700">Your Answer</p>
+                                                        editingTask === task.id ? (
+                                                            // EDIT MODE
+                                                            <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                                                                <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                                                    <Pencil className="h-4 w-4 text-blue-500" />
+                                                                    Edit Answer
+                                                                </h4>
+                                                                <textarea
+                                                                    value={submissionText}
+                                                                    onChange={(e) => setSubmissionText(e.target.value)}
+                                                                    placeholder="Update your answer..."
+                                                                    className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all min-h-[150px] text-sm mb-4"
+                                                                />
+                                                                <div className="flex justify-end gap-3">
+                                                                    <button
+                                                                        onClick={cancelEditing}
+                                                                        disabled={isSubmitting}
+                                                                        className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors flex items-center gap-2"
+                                                                    >
+                                                                        <X className="h-4 w-4" />
+                                                                        Cancel
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleUpdate(task.id, submission.id)}
+                                                                        disabled={isSubmitting || !submissionText.trim()}
+                                                                        className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                                                    >
+                                                                        {isSubmitting ? (
+                                                                            <>
+                                                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                                                Saving...
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <Save className="h-4 w-4" />
+                                                                                Save Revision
+                                                                            </>
+                                                                        )}
+                                                                    </button>
+                                                                </div>
                                                             </div>
-                                                            <p className="text-slate-600 text-sm whitespace-pre-wrap mb-4 pl-7">{submission.content}</p>
-
-                                                            {submission.grade !== null && submission.grade !== undefined && (
-                                                                <div className="mt-4 pt-4 border-t border-slate-100 pl-7">
-                                                                    <div className="flex items-center gap-2 mb-2">
-                                                                        <div className="bg-emerald-100 p-1 rounded">
-                                                                            <CheckCircle className="h-4 w-4 text-emerald-600" />
-                                                                        </div>
-                                                                        <span className="text-sm font-bold text-emerald-700">Grade: {submission.grade}</span>
+                                                        ) : (
+                                                            // VIEW MODE
+                                                            <>
+                                                                <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                                                                    <div className="flex items-center gap-2 mb-3">
+                                                                        <CheckCircle className="h-5 w-5 text-green-500" />
+                                                                        <p className="text-sm font-bold text-slate-700">Your Answer</p>
                                                                     </div>
-                                                                    {submission.teacherComment && (
-                                                                        <p className="text-slate-600 text-sm italic">"{submission.teacherComment}"</p>
+                                                                    <p className="text-slate-600 text-sm whitespace-pre-wrap mb-4 pl-7">{submission.content}</p>
+
+                                                                    {submission.revisedAt && (
+                                                                        <div className="pl-7 mb-2">
+                                                                            <p className="text-xs text-slate-400 italic flex items-center gap-1">
+                                                                                <Clock className="h-3 w-3" />
+                                                                                Last revised: {submission.revisedAt.toDate().toLocaleDateString('en-US', {
+                                                                                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                                                                })}
+                                                                            </p>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {submission.grade !== null && submission.grade !== undefined && (
+                                                                        <div className="mt-4 pt-4 border-t border-slate-100 pl-7">
+                                                                            <div className="flex items-center gap-2 mb-2">
+                                                                                <div className="bg-emerald-100 p-1 rounded">
+                                                                                    <CheckCircle className="h-4 w-4 text-emerald-600" />
+                                                                                </div>
+                                                                                <span className="text-sm font-bold text-emerald-700">Grade: {submission.grade}</span>
+                                                                            </div>
+                                                                            {submission.teacherComment && (
+                                                                                <p className="text-slate-600 text-sm italic">"{submission.teacherComment}"</p>
+                                                                            )}
+                                                                        </div>
                                                                     )}
                                                                 </div>
-                                                            )}
-                                                        </div>
+
+                                                                {!submission.grade && (
+                                                                    <div className="flex justify-end mt-4">
+                                                                        <button
+                                                                            onClick={() => startEditing(task, submission)}
+                                                                            className="px-6 py-2.5 bg-amber-500 text-white rounded-xl font-bold text-sm hover:bg-amber-600 transition-colors flex items-center gap-2"
+                                                                        >
+                                                                            <Pencil className="h-4 w-4" />
+                                                                            Edit Answer
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        )
                                                     ) : (
                                                         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
                                                             <h4 className="text-sm font-bold text-slate-700 mb-3">Submit Task</h4>
