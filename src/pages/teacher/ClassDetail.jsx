@@ -80,6 +80,13 @@ export default function ClassDetail({ classData, classes, onBack }) {
                 };
             });
 
+            // Sort students alphabetically by name
+            studentsList.sort((a, b) => {
+                const nameA = (a.name || '').toLowerCase();
+                const nameB = (b.name || '').toLowerCase();
+                return nameA.localeCompare(nameB, 'id-ID');
+            });
+
             setStudents(studentsList);
         } catch (error) {
             console.error("Error loading class details:", error);
