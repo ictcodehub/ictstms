@@ -3,6 +3,7 @@ import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LinkifiedText } from '../../utils/linkify';
 import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Search, Filter, Hourglass, Pencil, X, Save } from 'lucide-react';
 import ToastContainer from '../../components/ToastContainer';
 import { useToast } from '../../hooks/useToast';
@@ -486,7 +487,9 @@ export default function Tasks() {
                                                                         <CheckCircle className="h-5 w-5 text-green-500" />
                                                                         <p className="text-sm font-bold text-slate-700">Your Answer</p>
                                                                     </div>
-                                                                    <p className="text-slate-600 text-sm whitespace-pre-wrap mb-4 pl-7">{submission.content}</p>
+                                                                    <p className="text-slate-600 text-sm whitespace-pre-wrap mb-4 pl-7">
+                                                                        <LinkifiedText text={submission.content} />
+                                                                    </p>
 
                                                                     {submission.revisedAt && (
                                                                         <div className="pl-7 mb-2">

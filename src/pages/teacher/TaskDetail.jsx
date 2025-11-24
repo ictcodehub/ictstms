@@ -4,6 +4,7 @@ import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Users, CheckCircle2, Clock, XCircle, Award, FileText, Calendar, BookOpen, Save, X, Edit2, Filter, ArrowUpDown, ArrowUp, ArrowDown, Hourglass } from 'lucide-react';
+import { LinkifiedText } from '../../utils/linkify';
 
 export default function TaskDetail({ task, classes = [], onBack }) {
     const [students, setStudents] = useState([]);
@@ -642,7 +643,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                         <div className="mt-2">
                                             <p className="font-medium text-slate-700 mb-1">Jawaban:</p>
                                             <div className="bg-white p-3 rounded-lg border border-slate-200 text-slate-600 max-h-32 overflow-y-auto whitespace-pre-wrap">
-                                                {currentSubmission.submission.content}
+                                                <LinkifiedText text={currentSubmission.submission.content} />
                                             </div>
                                         </div>
                                     )}
