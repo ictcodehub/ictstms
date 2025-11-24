@@ -17,6 +17,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
     const [error, setError] = useState(null);
     const [filterClass, setFilterClass] = useState('all');
     const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
+    const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
 
     // Validate task object
     if (!task) {
@@ -358,8 +359,14 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                 </button>
                 <div className="flex-1">
                     <h1 className="text-2xl font-bold text-slate-800">{task?.title || 'Loading...'}</h1>
-                    <p className="text-slate-500 text-sm mt-1">{task?.description || ''}</p>
                 </div>
+                <button
+                    onClick={() => setShowTaskDetailModal(true)}
+                    className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-all shadow-sm flex items-center gap-2"
+                >
+                    <FileText className="h-4 w-4" />
+                    View Detail
+                </button>
             </div>
 
             {/* Task Info */}
@@ -711,6 +718,95 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                 )
                 }
             </AnimatePresence >
+            {/* Task Detail Modal */}
+            <AnimatePresence>
+                {showTaskDetailModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col"
+                        >
+                            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 text-white flex justify-between items-center flex-shrink-0">
+                                <div>
+                                    <h2 className="text-xl font-bold">Detail Tugas</h2>
+                                    <p className="text-blue-100 text-sm mt-1">{task?.title}</p>
+                                </div>
+                                <button onClick={() => setShowTaskDetailModal(false)} className="text-white/80 hover:text-white transition-colors">
+                                    <X className="h-6 w-6" />
+                                </button>
+                            </div>
+                            <div className="p-6 overflow-y-auto flex-1">
+                                <div className="space-y-6">
+                                    {/* Deadline and Kelas Info - Moved to top */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Calendar className="h-4 w-4 text-blue-600" />
+                                                <p className="text-xs text-blue-700 font-bold uppercase tracking-wide">Deadline</p>
+                                            </div>
+                                            <p className="text-sm font-bold text-slate-800">{task?.deadline ? formatDate(task.deadline) : '-'}</p>
+                                        </div>
+                                        <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <BookOpen className="h-4 w-4 text-purple-600" />
+                                                <p className="text-xs text-purple-700 font-bold uppercase tracking-wide">Kelas</p>
+                                            </div>
+                                            <div className="flex flex-wrap gap-1">
+                                                {task?.assignedClasses?.length > 0 ? (
+                                                    task.assignedClasses.map((classId) => {
+                                                        const cls = classes.find(c => c.id === classId);
+                                                        return cls ? (
+                                                            <span key={classId} className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded-md font-medium">
+                                                                {cls.name}
+                                                            </span>
+                                                        ) : null;
+                                                    })
+                                                ) : (
+                                                    <span className="text-sm text-slate-500 italic">Tidak ada kelas</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Description */}
+                                    <div>
+                                        <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                            <FileText className="h-4 w-4 text-blue-600" />
+                                            Materi / Deskripsi Tugas
+                                        </h3>
+                                        <div
+                                            className="bg-white p-6 rounded-xl border-2 border-slate-200 shadow-sm"
+                                            style={{
+                                                lineHeight: '1.8',
+                                                fontSize: '14px'
+                                            }}
+                                        >
+                                            <div
+                                                dangerouslySetInnerHTML={{ __html: task?.description || '<p class="text-slate-400 italic">Tidak ada deskripsi</p>' }}
+                                                style={{
+                                                    whiteSpace: 'pre-wrap',
+                                                    wordBreak: 'break-word',
+                                                    overflowWrap: 'break-word'
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-4 border-t border-slate-200 flex justify-end bg-slate-50 flex-shrink-0">
+                                <button
+                                    onClick={() => setShowTaskDetailModal(false)}
+                                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all shadow-md hover:shadow-lg"
+                                >
+                                    Tutup
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div >
     );
 }
