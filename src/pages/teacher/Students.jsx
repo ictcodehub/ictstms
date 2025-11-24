@@ -472,7 +472,7 @@ export default function Students() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-white text-slate-600 border border-slate-200">
                                                         {classesMap[student.classId] || '-'}
                                                     </span>
                                                 </td>

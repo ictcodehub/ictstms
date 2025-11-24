@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Calendar, CheckCircle2, Clock, XCircle, BookOpen, Award, TrendingUp, FileText, Send, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, CheckCircle2, Clock, XCircle, BookOpen, Award, TrendingUp, FileText, Send, AlertCircle, CheckCircle, Hourglass } from 'lucide-react';
 
 export default function StudentDetail({ student, onBack, onTaskClick, hideSubmissionTime }) {
     const [tasks, setTasks] = useState([]);
@@ -128,7 +128,7 @@ export default function StudentDetail({ student, onBack, onTaskClick, hideSubmis
             case 'submitted':
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100">
-                        <Send className="h-3 w-3" />
+                        <Hourglass className="h-3 w-3" />
                         Diserahkan
                     </span>
                 );

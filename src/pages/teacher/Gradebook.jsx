@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { Search, TrendingUp, Users, FileText, Target, CheckCircle, Clock, AlertCircle, ArrowUpDown, ChevronLeft, ChevronRight, Calendar, Send } from 'lucide-react';
+import { Search, TrendingUp, Users, FileText, Target, CheckCircle, Clock, AlertCircle, ArrowUpDown, ChevronLeft, ChevronRight, Calendar, Send, Hourglass } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { sortClasses } from '../../utils/classSort';
@@ -489,7 +489,7 @@ export default function Gradebook() {
                                                                 )}
                                                                 {task.status === 'submitted' && (
                                                                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100">
-                                                                        <Send className="h-3 w-3" />
+                                                                        <Hourglass className="h-3 w-3" />
                                                                         Diserahkan
                                                                     </span>
                                                                 )}

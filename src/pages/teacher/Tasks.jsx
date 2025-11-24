@@ -441,7 +441,7 @@ export default function Tasks() {
                                                     {task.assignedClasses?.map(classId => {
                                                         const cls = classes.find(c => c.id === classId);
                                                         return cls ? (
-                                                            <span key={classId} className="text-xs text-blue-600 bg-blue-50 px-1.5 py-1 rounded-lg border border-blue-200 font-medium">
+                                                            <span key={classId} className="text-xs text-slate-600 bg-white px-2 py-1 rounded-lg border border-slate-200 font-medium">
                                                                 {cls.name}
                                                             </span>
                                                         ) : null;

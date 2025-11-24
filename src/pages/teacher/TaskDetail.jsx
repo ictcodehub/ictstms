@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Users, CheckCircle2, Clock, XCircle, Award, FileText, Calendar, BookOpen, Save, X, Edit2, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowLeft, Users, CheckCircle2, Clock, XCircle, Award, FileText, Calendar, BookOpen, Save, X, Edit2, Filter, ArrowUpDown, ArrowUp, ArrowDown, Hourglass } from 'lucide-react';
 
 export default function TaskDetail({ task, classes = [], onBack }) {
     const [students, setStudents] = useState([]);
@@ -192,7 +192,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
             color: 'text-amber-700',
             bgColor: 'bg-amber-50',
             borderColor: 'border-amber-200',
-            icon: Clock
+            icon: Hourglass
         };
     };
 
@@ -533,7 +533,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-1 rounded-lg border border-blue-200 font-medium">
+                                                <span className="text-xs text-slate-600 bg-white px-2 py-1 rounded-lg border border-slate-200 font-medium">
                                                     {cls?.name || 'Kelas Tidak Diketahui'}
                                                 </span>
                                             </td>
