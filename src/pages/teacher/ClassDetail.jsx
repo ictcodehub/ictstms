@@ -3,7 +3,7 @@ import { db } from '../../lib/firebase';
 import { collection, getDocs, query, where, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Search, Filter, MoreVertical, Mail, Plus, Edit2, Trash2, X, Save, UserPlus, BookOpen, Award, CheckCircle, Lock, School, Star, TrendingUp, Users } from 'lucide-react';
+import { ArrowLeft, Search, Filter, MoreVertical, Mail, Plus, Edit2, Trash2, X, Save, UserPlus, BookOpen, Award, CheckCircle, Lock, School, Star, TrendingUp, Users, ArrowUpDown } from 'lucide-react';
 
 import StudentDetail from './StudentDetail';
 import TaskDetail from './TaskDetail';
@@ -14,6 +14,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [selectedTask, setSelectedTask] = useState(null);
+    const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
     // Modal States
     const [showModal, setShowModal] = useState(false);
@@ -149,9 +150,43 @@ export default function ClassDetail({ classData, classes, onBack }) {
         }
     };
 
-    const filteredStudents = students.filter(student => {
-        return student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            student.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const handleSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const filteredStudents = students.filter(student =>
+        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    ).sort((a, b) => {
+        let aValue, bValue;
+
+        switch (sortConfig.key) {
+            case 'name':
+                aValue = (a.name || '').toLowerCase();
+                bValue = (b.name || '').toLowerCase();
+                return sortConfig.direction === 'asc'
+                    ? aValue.localeCompare(bValue, 'id-ID')
+                    : bValue.localeCompare(aValue, 'id-ID');
+            case 'tasks':
+                aValue = a.stats.completedCount;
+                bValue = b.stats.completedCount;
+                break;
+            case 'average':
+                aValue = parseFloat(a.stats.avgGrade) || 0;
+                bValue = parseFloat(b.stats.avgGrade) || 0;
+                break;
+            default:
+                return 0;
+        }
+
+        if (sortConfig.direction === 'asc') {
+            return aValue - bValue;
+        }
+        return bValue - aValue;
     });
 
     const getTaskBadgeColor = (completed, total) => {
@@ -303,9 +338,33 @@ export default function ClassDetail({ classData, classes, onBack }) {
                             <thead className="bg-slate-50/50 border-b border-slate-200">
                                 <tr>
                                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">No</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Tugas</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Rata-Rata</th>
+                                    <th
+                                        className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-blue-600 transition-colors group"
+                                        onClick={() => handleSort('name')}
+                                    >
+                                        <div className="flex items-center gap-1.5">
+                                            Siswa
+                                            <ArrowUpDown className="h-3 w-3 opacity-40 group-hover:opacity-100" />
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-blue-600 transition-colors group"
+                                        onClick={() => handleSort('tasks')}
+                                    >
+                                        <div className="flex items-center justify-center gap-1.5">
+                                            Tugas
+                                            <ArrowUpDown className="h-3 w-3 opacity-40 group-hover:opacity-100" />
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-blue-600 transition-colors group"
+                                        onClick={() => handleSort('average')}
+                                    >
+                                        <div className="flex items-center justify-center gap-1.5">
+                                            Rata-Rata
+                                            <ArrowUpDown className="h-3 w-3 opacity-40 group-hover:opacity-100" />
+                                        </div>
+                                    </th>
                                     <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
                                 </tr>
                             </thead>
@@ -516,6 +575,6 @@ export default function ClassDetail({ classData, classes, onBack }) {
                     </div>
                 )}
             </AnimatePresence>
-        </div >
+        </div>
     );
 }
