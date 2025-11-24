@@ -323,7 +323,9 @@ export default function Gradebook() {
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${isSelected ? 'bg-blue-600' : 'bg-purple-500'
+                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 border-2 shadow-sm ${isSelected
+                                            ? 'bg-blue-100 border-blue-300 text-blue-800'
+                                            : 'bg-blue-50 border-blue-100 text-blue-600'
                                             }`}>
                                             {student.name[0]}
                                         </div>

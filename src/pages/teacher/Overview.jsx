@@ -247,18 +247,17 @@ export default function TeacherOverview() {
         }
     };
 
-    const getActivityIcon = (activity) => {
+    const getActivityStyles = (activity) => {
         switch (activity.type) {
             case 'submission':
-                return activity.hasGrade ? 'bg-gradient-to-br from-green-500 to-emerald-500' : 'bg-gradient-to-br from-blue-500 to-cyan-500';
             case 'new_student':
-                return 'bg-gradient-to-br from-purple-500 to-pink-500';
+                return 'bg-blue-50 border-2 border-blue-100 text-blue-600';
             case 'deadline':
-                return 'bg-gradient-to-br from-orange-500 to-amber-500';
+                return 'bg-gradient-to-br from-orange-500 to-amber-500 text-white';
             case 'new_task':
-                return 'bg-gradient-to-br from-cyan-500 to-teal-500';
+                return 'bg-gradient-to-br from-cyan-500 to-teal-500 text-white';
             default:
-                return 'bg-gradient-to-br from-slate-500 to-gray-500';
+                return 'bg-gradient-to-br from-slate-500 to-gray-500 text-white';
         }
     };
 
@@ -267,19 +266,19 @@ export default function TeacherOverview() {
             case 'submission':
                 return (
                     <>
-                        <span className="text-blue-600">{activity.studentName}</span> mengumpulkan tugas
+                        <span className="text-blue-600 font-bold">{activity.studentName}</span> mengumpulkan tugas
                     </>
                 );
             case 'new_student':
                 return (
                     <>
-                        Siswa baru <span className="text-purple-600">{activity.studentName}</span> bergabung ke Kelas {activity.className}
+                        Siswa baru <span className="text-purple-600 font-bold">{activity.studentName}</span> bergabung ke Kelas {activity.className}
                     </>
                 );
             case 'deadline':
                 return (
                     <>
-                        Deadline tugas dalam <span className="text-orange-600">{activity.daysUntilDeadline} hari</span>
+                        Deadline tugas dalam <span className="text-orange-600 font-bold">{activity.daysUntilDeadline} hari</span>
                     </>
                 );
             case 'new_task':
@@ -399,13 +398,13 @@ export default function TeacherOverview() {
                                             onClick={() => handleActivityClick(activity)}
                                             className="flex gap-3 p-3 rounded-xl hover:bg-blue-50 transition-all border border-slate-100 cursor-pointer hover:shadow-md hover:border-blue-200 items-center"
                                         >
-                                            <div className={`w-10 h-10 rounded-lg ${getActivityIcon(activity)} flex items-center justify-center flex-shrink-0 text-white font-bold text-base shadow-sm`}>
+                                            <div className={`w-10 h-10 rounded-full ${getActivityStyles(activity)} flex items-center justify-center flex-shrink-0 font-bold text-base shadow-sm`}>
                                                 {activity.initial}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-2">
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-semibold text-slate-800 truncate">
+                                                        <p className="text-sm text-slate-700 truncate">
                                                             {getActivityMessage(activity)}
                                                         </p>
                                                         <div className="flex items-center gap-2 mt-0.5">

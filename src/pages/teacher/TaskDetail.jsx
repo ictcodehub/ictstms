@@ -553,7 +553,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                                                    <div className="w-10 h-10 rounded-full bg-blue-50 border-2 border-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm flex-shrink-0 shadow-sm">
                                                         {student.name?.charAt(0) || '?'}
                                                     </div>
                                                     <div>

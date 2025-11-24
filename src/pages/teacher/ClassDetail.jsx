@@ -372,34 +372,24 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                 {filteredStudents.map((student, index) => (
                                     <motion.tr
                                         key={student.id}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ delay: index * 0.03 }}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.02 }}
                                         onClick={() => setSelectedStudent(student)}
                                         className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
                                     >
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                             {index + 1}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                                                    {student.name ? student.name.charAt(0).toUpperCase() : '?'}
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full bg-blue-50 border-2 border-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm flex-shrink-0 shadow-sm">
+                                                    {student.name?.[0]?.toUpperCase()}
                                                 </div>
-                                                <div>
-                                                    <div className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
-                                                        {student.name || 'Tanpa Nama'}
-                                                    </div>
-                                                    <div className="text-xs text-slate-500">{student.email}</div>
+                                                <div className="min-w-0">
+                                                    <div className="text-sm font-bold text-slate-800 truncate group-hover:text-blue-700 transition-colors">{student.name}</div>
+                                                    <div className="text-xs text-slate-500 truncate">{student.email}</div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${getTaskBadgeColor(student.stats.completedCount, student.stats.totalTasks)}`}>
-                                                <BookOpen className="h-3 w-3" />
-                                                <span className="text-sm font-medium">
-                                                    {student.stats.completedCount}/{student.stats.totalTasks}
-                                                </span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
@@ -432,12 +422,13 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
-                )}
-            </div>
+                    </div >
+                )
+                }
+            </div >
 
             {/* Edit Modal */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {showModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                         <motion.div
@@ -525,10 +516,10 @@ export default function ClassDetail({ classData, classes, onBack }) {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
 
             {/* Delete Confirmation Modal */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {deleteModalOpen && studentToDelete && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                         <motion.div
@@ -574,7 +565,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
-        </div>
+            </AnimatePresence >
+        </div >
     );
 }

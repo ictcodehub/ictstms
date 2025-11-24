@@ -248,12 +248,12 @@ export default function StudentDetail({ student, onBack, onTaskClick, hideSubmis
                             <tr>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">No</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Judul Tugas</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Tenggat</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Tenggat</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
                                 {!hideSubmissionTime && (
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Waktu Submit</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Waktu Submit</th>
                                 )}
-                                <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Nilai</th>
+                                <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Nilai</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -288,28 +288,30 @@ export default function StudentDetail({ student, onBack, onTaskClick, hideSubmis
                                             onClick={() => onTaskClick && onTaskClick(task)}
                                             className={`${rowBgClass} transition-colors cursor-pointer`}
                                         >
-                                            <td className="px-6 py-4 text-sm text-slate-500 font-medium">
+                                            <td className="px-6 py-4 text-sm text-slate-500 font-medium whitespace-nowrap">
                                                 {index + 1}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="font-medium text-slate-800 line-clamp-1 text-[13px]" title={task.title}>{task.title}</div>
-                                                <div className="text-xs text-slate-500 line-clamp-1">{task.description}</div>
+                                                <div className="max-w-md">
+                                                    <div className="font-medium text-slate-800 line-clamp-1 text-[13px]" title={task.title}>{task.title}</div>
+                                                    <div className="text-xs text-slate-500 line-clamp-1">{task.description}</div>
+                                                </div>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100">
                                                     <Calendar className="h-3 w-3" />
                                                     {task.deadline ? new Date(task.deadline.toDate ? task.deadline.toDate() : task.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 whitespace-nowrap">
                                                 {getStatusBadge(task.status)}
                                             </td>
                                             {!hideSubmissionTime && (
-                                                <td className="px-6 py-4 text-sm text-slate-600">
+                                                <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
                                                     {task.submission ? formatDate(task.submission.submittedAt) : '-'}
                                                 </td>
                                             )}
-                                            <td className="px-6 py-4 text-center">
+                                            <td className="px-6 py-4 text-center whitespace-nowrap">
                                                 {task.submission?.grade !== undefined && task.submission?.grade !== null ? (
                                                     <span className={`font-bold text-[13px] ${task.submission.grade >= 80 ? 'text-green-600' :
                                                         task.submission.grade >= 60 ? 'text-amber-600' : 'text-red-600'

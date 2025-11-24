@@ -465,7 +465,7 @@ export default function Students() {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm">
+                                                        <div className="w-10 h-10 rounded-full bg-blue-50 border-2 border-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm flex-shrink-0 shadow-sm">
                                                             {student.name?.[0]?.toUpperCase()}
                                                         </div>
                                                         <div className="min-w-0">
@@ -588,11 +588,12 @@ export default function Students() {
                             </div>
                         )}
                     </>
-                )}
-            </div>
+                )
+                }
+            </div >
 
             {/* Edit Modal */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {showModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                         <motion.div
@@ -680,10 +681,10 @@ export default function Students() {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
 
             {/* Delete Confirmation Modal */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {showDeleteModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                         <motion.div
@@ -729,7 +730,7 @@ export default function Students() {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
-        </div>
+            </AnimatePresence >
+        </div >
     );
 }
