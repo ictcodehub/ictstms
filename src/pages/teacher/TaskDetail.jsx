@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Users, CheckCircle2, Clock, XCircle, Award, FileText, Calendar, BookOpen, Save, X, Edit2, Filter, ArrowUpDown, ArrowUp, ArrowDown, Hourglass } from 'lucide-react';
 import { LinkifiedText } from '../../utils/linkify';
@@ -51,63 +51,72 @@ export default function TaskDetail({ task, classes = [], onBack }) {
     }
 
     useEffect(() => {
-        try {
-            loadSubmissions();
-        } catch (err) {
-            console.error('Error in useEffect:', err);
-            setError(err);
-        }
-    }, [task.id]);
+        let unsubscribeSubmissions = null;
 
-    const loadSubmissions = async () => {
-        setLoading(true);
-        try {
-            // Check if task has assigned classes
-            if (!task.assignedClasses || task.assignedClasses.length === 0) {
+        const loadData = async () => {
+            setLoading(true);
+            try {
+                // Check if task has assigned classes
+                if (!task.assignedClasses || task.assignedClasses.length === 0) {
+                    setStudents([]);
+                    setSubmissions({});
+                    setLoading(false);
+                    return;
+                }
+
+                // Get all students from assigned classes (one-time load)
+                const studentsQuery = query(
+                    collection(db, 'users'),
+                    where('role', '==', 'student'),
+                    where('classId', 'in', task.assignedClasses)
+                );
+                const studentsSnap = await getDocs(studentsQuery);
+                const studentsList = studentsSnap.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                setStudents(studentsList);
+
+                // Setup real-time listener for submissions
+                const submissionsQuery = query(
+                    collection(db, 'submissions'),
+                    where('taskId', '==', task.id)
+                );
+
+                // Real-time listener - akan auto-update ketika ada perubahan
+                unsubscribeSubmissions = onSnapshot(submissionsQuery, (snapshot) => {
+                    const submissionsMap = {};
+                    snapshot.docs.forEach(doc => {
+                        const data = doc.data();
+                        submissionsMap[data.studentId] = {
+                            id: doc.id,
+                            ...data
+                        };
+                    });
+                    setSubmissions(submissionsMap);
+                    setLoading(false);
+                }, (error) => {
+                    console.error('Error in submissions listener:', error);
+                    setLoading(false);
+                });
+
+            } catch (error) {
+                console.error('Error loading data:', error);
                 setStudents([]);
                 setSubmissions({});
                 setLoading(false);
-                return;
             }
+        };
 
-            // Get all students from assigned classes
-            const studentsQuery = query(
-                collection(db, 'users'),
-                where('role', '==', 'student'),
-                where('classId', 'in', task.assignedClasses)
-            );
-            const studentsSnap = await getDocs(studentsQuery);
-            const studentsList = studentsSnap.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            setStudents(studentsList);
+        loadData();
 
-            // Get all submissions for this task
-            const submissionsQuery = query(
-                collection(db, 'submissions'),
-                where('taskId', '==', task.id)
-            );
-            const submissionsSnap = await getDocs(submissionsQuery);
-            const submissionsMap = {};
-            submissionsSnap.docs.forEach(doc => {
-                const data = doc.data();
-                submissionsMap[data.studentId] = {
-                    id: doc.id,
-                    ...data
-                };
-            });
-
-            setSubmissions(submissionsMap);
-        } catch (error) {
-            console.error('Error loading submissions:', error);
-            // Set empty data on error to prevent blank page
-            setStudents([]);
-            setSubmissions({});
-        } finally {
-            setLoading(false);
-        }
-    };
+        // Cleanup listener when component unmounts
+        return () => {
+            if (unsubscribeSubmissions) {
+                unsubscribeSubmissions();
+            }
+        };
+    }, [task.id]);
 
     const handleGradeClick = (student) => {
         const submission = submissions[student.uid] || submissions[student.id];
@@ -384,7 +393,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
             </div>
 
             {/* Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
@@ -404,6 +413,17 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                         <div>
                             <p className="text-xs text-slate-500 font-medium">Sudah Submit</p>
                             <p className="text-2xl font-bold text-slate-800">{stats.submitted}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
+                            <XCircle className="h-6 w-6 text-red-600" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-500 font-medium">Belum Submit</p>
+                            <p className="text-2xl font-bold text-slate-800">{stats.total - stats.submitted}</p>
                         </div>
                     </div>
                 </div>
