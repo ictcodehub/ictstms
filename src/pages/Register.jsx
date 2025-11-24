@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { UserPlus, Mail, Lock, User, AlertCircle, School, ArrowRight, GraduationCap, BookOpen, Eye, EyeOff, Flame } from 'lucide-react';
 import { sortClasses } from '../utils/classSort';
 
@@ -43,17 +44,18 @@ export default function Register() {
         e.preventDefault();
 
         if (role === 'teacher' && teacherCode !== 'weLoveMB2!') {
-            return setError('Incorrect teacher code');
+            return toast.error('Incorrect teacher code');
         }
 
         if (role === 'student' && !classId) {
-            return setError('Please select a class first');
+            return toast.error('Please select a class first');
         }
 
         try {
             setError('');
             setLoading(true);
             await signup(email, password, name, role, classId);
+            toast.success('Registration successful!');
             navigate(role === 'teacher' ? '/teacher' : '/student');
         } catch (err) {
             console.error("Registration Error Details:", err);
@@ -69,7 +71,7 @@ export default function Register() {
                 errorMessage = `Error: ${err.message}`;
             }
 
-            setError(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -104,16 +106,7 @@ export default function Register() {
                     <p className="text-slate-500">Start your learning journey today</p>
                 </div>
 
-                {error && (
-                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl mb-6 flex items-center gap-3"
-                    >
-                        <AlertCircle className="h-5 w-5" />
-                        <span className="font-medium">{error}</span>
-                    </motion.div>
-                )}
+
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="space-y-2">

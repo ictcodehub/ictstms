@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { Mail, Lock, AlertCircle, ArrowRight, LogIn, Eye, EyeOff, CheckCircle, Flame } from 'lucide-react';
 
 export default function Login() {
@@ -24,9 +25,10 @@ export default function Login() {
             setError('');
             setLoading(true);
             await login(email, password, rememberMe);
+            toast.success('Login berhasil!');
             navigate('/');
         } catch (err) {
-            setError('Login failed. Please check your email and password.');
+            toast.error('Login gagal. Periksa email dan password Anda.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -62,16 +64,7 @@ export default function Login() {
                     <p className="text-slate-500">Student Task Management Platform</p>
                 </div>
 
-                {error && (
-                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl mb-6 flex items-center gap-3"
-                    >
-                        <AlertCircle className="h-5 w-5" />
-                        <span className="font-medium">{error}</span>
-                    </motion.div>
-                )}
+
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div className="space-y-2">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useLocation } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query, where } from 'firebase/firestore';
@@ -16,6 +17,8 @@ export default function Tasks() {
     const [classes, setClasses] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [editingTask, setEditingTask] = useState(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [taskToDelete, setTaskToDelete] = useState(null);
     const [loading, setLoading] = useState(false);
     const [selectedTask, setSelectedTask] = useState(null);
     const [showClassModal, setShowClassModal] = useState(false);
@@ -119,7 +122,7 @@ export default function Tasks() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.title || !formData.deadline || formData.assignedClasses.length === 0) {
-            alert('Mohon lengkapi semua data tugas');
+            toast.error('Mohon lengkapi semua data tugas');
             return;
         }
 
@@ -139,23 +142,32 @@ export default function Tasks() {
             }
             setShowModal(false);
             loadData();
+            toast.success('Tugas berhasil disimpan!');
         } catch (error) {
             console.error('Error saving task:', error);
-            alert('Gagal menyimpan tugas');
+            toast.error('Gagal menyimpan tugas');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleDelete = async (id, title) => {
-        if (!confirm(`Hapus tugas "${title}"?`)) return;
+    const handleDelete = (task) => {
+        setTaskToDelete(task);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!taskToDelete) return;
 
         try {
-            await deleteDoc(doc(db, 'tasks', id));
-            setTasks(tasks.filter(t => t.id !== id));
+            await deleteDoc(doc(db, 'tasks', taskToDelete.id));
+            setTasks(tasks.filter(t => t.id !== taskToDelete.id));
+            toast.success('Tugas berhasil dihapus!');
+            setDeleteModalOpen(false);
+            setTaskToDelete(null);
         } catch (error) {
             console.error('Error deleting task:', error);
-            alert('Gagal menghapus tugas');
+            toast.error('Gagal menghapus tugas');
         }
     };
 
@@ -489,7 +501,7 @@ export default function Tasks() {
                                                         <Edit2 className="h-4 w-4" />
                                                     </button>
                                                     <button
-                                                        onClick={(e) => { e.stopPropagation(); handleDelete(task.id, task.title); }}
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(task); }}
                                                         className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-all"
                                                         title="Hapus tugas"
                                                     >
@@ -733,6 +745,55 @@ export default function Tasks() {
                                         ))}
                                     </div>
                                 )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {deleteModalOpen && taskToDelete && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                        >
+                            <div className="bg-red-600 p-6 text-white flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white/20 p-2 rounded-lg">
+                                        <Trash2 className="h-6 w-6 text-white" />
+                                    </div>
+                                    <h3 className="font-bold text-lg">Hapus Tugas?</h3>
+                                </div>
+                                <button onClick={() => setDeleteModalOpen(false)} className="text-white/70 hover:text-white">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-red-800 text-sm">
+                                    <p className="font-bold mb-1">PERINGATAN:</p>
+                                    <p>Anda akan menghapus tugas <strong>"{taskToDelete.title}"</strong>.</p>
+                                    <p className="mt-1 opacity-80">Semua pengumpulan siswa untuk tugas ini juga akan dihapus permanen.</p>
+                                </div>
+
+                                <div className="pt-2 flex gap-3">
+                                    <button
+                                        onClick={() => setDeleteModalOpen(false)}
+                                        className="flex-1 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-medium text-slate-700"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        onClick={confirmDelete}
+                                        className="flex-1 px-4 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg shadow-red-200 flex items-center justify-center gap-2"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        Ya, Hapus
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>

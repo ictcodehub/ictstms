@@ -8,6 +8,7 @@ import StudentDashboard from './pages/student/Dashboard';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
 import UserManagement from './pages/admin/UserManagement';
+import { Toaster } from 'react-hot-toast';
 
 
 // Protected Route Component
@@ -41,6 +42,7 @@ const RootRedirect = () => {
 function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-right" reverseOrder={false} />
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />

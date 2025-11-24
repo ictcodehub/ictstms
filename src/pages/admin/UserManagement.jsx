@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, doc, updateDoc, deleteDoc, writeBatch, query, where } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { Search, Filter, MoreVertical, Edit2, Trash2, Shield, Ban, CheckCircle, X } from 'lucide-react';
 
 export default function UserManagement() {
@@ -46,10 +47,10 @@ export default function UserManagement() {
             setShowModal(false);
             setEditingUser(null);
             loadUsers();
-            alert('User updated successfully');
+            toast.success('User updated successfully');
         } catch (error) {
             console.error('Error updating user:', error);
-            alert('Failed to update user');
+            toast.error('Failed to update user');
         }
     };
 
@@ -70,7 +71,7 @@ export default function UserManagement() {
 
     const confirmDeleteUser = (user) => {
         if (user.role === 'admin') {
-            alert('Admin users cannot be deleted.');
+            toast.error('Admin users cannot be deleted.');
             return;
         }
         setUserToDelete(user);
@@ -153,14 +154,14 @@ export default function UserManagement() {
             await batch.commit();
             console.log('Batch commit successful.');
 
-            alert(`User ${user.name} dan semua datanya berhasil dihapus.`);
+            toast.success(`User ${user.name} dan semua datanya berhasil dihapus.`);
             setDeleteModalOpen(false);
             setUserToDelete(null);
             loadUsers();
 
         } catch (error) {
             console.error('Error deleting user:', error);
-            alert('Gagal menghapus user: ' + error.message);
+            toast.error('Gagal menghapus user: ' + error.message);
         } finally {
             setLoading(false);
         }

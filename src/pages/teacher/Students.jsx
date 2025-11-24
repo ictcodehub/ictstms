@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { Search, Trash2, Users, TrendingUp, Award, BookOpen, Filter, ChevronLeft, ChevronRight, ArrowUpDown, Edit2, X, Save, School, AlertTriangle } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -159,9 +160,10 @@ export default function Students() {
                 ));
             }
             setShowModal(false);
+            toast.success("Data siswa berhasil disimpan!");
         } catch (error) {
             console.error("Error saving student:", error);
-            alert("Gagal menyimpan data siswa.");
+            toast.error("Gagal menyimpan data siswa.");
         } finally {
             setSaving(false);
         }
@@ -180,9 +182,10 @@ export default function Students() {
             setStudents(students.filter(s => s.id !== studentToDelete.id));
             setShowDeleteModal(false);
             setStudentToDelete(null);
+            toast.success("Siswa berhasil dihapus!");
         } catch (error) {
             console.error('Error deleting student:', error);
-            alert('Gagal menghapus siswa');
+            toast.error('Gagal menghapus siswa');
         } finally {
             setDeleting(false);
         }

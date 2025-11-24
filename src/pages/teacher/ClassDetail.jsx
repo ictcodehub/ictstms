@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, query, where, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { ArrowLeft, Search, Filter, MoreVertical, Mail, Plus, Edit2, Trash2, X, Save, UserPlus, BookOpen, Award, CheckCircle, Lock, School, Star, TrendingUp, Users } from 'lucide-react';
 
 import StudentDetail from './StudentDetail';
@@ -19,6 +20,10 @@ export default function ClassDetail({ classData, classes, onBack }) {
     const [currentStudent, setCurrentStudent] = useState(null);
     const [formData, setFormData] = useState({ name: '', email: '', classId: '' });
     const [saving, setSaving] = useState(false);
+
+    // Delete Modal State
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [studentToDelete, setStudentToDelete] = useState(null);
 
     useEffect(() => {
         setSelectedStudent(null); // Reset selected student when class changes
@@ -93,15 +98,23 @@ export default function ClassDetail({ classData, classes, onBack }) {
         setShowModal(true);
     };
 
-    const handleDeleteClick = async (student) => {
-        if (!confirm(`Apakah Anda yakin ingin menghapus siswa ${student.name}?`)) return;
+    const handleDeleteClick = (student) => {
+        setStudentToDelete(student);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!studentToDelete) return;
 
         try {
-            await deleteDoc(doc(db, 'users', student.id));
+            await deleteDoc(doc(db, 'users', studentToDelete.id));
+            toast.success('Siswa berhasil dihapus');
+            setDeleteModalOpen(false);
+            setStudentToDelete(null);
             loadClassData(); // Reload data
         } catch (error) {
             console.error("Error deleting student:", error);
-            alert("Gagal menghapus siswa.");
+            toast.error("Gagal menghapus siswa.");
         }
     };
 
@@ -120,9 +133,10 @@ export default function ClassDetail({ classData, classes, onBack }) {
             }
             setShowModal(false);
             loadClassData();
+            toast.success("Data siswa berhasil disimpan!");
         } catch (error) {
             console.error("Error saving student:", error);
-            alert("Gagal menyimpan data siswa.");
+            toast.error("Gagal menyimpan data siswa.");
         } finally {
             setSaving(false);
         }
@@ -442,6 +456,55 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                     </button>
                                 </div>
                             </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {deleteModalOpen && studentToDelete && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                        >
+                            <div className="bg-red-600 p-6 text-white flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white/20 p-2 rounded-lg">
+                                        <Trash2 className="h-6 w-6 text-white" />
+                                    </div>
+                                    <h3 className="font-bold text-lg">Hapus Siswa?</h3>
+                                </div>
+                                <button onClick={() => setDeleteModalOpen(false)} className="text-white/70 hover:text-white">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-red-800 text-sm">
+                                    <p className="font-bold mb-1">PERINGATAN:</p>
+                                    <p>Anda akan menghapus siswa <strong>"{studentToDelete.name}"</strong> dari kelas ini.</p>
+                                    <p className="mt-1 opacity-80">Semua data pengumpulan dan nilai siswa ini akan dihapus permanen.</p>
+                                </div>
+
+                                <div className="pt-2 flex gap-3">
+                                    <button
+                                        onClick={() => setDeleteModalOpen(false)}
+                                        className="flex-1 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-medium text-slate-700"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        onClick={confirmDelete}
+                                        className="flex-1 px-4 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg shadow-red-200 flex items-center justify-center gap-2"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        Ya, Hapus
+                                    </button>
+                                </div>
+                            </div>
                         </motion.div>
                     </div>
                 )}

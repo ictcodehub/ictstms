@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -118,13 +119,13 @@ export default function TaskDetail({ task, classes = [], onBack }) {
 
     const handleSaveGrade = async () => {
         if (!currentSubmission?.submission) {
-            alert('Siswa belum mengumpulkan tugas');
+            toast.error('Siswa belum mengumpulkan tugas');
             return;
         }
 
         const grade = parseFloat(gradeData.grade);
         if (isNaN(grade) || grade < 0 || grade > 100) {
-            alert('Nilai harus antara 0-100');
+            toast.error('Nilai harus antara 0-100');
             return;
         }
 
@@ -149,9 +150,10 @@ export default function TaskDetail({ task, classes = [], onBack }) {
             }));
 
             setShowGradeModal(false);
+            toast.success('Nilai berhasil disimpan!');
         } catch (error) {
             console.error('Error saving grade:', error);
-            alert('Gagal menyimpan nilai: ' + error.message);
+            toast.error('Gagal menyimpan nilai: ' + error.message);
         } finally {
             setSaving(false);
         }
