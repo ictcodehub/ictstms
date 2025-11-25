@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { Award, BookOpen, TrendingUp, Star } from 'lucide-react';
@@ -12,57 +12,88 @@ export default function Grades() {
     const [average, setAverage] = useState(0);
 
     useEffect(() => {
-        loadGrades();
-    }, [currentUser]);
-
-    const loadGrades = async () => {
         if (!currentUser) return;
 
-        setLoading(true);
-        try {
-            // Get submissions with grades
-            const submissionsQuery = query(
-                collection(db, 'submissions'),
-                where('studentId', '==', currentUser.uid)
-            );
-            const submissionsSnap = await getDocs(submissionsQuery);
+        let unsubscribeSubmissions = null;
+        let unsubscribeTasks = null;
 
-            // Get task details
-            const tasksSnap = await getDocs(collection(db, 'tasks'));
-            const tasksMap = {};
-            tasksSnap.forEach(doc => {
-                tasksMap[doc.id] = doc.data();
-            });
+        const setupRealtimeListeners = async () => {
+            setLoading(true);
+            try {
+                // Real-time listener for tasks
+                const tasksQuery = collection(db, 'tasks');
+                const tasksMap = {};
 
-            const gradesData = [];
-            let totalGrade = 0;
-            let gradedCount = 0;
+                unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnapshot) => {
+                    tasksSnapshot.forEach(doc => {
+                        tasksMap[doc.id] = doc.data();
+                    });
 
-            submissionsSnap.forEach(doc => {
-                const submission = doc.data();
-                if (submission.grade !== null && submission.grade !== undefined) {
-                    const task = tasksMap[submission.taskId];
-                    if (task) {
-                        gradesData.push({
-                            taskTitle: task.title,
-                            grade: submission.grade,
-                            comment: submission.teacherComment,
-                            submittedAt: submission.submittedAt
-                        });
-                        totalGrade += submission.grade;
-                        gradedCount++;
-                    }
-                }
-            });
+                    // After tasks are loaded, update the grades display
+                    // This will be triggered again when submissions update
+                });
 
-            setGrades(gradesData);
-            setAverage(gradedCount > 0 ? (totalGrade / gradedCount).toFixed(2) : 0);
-        } catch (error) {
-            console.error('Error loading grades:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+                // Real-time listener for submissions with grades
+                const submissionsQuery = query(
+                    collection(db, 'submissions'),
+                    where('studentId', '==', currentUser.uid)
+                );
+
+                unsubscribeSubmissions = onSnapshot(submissionsQuery, async (submissionsSnapshot) => {
+                    // Ensure we have the latest tasks
+                    const tasksSnap = await getDocs(collection(db, 'tasks'));
+                    const currentTasksMap = {};
+                    tasksSnap.forEach(doc => {
+                        currentTasksMap[doc.id] = doc.data();
+                    });
+
+                    const gradesData = [];
+                    let totalGrade = 0;
+                    let gradedCount = 0;
+
+                    submissionsSnapshot.forEach(doc => {
+                        const submission = doc.data();
+                        if (submission.grade !== null && submission.grade !== undefined) {
+                            const task = currentTasksMap[submission.taskId];
+                            if (task) {
+                                gradesData.push({
+                                    taskTitle: task.title,
+                                    grade: submission.grade,
+                                    comment: submission.feedback || submission.teacherComment,
+                                    submittedAt: submission.submittedAt
+                                });
+                                totalGrade += submission.grade;
+                                gradedCount++;
+                            }
+                        }
+                    });
+
+                    setGrades(gradesData);
+                    setAverage(gradedCount > 0 ? (totalGrade / gradedCount).toFixed(2) : 0);
+                    setLoading(false);
+                }, (error) => {
+                    console.error('Error in submissions listener:', error);
+                    setLoading(false);
+                });
+
+            } catch (error) {
+                console.error('Error setting up listeners:', error);
+                setLoading(false);
+            }
+        };
+
+        setupRealtimeListeners();
+
+        // Cleanup listeners when component unmounts
+        return () => {
+            if (unsubscribeSubmissions) {
+                unsubscribeSubmissions();
+            }
+            if (unsubscribeTasks) {
+                unsubscribeTasks();
+            }
+        };
+    }, [currentUser]);
 
     return (
         <div className="space-y-8">
