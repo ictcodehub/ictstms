@@ -637,28 +637,25 @@ export default function Tasks() {
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">
                                             Tugaskan ke Kelas <span className="text-red-500">*</span>
                                         </label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto custom-scrollbar p-1">
+                                        <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar p-2 bg-slate-50 rounded-xl border border-slate-200">
                                             {classes.map(cls => (
                                                 <label
                                                     key={cls.id}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.assignedClasses.includes(cls.id)
-                                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                        : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${formData.assignedClasses.includes(cls.id)
+                                                            ? 'border-blue-500 bg-blue-50'
+                                                            : 'border-transparent bg-white hover:border-slate-300'
                                                         }`}
                                                 >
-                                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${formData.assignedClasses.includes(cls.id)
-                                                        ? 'border-blue-500 bg-blue-500 text-white'
-                                                        : 'border-slate-300 bg-white'
-                                                        }`}>
-                                                        {formData.assignedClasses.includes(cls.id) && <CheckCircle2 className="h-3 w-3" />}
-                                                    </div>
                                                     <input
                                                         type="checkbox"
-                                                        className="hidden"
+                                                        className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
                                                         checked={formData.assignedClasses.includes(cls.id)}
                                                         onChange={() => toggleClassSelection(cls.id)}
                                                     />
-                                                    <span className="font-medium">{cls.name}</span>
+                                                    <span className={`font-medium ${formData.assignedClasses.includes(cls.id) ? 'text-blue-700' : 'text-slate-700'
+                                                        }`}>
+                                                        {cls.name}
+                                                    </span>
                                                 </label>
                                             ))}
                                         </div>
