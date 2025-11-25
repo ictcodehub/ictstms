@@ -92,6 +92,7 @@ export default function Tasks() {
             setLoading(false);
         };
 
+
         loadData();
 
         return () => {
@@ -131,7 +132,6 @@ export default function Tasks() {
             setSubmissionText('');
             setSubmitting(null);
             setExpandedTask(null);
-            loadData();
         } catch (error) {
             console.error('Error submitting task:', error);
             showError('Failed to submit task: ' + error.message);
@@ -159,7 +159,6 @@ export default function Tasks() {
             setSubmissionText('');
             setSubmitting(null);
             setEditingTask(null);
-            loadData();
         } catch (error) {
             console.error('Error updating submission:', error);
             showError('Failed to update submission: ' + error.message);
