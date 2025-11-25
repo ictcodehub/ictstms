@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LinkifiedText } from '../../utils/linkify';
@@ -22,56 +22,78 @@ export default function Tasks() {
     const [filterStatus, setFilterStatus] = useState('all');
 
     useEffect(() => {
+        let unsubscribeSubmissions = null;
+
+        const loadData = async () => {
+            if (!currentUser) return;
+
+            setLoading(true);
+            try {
+                const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', currentUser.uid)));
+                if (userDoc.empty) {
+                    setLoading(false);
+                    return;
+                }
+
+                const userData = userDoc.docs[0].data();
+                const classId = userData.classId;
+
+                // Setup real-time listener for submissions
+                const submissionsQuery = query(
+                    collection(db, 'submissions'),
+                    where('studentId', '==', currentUser.uid)
+                );
+
+                unsubscribeSubmissions = onSnapshot(submissionsQuery, async (submissionsSnap) => {
+                    const subs = {};
+                    submissionsSnap.forEach(doc => {
+                        subs[doc.data().taskId] = { id: doc.id, ...doc.data() };
+                    });
+                    setSubmissions(subs);
+
+                    // Get tasks
+                    const tasksQuery = query(
+                        collection(db, 'tasks'),
+                        where('assignedClasses', 'array-contains', classId)
+                    );
+                    const tasksSnap = await getDocs(tasksQuery);
+                    let tasksList = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    // Sort tasks
+                    tasksList.sort((a, b) => {
+                        const subA = subs[a.id];
+                        const subB = subs[b.id];
+                        if (!subA && subB) return -1;
+                        if (subA && !subB) return 1;
+                        if (!subA && !subB) {
+                            return new Date(a.deadline) - new Date(b.deadline);
+                        }
+                        return subB.submittedAt?.toMillis() - subA.submittedAt?.toMillis();
+                    });
+
+                    setTasks(tasksList);
+                    setLoading(false);
+                }, (error) => {
+                    console.error('Error in submissions listener:', error);
+                    setLoading(false);
+                });
+
+            } catch (error) {
+                console.error('Error setting up listener:', error);
+                setLoading(false);
+            }
+        };
+
         loadData();
+
+        return () => {
+            if (unsubscribeSubmissions) {
+                unsubscribeSubmissions();
+            }
+        };
     }, [currentUser]);
 
-    const loadData = async () => {
-        if (!currentUser) return;
 
-        setLoading(true);
-        try {
-            const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', currentUser.uid)));
-            if (userDoc.empty) return;
-
-            const userData = userDoc.docs[0].data();
-            const classId = userData.classId;
-
-            const submissionsQuery = query(
-                collection(db, 'submissions'),
-                where('studentId', '==', currentUser.uid)
-            );
-            const submissionsSnap = await getDocs(submissionsQuery);
-            const subs = {};
-            submissionsSnap.forEach(doc => {
-                subs[doc.data().taskId] = { id: doc.id, ...doc.data() }; // Include doc ID
-            });
-            setSubmissions(subs);
-
-            const tasksQuery = query(
-                collection(db, 'tasks'),
-                where('assignedClasses', 'array-contains', classId)
-            );
-            const tasksSnap = await getDocs(tasksQuery);
-            let tasksList = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            tasksList.sort((a, b) => {
-                const subA = subs[a.id];
-                const subB = subs[b.id];
-                if (!subA && subB) return -1;
-                if (subA && !subB) return 1;
-                if (!subA && !subB) {
-                    return new Date(a.deadline) - new Date(b.deadline);
-                }
-                return subB.submittedAt?.toMillis() - subA.submittedAt?.toMillis();
-            });
-
-            setTasks(tasksList);
-        } catch (error) {
-            console.error('Error loading data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleSubmit = async (taskId) => {
         if (!submissionText.trim()) {

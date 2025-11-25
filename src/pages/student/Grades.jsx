@@ -14,23 +14,25 @@ export default function Grades() {
     useEffect(() => {
         if (!currentUser) return;
 
+        console.log('🚀 [GRADES] Component mounted, user:', currentUser.uid);
+
         let unsubscribeSubmissions = null;
         let unsubscribeTasks = null;
 
         const setupRealtimeListeners = async () => {
             setLoading(true);
+            console.log('🔧 [GRADES] Setting up realtime listeners...');
+
             try {
                 // Real-time listener for tasks
                 const tasksQuery = collection(db, 'tasks');
                 const tasksMap = {};
 
                 unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnapshot) => {
+                    console.log('📚 [TASKS] Tasks updated, count:', tasksSnapshot.docs.length);
                     tasksSnapshot.forEach(doc => {
                         tasksMap[doc.id] = doc.data();
                     });
-
-                    // After tasks are loaded, update the grades display
-                    // This will be triggered again when submissions update
                 });
 
                 // Real-time listener for submissions with grades
@@ -39,7 +41,11 @@ export default function Grades() {
                     where('studentId', '==', currentUser.uid)
                 );
 
+                console.log('🔍 [GRADES] Setting up submissions listener for student:', currentUser.uid);
+
                 unsubscribeSubmissions = onSnapshot(submissionsQuery, async (submissionsSnapshot) => {
+                    console.log('🔔 [GRADES] ONSNAPSHOT TRIGGERED! Submissions count:', submissionsSnapshot.docs.length);
+
                     // Ensure we have the latest tasks
                     const tasksSnap = await getDocs(collection(db, 'tasks'));
                     const currentTasksMap = {};
@@ -53,6 +59,8 @@ export default function Grades() {
 
                     submissionsSnapshot.forEach(doc => {
                         const submission = doc.data();
+                        console.log('📝 [GRADES] Processing submission:', doc.id, 'grade:', submission.grade);
+
                         if (submission.grade !== null && submission.grade !== undefined) {
                             const task = currentTasksMap[submission.taskId];
                             if (task) {
@@ -68,16 +76,19 @@ export default function Grades() {
                         }
                     });
 
+                    console.log('✅ [GRADES] Updating state with', gradesData.length, 'graded tasks');
                     setGrades(gradesData);
                     setAverage(gradedCount > 0 ? (totalGrade / gradedCount).toFixed(2) : 0);
                     setLoading(false);
                 }, (error) => {
-                    console.error('Error in submissions listener:', error);
+                    console.error('❌ [GRADES] Error in submissions listener:', error);
                     setLoading(false);
                 });
 
+                console.log('✅ [GRADES] Listeners setup complete');
+
             } catch (error) {
-                console.error('Error setting up listeners:', error);
+                console.error('❌ [GRADES] Error setting up listeners:', error);
                 setLoading(false);
             }
         };
@@ -86,6 +97,7 @@ export default function Grades() {
 
         // Cleanup listeners when component unmounts
         return () => {
+            console.log('🧹 [GRADES] Cleaning up listeners');
             if (unsubscribeSubmissions) {
                 unsubscribeSubmissions();
             }

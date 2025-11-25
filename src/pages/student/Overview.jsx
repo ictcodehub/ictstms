@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { BookOpen, CheckCircle, Clock, AlertCircle, Calendar, TrendingUp, ChevronRight, Hourglass, Send } from 'lucide-react';
@@ -21,102 +21,111 @@ export default function Overview() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let unsubscribeSubmissions = null;
+
+        const loadData = async () => {
+            if (!currentUser) return;
+
+            setLoading(true);
+            try {
+                const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', currentUser.uid)));
+                if (userDoc.empty) {
+                    setLoading(false);
+                    return;
+                }
+
+                const userData = userDoc.docs[0].data();
+                const classId = userData.classId;
+
+                // Setup real-time listener for submissions
+                const submissionsQuery = query(
+                    collection(db, 'submissions'),
+                    where('studentId', '==', currentUser.uid)
+                );
+
+                unsubscribeSubmissions = onSnapshot(submissionsQuery, async (submissionsSnap) => {
+                    const subs = {};
+                    submissionsSnap.forEach(doc => {
+                        subs[doc.data().taskId] = doc.data();
+                    });
+                    setSubmissions(subs);
+
+                    // Get tasks
+                    const tasksQuery = query(
+                        collection(db, 'tasks'),
+                        where('assignedClasses', 'array-contains', classId)
+                    );
+                    const tasksSnap = await getDocs(tasksQuery);
+                    let tasksList = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    // Sort tasks
+                    tasksList.sort((a, b) => {
+                        const subA = subs[a.id];
+                        const subB = subs[b.id];
+                        if (!subA && subB) return -1;
+                        if (subA && !subB) return 1;
+                        if (!subA && !subB) {
+                            return new Date(a.deadline) - new Date(b.deadline);
+                        }
+                        const isGradedA = subA.grade !== null && subA.grade !== undefined;
+                        const isGradedB = subB.grade !== null && subB.grade !== undefined;
+                        if (!isGradedA && isGradedB) return -1;
+                        if (isGradedA && !isGradedB) return 1;
+                        return subB.submittedAt?.toMillis() - subA.submittedAt?.toMillis();
+                    });
+
+                    setTasks(tasksList);
+
+                    // Calculate stats
+                    let completed = 0;
+                    let pending = 0;
+                    let overdue = 0;
+
+                    tasksList.forEach(task => {
+                        const submission = subs[task.id];
+                        const isOverdue = new Date(task.deadline) < new Date();
+
+                        if (submission) {
+                            completed++;
+                        } else if (isOverdue) {
+                            overdue++;
+                        } else {
+                            pending++;
+                        }
+                    });
+
+                    const totalTasks = tasksList.length;
+                    const weeklyProgress = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
+
+                    setStats({
+                        totalTasks,
+                        completed,
+                        pending,
+                        overdue,
+                        weeklyProgress
+                    });
+                    setLoading(false);
+                }, (error) => {
+                    console.error('Error in submissions listener:', error);
+                    setLoading(false);
+                });
+
+            } catch (error) {
+                console.error('Error setting up listener:', error);
+                setLoading(false);
+            }
+        };
+
         loadData();
+
+        return () => {
+            if (unsubscribeSubmissions) {
+                unsubscribeSubmissions();
+            }
+        };
     }, [currentUser]);
 
-    const loadData = async () => {
-        if (!currentUser) return;
 
-        setLoading(true);
-        try {
-            const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', currentUser.uid)));
-            if (userDoc.empty) return;
-
-            const userData = userDoc.docs[0].data();
-            const classId = userData.classId;
-
-            // Get submissions first
-            const submissionsQuery = query(
-                collection(db, 'submissions'),
-                where('studentId', '==', currentUser.uid)
-            );
-            const submissionsSnap = await getDocs(submissionsQuery);
-            const subs = {};
-            submissionsSnap.forEach(doc => {
-                subs[doc.data().taskId] = doc.data();
-            });
-            setSubmissions(subs);
-
-            // Get tasks
-            const tasksQuery = query(
-                collection(db, 'tasks'),
-                where('assignedClasses', 'array-contains', classId)
-            );
-            const tasksSnap = await getDocs(tasksQuery);
-            let tasksList = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // Sort tasks: Pending -> Submitted -> Graded
-            tasksList.sort((a, b) => {
-                const subA = subs[a.id];
-                const subB = subs[b.id];
-
-                // 1. Pending (no submission) first
-                if (!subA && subB) return -1;
-                if (subA && !subB) return 1;
-
-                // 2. If both pending, sort by deadline (earliest first)
-                if (!subA && !subB) {
-                    return new Date(a.deadline) - new Date(b.deadline);
-                }
-
-                // 3. If both submitted
-                // Prioritize ungraded over graded
-                const isGradedA = subA.grade !== null && subA.grade !== undefined;
-                const isGradedB = subB.grade !== null && subB.grade !== undefined;
-
-                if (!isGradedA && isGradedB) return -1;
-                if (isGradedA && !isGradedB) return 1;
-
-                // If both same status, sort by submission time (newest first)
-                return subB.submittedAt?.toMillis() - subA.submittedAt?.toMillis();
-            });
-
-            setTasks(tasksList);
-
-            // Calculate stats
-            let completed = 0;
-            let pending = 0;
-            let overdue = 0;
-
-            tasksList.forEach(task => {
-                const submission = subs[task.id];
-                const isOverdue = new Date(task.deadline) < new Date();
-
-                if (submission) {
-                    completed++;
-                } else if (isOverdue) {
-                    overdue++;
-                } else {
-                    pending++;
-                }
-            });
-
-            const totalTasks = tasksList.length;
-            const weeklyProgress = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
-
-            setStats({
-                totalTasks,
-                completed,
-                pending,
-                overdue,
-                weeklyProgress
-            });
-        } catch (error) {
-            console.error('Error loading data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const statCards = [
         { label: 'Total Tasks', value: stats.totalTasks, icon: BookOpen, color: 'from-blue-500 to-cyan-500', link: '/student/tasks' },
