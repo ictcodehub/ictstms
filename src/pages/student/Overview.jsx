@@ -22,6 +22,7 @@ export default function Overview() {
 
     useEffect(() => {
         let unsubscribeSubmissions = null;
+        let unsubscribeTasks = null;
 
         const loadData = async () => {
             if (!currentUser) return;
@@ -37,77 +38,34 @@ export default function Overview() {
                 const userData = userDoc.docs[0].data();
                 const classId = userData.classId;
 
+                let currentTasks = [];
+                let currentSubmissions = {};
+
+                // Setup real-time listener for tasks
+                const tasksQuery = query(
+                    collection(db, 'tasks'),
+                    where('assignedClasses', 'array-contains', classId)
+                );
+
+                unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnap) => {
+                    currentTasks = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    updateTasksAndStats(currentTasks, currentSubmissions);
+                });
+
                 // Setup real-time listener for submissions
                 const submissionsQuery = query(
                     collection(db, 'submissions'),
                     where('studentId', '==', currentUser.uid)
                 );
 
-                unsubscribeSubmissions = onSnapshot(submissionsQuery, async (submissionsSnap) => {
+                unsubscribeSubmissions = onSnapshot(submissionsQuery, (submissionsSnap) => {
                     const subs = {};
                     submissionsSnap.forEach(doc => {
                         subs[doc.data().taskId] = doc.data();
                     });
+                    currentSubmissions = subs;
                     setSubmissions(subs);
-
-                    // Get tasks
-                    const tasksQuery = query(
-                        collection(db, 'tasks'),
-                        where('assignedClasses', 'array-contains', classId)
-                    );
-                    const tasksSnap = await getDocs(tasksQuery);
-                    let tasksList = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                    // Sort tasks
-                    tasksList.sort((a, b) => {
-                        const subA = subs[a.id];
-                        const subB = subs[b.id];
-                        if (!subA && subB) return -1;
-                        if (subA && !subB) return 1;
-                        if (!subA && !subB) {
-                            return new Date(a.deadline) - new Date(b.deadline);
-                        }
-                        const isGradedA = subA.grade !== null && subA.grade !== undefined;
-                        const isGradedB = subB.grade !== null && subB.grade !== undefined;
-                        if (!isGradedA && isGradedB) return -1;
-                        if (isGradedA && !isGradedB) return 1;
-                        return subB.submittedAt?.toMillis() - subA.submittedAt?.toMillis();
-                    });
-
-                    setTasks(tasksList);
-
-                    // Calculate stats
-                    let completed = 0;
-                    let pending = 0;
-                    let overdue = 0;
-
-                    tasksList.forEach(task => {
-                        const submission = subs[task.id];
-                        const isOverdue = new Date(task.deadline) < new Date();
-
-                        if (submission) {
-                            completed++;
-                        } else if (isOverdue) {
-                            overdue++;
-                        } else {
-                            pending++;
-                        }
-                    });
-
-                    const totalTasks = tasksList.length;
-                    const weeklyProgress = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
-
-                    setStats({
-                        totalTasks,
-                        completed,
-                        pending,
-                        overdue,
-                        weeklyProgress
-                    });
-                    setLoading(false);
-                }, (error) => {
-                    console.error('Error in submissions listener:', error);
-                    setLoading(false);
+                    updateTasksAndStats(currentTasks, currentSubmissions);
                 });
 
             } catch (error) {
@@ -116,11 +74,64 @@ export default function Overview() {
             }
         };
 
+        const updateTasksAndStats = (tasksList, subs) => {
+            // Sort tasks
+            tasksList.sort((a, b) => {
+                const subA = subs[a.id];
+                const subB = subs[b.id];
+                if (!subA && subB) return -1;
+                if (subA && !subB) return 1;
+                if (!subA && !subB) {
+                    return new Date(a.deadline) - new Date(b.deadline);
+                }
+                const isGradedA = subA.grade !== null && subA.grade !== undefined;
+                const isGradedB = subB.grade !== null && subB.grade !== undefined;
+                if (!isGradedA && isGradedB) return -1;
+                if (isGradedA && !isGradedB) return 1;
+                return subB.submittedAt?.toMillis() - subA.submittedAt?.toMillis();
+            });
+
+            setTasks(tasksList);
+
+            // Calculate stats
+            let completed = 0;
+            let pending = 0;
+            let overdue = 0;
+
+            tasksList.forEach(task => {
+                const submission = subs[task.id];
+                const isOverdue = new Date(task.deadline) < new Date();
+
+                if (submission) {
+                    completed++;
+                } else if (isOverdue) {
+                    overdue++;
+                } else {
+                    pending++;
+                }
+            });
+
+            const totalTasks = tasksList.length;
+            const weeklyProgress = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
+
+            setStats({
+                totalTasks,
+                completed,
+                pending,
+                overdue,
+                weeklyProgress
+            });
+            setLoading(false);
+        };
+
         loadData();
 
         return () => {
             if (unsubscribeSubmissions) {
                 unsubscribeSubmissions();
+            }
+            if (unsubscribeTasks) {
+                unsubscribeTasks();
             }
         };
     }, [currentUser]);

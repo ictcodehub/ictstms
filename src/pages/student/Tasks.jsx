@@ -23,6 +23,7 @@ export default function Tasks() {
 
     useEffect(() => {
         let unsubscribeSubmissions = null;
+        let unsubscribeTasks = null;
 
         const loadData = async () => {
             if (!currentUser) return;
@@ -38,44 +39,34 @@ export default function Tasks() {
                 const userData = userDoc.docs[0].data();
                 const classId = userData.classId;
 
+                let currentTasks = [];
+                let currentSubmissions = {};
+
+                // Setup real-time listener for tasks
+                const tasksQuery = query(
+                    collection(db, 'tasks'),
+                    where('assignedClasses', 'array-contains', classId)
+                );
+
+                unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnap) => {
+                    currentTasks = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    updateTasksList(currentTasks, currentSubmissions);
+                });
+
                 // Setup real-time listener for submissions
                 const submissionsQuery = query(
                     collection(db, 'submissions'),
                     where('studentId', '==', currentUser.uid)
                 );
 
-                unsubscribeSubmissions = onSnapshot(submissionsQuery, async (submissionsSnap) => {
+                unsubscribeSubmissions = onSnapshot(submissionsQuery, (submissionsSnap) => {
                     const subs = {};
                     submissionsSnap.forEach(doc => {
                         subs[doc.data().taskId] = { id: doc.id, ...doc.data() };
                     });
+                    currentSubmissions = subs;
                     setSubmissions(subs);
-
-                    // Get tasks
-                    const tasksQuery = query(
-                        collection(db, 'tasks'),
-                        where('assignedClasses', 'array-contains', classId)
-                    );
-                    const tasksSnap = await getDocs(tasksQuery);
-                    let tasksList = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                    // Sort tasks
-                    tasksList.sort((a, b) => {
-                        const subA = subs[a.id];
-                        const subB = subs[b.id];
-                        if (!subA && subB) return -1;
-                        if (subA && !subB) return 1;
-                        if (!subA && !subB) {
-                            return new Date(a.deadline) - new Date(b.deadline);
-                        }
-                        return subB.submittedAt?.toMillis() - subA.submittedAt?.toMillis();
-                    });
-
-                    setTasks(tasksList);
-                    setLoading(false);
-                }, (error) => {
-                    console.error('Error in submissions listener:', error);
-                    setLoading(false);
+                    updateTasksList(currentTasks, currentSubmissions);
                 });
 
             } catch (error) {
@@ -84,11 +75,31 @@ export default function Tasks() {
             }
         };
 
+        const updateTasksList = (tasksList, subs) => {
+            // Sort tasks
+            tasksList.sort((a, b) => {
+                const subA = subs[a.id];
+                const subB = subs[b.id];
+                if (!subA && subB) return -1;
+                if (subA && !subB) return 1;
+                if (!subA && !subB) {
+                    return new Date(a.deadline) - new Date(b.deadline);
+                }
+                return subB.submittedAt?.toMillis() - subA.submittedAt?.toMillis();
+            });
+
+            setTasks(tasksList);
+            setLoading(false);
+        };
+
         loadData();
 
         return () => {
             if (unsubscribeSubmissions) {
                 unsubscribeSubmissions();
+            }
+            if (unsubscribeTasks) {
+                unsubscribeTasks();
             }
         };
     }, [currentUser]);
