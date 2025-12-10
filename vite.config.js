@@ -35,6 +35,9 @@ export default defineConfig({
             purpose: 'any maskable'
           }
         ]
+      },
+      devOptions: {
+        enabled: true
       }
     }),
     // Bundle analyzer (only in build mode)
