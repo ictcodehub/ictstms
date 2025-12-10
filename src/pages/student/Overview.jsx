@@ -299,28 +299,34 @@ export default function Overview() {
             ) : (
                 <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                        {statCards.map((card, index) => (
-                            <motion.div
-                                key={card.label}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                                onClick={() => navigate(card.link)}
-                                className={`bg-gradient-to-br ${card.color} p-5 rounded-2xl shadow-lg text-white relative overflow-hidden group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1`}
-                            >
-                                <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-500"></div>
+                        {statCards.map((card, index) => {
+                            // Logic to hide specific cards on mobile/tablet if value is 0
+                            // Desktop (lg breakpoint) will always show them due to 'lg:block'
+                            const hideOnMobile = ['Active Exams', 'Pending Tasks', 'Overdue Tasks'].includes(card.label) && card.value === 0;
 
-                                <div className="relative z-10 flex items-center justify-between">
-                                    <div>
-                                        <p className="text-white/80 text-sm font-medium mb-1">{card.label}</p>
-                                        <p className="text-3xl font-bold">{card.value}</p>
+                            return (
+                                <motion.div
+                                    key={card.label}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                    onClick={() => navigate(card.link)}
+                                    className={`bg-gradient-to-br ${card.color} p-5 rounded-2xl shadow-lg text-white relative overflow-hidden group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 ${hideOnMobile ? 'hidden lg:block' : ''}`}
+                                >
+                                    <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-500"></div>
+
+                                    <div className="relative z-10 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-white/80 text-sm font-medium mb-1">{card.label}</p>
+                                            <p className="text-3xl font-bold">{card.value}</p>
+                                        </div>
+                                        <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
+                                            <card.icon className="h-8 w-8 text-white" />
+                                        </div>
                                     </div>
-                                    <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-                                        <card.icon className="h-8 w-8 text-white" />
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
+                                </motion.div>
+                            );
+                        })}
                     </div>
 
                     {/* Recent Activity - Full Width */}

@@ -192,11 +192,6 @@ export default function StudentExams() {
                 </h1>
                 <div className="flex items-center gap-2 mt-1">
                     <p className="text-slate-500">Complete exams available for your class.</p>
-                    {studentClassName && (
-                        <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
-                            {studentClassName}
-                        </span>
-                    )}
                 </div>
             </div>
 
