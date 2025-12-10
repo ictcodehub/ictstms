@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc, orderBy } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, User, Calendar, CheckCircle, XCircle, RefreshCw, FileText, Search, ChevronRight, Award } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -11,140 +11,147 @@ export default function ExamResults() {
     const navigate = useNavigate();
 
     const [exam, setExam] = useState(null);
-    const [students, setStudents] = useState([]); // List of students with their best/latest result attached
+    const [studentMap, setStudentMap] = useState({}); // Map of ID -> Student Profile
+    const [results, setResults] = useState([]); // Real-time results
+    const [students, setStudents] = useState([]); // Derived view model
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
     // Selection state for Master-Detail view
-    const [selectedStudent, setSelectedStudent] = useState(null);
+    // Store only ID so we can derive the latest data from 'students' list
+    const [selectedStudentId, setSelectedStudentId] = useState(null);
 
+    // Derived selected student with latest data
+    const selectedStudent = selectedStudentId ? students.find(s => s.id === selectedStudentId) : null;
+
+    // 1. Fetch Static Data (Exam & Student Profiles)
     useEffect(() => {
-        loadData();
+        const fetchBaseData = async () => {
+            setLoading(true);
+            try {
+                // Get Exam
+                const examRef = doc(db, 'exams', examId);
+                const examSnap = await getDoc(examRef);
+
+                if (!examSnap.exists()) {
+                    toast.error("Ujian tidak ditemukan");
+                    navigate('/teacher/exams');
+                    return;
+                }
+                const examData = { id: examSnap.id, ...examSnap.data() };
+                setExam(examData);
+
+                // Get Students
+                const assignedClassIds = examData.assignedClasses || [];
+                if (assignedClassIds.length === 0) {
+                    setStudentMap({});
+                    setLoading(false);
+                    return;
+                }
+
+                const studentsQuery = query(
+                    collection(db, 'users'),
+                    where('role', '==', 'student'),
+                    where('classId', 'in', assignedClassIds.slice(0, 10))
+                );
+                const studentsSnap = await getDocs(studentsQuery);
+                const sMap = {};
+                studentsSnap.docs.forEach(doc => {
+                    sMap[doc.id] = { id: doc.id, ...doc.data() };
+                });
+                setStudentMap(sMap);
+
+            } catch (error) {
+                console.error("Error loading base info:", error);
+                toast.error("Failed to load class data");
+            }
+            // Note: We don't turn off loading here, we wait for results listener
+        };
+
+        fetchBaseData();
     }, [examId]);
 
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            // 1. Get Exam Details
-            const examRef = doc(db, 'exams', examId);
-            const examSnap = await getDoc(examRef);
+    // 2. Listen to Real-time Results
+    useEffect(() => {
+        const resultsQuery = query(
+            collection(db, 'exam_results'),
+            where('examId', '==', examId)
+        );
 
-            if (!examSnap.exists()) {
-                toast.error("Ujian tidak ditemukan");
-                navigate('/teacher/exams');
-                return;
-            }
-            const examData = { id: examSnap.id, ...examSnap.data() };
-            setExam(examData);
-
-            // 2. Get Students assigned to this exam
-            // Exam has 'assignedClasses' array.
-            const assignedClassIds = examData.assignedClasses || [];
-            if (assignedClassIds.length === 0) {
-                setStudents([]);
-                setLoading(false);
-                return;
-            }
-
-            // Fetch students in these classes
-            // Note: If many classes, might need batching. Assuming small scale for now.
-            const studentsQuery = query(
-                collection(db, 'users'),
-                where('role', '==', 'student'),
-                where('classId', 'in', assignedClassIds.slice(0, 10)) // Limit to 10 classes for 'in' query safety
-            );
-            const studentsSnap = await getDocs(studentsQuery);
-            const studentMap = {};
-            studentsSnap.docs.forEach(doc => {
-                studentMap[doc.id] = { id: doc.id, ...doc.data(), attempts: [] };
-            });
-
-            // 3. Get All Results for this exam
-            const resultsQuery = query(
-                collection(db, 'exam_results'),
-                where('examId', '==', examId)
-            );
-            const resultsSnap = await getDocs(resultsQuery);
-
-            // Attach results to students
-            resultsSnap.docs.forEach(doc => {
-                const res = { id: doc.id, ...doc.data() };
-                if (studentMap[res.studentId]) {
-                    studentMap[res.studentId].attempts.push(res);
-                }
-            });
-
-            // Flatten to array and process stats per student
-            const studentList = Object.values(studentMap).map(s => {
-                // Sort attempts by date descending
-                s.attempts.sort((a, b) => (b.submittedAt?.toMillis() || 0) - (a.submittedAt?.toMillis() || 0));
-
-                // Latest attempt
-                const latest = s.attempts[0];
-                const bestScore = s.attempts.reduce((max, curr) => Math.max(max, curr.score), 0);
-
-                return {
-                    ...s,
-                    latestAttempt: latest,
-                    bestScore,
-                    status: latest ? (latest.allowRetake ? 'remedial' : 'completed') : 'pending' // pending, completed, remedial
-                };
-            });
-
-            // Sort by Name
-            studentList.sort((a, b) => a.name.localeCompare(b.name));
-            setStudents(studentList);
-
-        } catch (error) {
-            console.error("Error loading info:", error);
-            toast.error("Failed to load grade data");
-        } finally {
+        const unsubscribe = onSnapshot(resultsQuery, (snapshot) => {
+            const resList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setResults(resList);
+            setLoading(false); // Valid to stop loading once we have initial results
+        }, (error) => {
+            console.error("Error listening to results:", error);
             setLoading(false);
-        }
+        });
+
+        return () => unsubscribe();
+    }, [examId]);
+
+    // 3. Merge & Process Data (Derived State)
+    useEffect(() => {
+        // Need both base data (students) and results to proceed effectively
+        // but even if results are empty, we should show students.
+        // studentMap might be empty if still fetching, but that's ok.
+
+        const processedList = Object.values(studentMap).map(student => {
+            // Find results for this student
+            const studentResults = results.filter(r => r.studentId === student.id);
+
+            // Sort attempts
+            studentResults.sort((a, b) => (b.submittedAt?.toMillis() || 0) - (a.submittedAt?.toMillis() || 0));
+
+            const latest = studentResults[0];
+            const bestScore = studentResults.reduce((max, curr) => Math.max(max, curr.score), 0);
+
+            // Status Logic
+            let status = 'pending';
+            if (latest) {
+                if (latest.allowRetake) status = 'remedial';
+                else status = 'completed';
+            }
+
+            return {
+                ...student,
+                attempts: studentResults,
+                latestAttempt: latest,
+                bestScore,
+                status
+            };
+        });
+
+        // Sort by Name
+        processedList.sort((a, b) => a.name.localeCompare(b.name));
+        setStudents(processedList);
+
+    }, [studentMap, results]);
+
+    // State for custom confirmation modal
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, resultId: null });
+
+    const handleAllowRetake = (resultId) => {
+        setConfirmModal({ isOpen: true, resultId });
     };
 
-    const handleAllowRetake = async (resultId, studentId) => {
-        if (!window.confirm("Izinkan siswa ini mengerjakan ulang ujian? Nilai sebelumnya akan tetap tersimpan.")) return;
+    const confirmRemedialAction = async () => {
+        if (!confirmModal.resultId) return;
 
         try {
-            const resultRef = doc(db, 'exam_results', resultId);
+            const resultRef = doc(db, 'exam_results', confirmModal.resultId);
             await updateDoc(resultRef, {
                 allowRetake: true
             });
 
-            // Update local state
-            setStudents(prev => prev.map(s => {
-                if (s.id === studentId) {
-                    const newAttempts = s.attempts.map(a =>
-                        a.id === resultId ? { ...a, allowRetake: true } : a
-                    );
-                    return {
-                        ...s,
-                        attempts: newAttempts,
-                        latestAttempt: { ...s.latestAttempt, allowRetake: true },
-                        status: 'remedial'
-                    };
-                }
-                return s;
-            }));
-
-            // Also update selectedStudent if active
-            if (selectedStudent && selectedStudent.id === studentId) {
-                setSelectedStudent(prev => ({
-                    ...prev,
-                    status: 'remedial',
-                    attempts: prev.attempts.map(a =>
-                        a.id === resultId ? { ...a, allowRetake: true } : a
-                    )
-                }));
-            }
-
             toast.success("Student allowed remedial");
+            setConfirmModal({ isOpen: false, resultId: null });
         } catch (error) {
             console.error("Error updating result:", error);
             toast.error("Failed to update status");
         }
     };
+
 
     // Filtered list
     const filteredStudents = students.filter(s =>
@@ -224,7 +231,7 @@ export default function ExamResults() {
                                     {/* Allow Retake Button - Only for the LATEST attempt if it's not already allowed */}
                                     {idx === 0 && !attempt.allowRetake && (
                                         <button
-                                            onClick={() => handleAllowRetake(attempt.id, student.id)}
+                                            onClick={() => handleAllowRetake(attempt.id)}
                                             className="px-4 py-2 bg-white border border-slate-200 text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition-colors shadow-sm text-sm"
                                         >
                                             Izinkan Remedial
@@ -236,11 +243,49 @@ export default function ExamResults() {
                     </div>
                 )}
             </div>
+
+            {/* Custom Confirmation Modal */}
+            <AnimatePresence>
+                {confirmModal.isOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden"
+                        >
+                            <div className="p-6 text-center">
+                                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <RefreshCw className="h-8 w-8 text-blue-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-800 mb-2">Izinkan Remedial?</h3>
+                                <p className="text-slate-500 text-sm mb-6">
+                                    Siswa akan dapat mengerjakan ulang ujian ini. Nilai sebelumnya akan tetap tersimpan sebagai riwayat.
+                                </p>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setConfirmModal({ isOpen: false, resultId: null })}
+                                        className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        onClick={confirmRemedialAction}
+                                        className="flex-1 px-4 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+                                    >
+                                        Ya, Izinkan
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 
     if (selectedStudent) {
-        return <StudentDetailView student={selectedStudent} onClose={() => setSelectedStudent(null)} />;
+        return <StudentDetailView student={selectedStudent} onClose={() => setSelectedStudentId(null)} />;
     }
 
     return (
@@ -302,7 +347,7 @@ export default function ExamResults() {
                                 {filteredStudents.map((student) => (
                                     <tr
                                         key={student.id}
-                                        onClick={() => setSelectedStudent(student)}
+                                        onClick={() => setSelectedStudentId(student.id)}
                                         className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
                                     >
                                         <td className="px-6 py-4">

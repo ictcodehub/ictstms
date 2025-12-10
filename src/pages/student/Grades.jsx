@@ -112,7 +112,7 @@ export default function Grades() {
                     taskTitle: exam.title, // Standardized key
                     submittedAt: res.completedAt || res.submittedAt, // Exam results usually have completedAt
                     grade: parseFloat(grade),
-                    feedback: 'Automatic Exam Grade' // Exams might not have manual feedback yet
+                    feedback: null // Exams might not have manual feedback yet
                 });
             }
         });

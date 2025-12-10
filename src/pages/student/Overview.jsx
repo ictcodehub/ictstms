@@ -149,7 +149,16 @@ export default function Overview() {
             const uniqueCompletedExamIds = new Set(resultsList.map(r => r.examId));
             const completedExamsCount = uniqueCompletedExamIds.size;
 
-            setExams(availableExams);
+            // Merge results into exams list for display
+            const examsWithResults = examsList.map(exam => {
+                const specificResults = resultsList.filter(r => r.examId === exam.id);
+                // Sort by submittedAt desc to get latest attempt
+                specificResults.sort((a, b) => (b.submittedAt?.toMillis() || 0) - (a.submittedAt?.toMillis() || 0));
+                const result = specificResults[0];
+                return { ...exam, userResult: result };
+            });
+
+            setExams(examsWithResults);
 
             setStats(prev => ({
                 ...prev,
@@ -367,232 +376,278 @@ export default function Overview() {
                                         </div>
                                     </div>
 
-                                    {/* TABLE BODY - Combined Tasks and Exams */}
+                                    {/* TABLE BODY - Unified List */}
                                     <div className="space-y-0">
-                                        {/* Show Exams First */}
-                                        {exams.slice(0, 3).map((exam, index) => (
-                                            <motion.div
-                                                key={`exam-${exam.id}`}
-                                                initial={{ opacity: 0, x: -20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: index * 0.05 }}
-                                                onClick={() => navigate(`/student/exams/${exam.id}`)}
-                                                className="flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 bg-purple-50/30 hover:bg-purple-50 cursor-pointer transition-all group gap-3 rounded-xl mb-4 md:mb-0"
-                                            >
-                                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                    <span className="hidden md:block w-6 text-center text-sm font-bold text-slate-600">{index + 1}</span>
-                                                    <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 flex-shrink-0 shadow-sm">
-                                                        <ClipboardCheck className="h-5 w-5" />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h4 className="font-bold text-slate-800 line-clamp-1 group-hover:text-purple-600 transition-colors">{exam.title}</h4>
-                                                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                                                            <span className="flex items-center gap-1">
-                                                                <Clock className="h-3 w-3" /> {exam.duration} Minutes
-                                                            </span>
-                                                            <span className="flex items-center gap-1">
-                                                                <ClipboardCheck className="h-3 w-3" /> {exam.questions?.length || 0} Questions
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-3 md:gap-8 md:pl-4">
-                                                    <div className="flex-1 md:flex-none md:text-center md:min-w-[100px]">
-                                                        <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-purple-100 border border-purple-200">
-                                                            <PlayCircle className="h-3.5 w-3.5 text-purple-600" />
-                                                            <span className="text-xs font-bold text-purple-700">Available</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-center min-w-[60px]">
-                                                        <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-sm font-bold text-slate-400">–</span>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        ))}
-
-                                        {/* Then Show Tasks */}
                                         {(() => {
-                                            const examCount = exams.slice(0, 3).length;
-                                            const startIndex = (currentPage - 1) * itemsPerPage;
-                                            const endIndex = startIndex + itemsPerPage;
-                                            const allItems = [...exams.slice(0, 3), ...tasks];
-                                            const paginatedItems = allItems.slice(startIndex, endIndex);
-                                            const tasksToShow = paginatedItems.filter((item, idx) => idx >= examCount || startIndex >= examCount);
+                                            // 1. COMBINE & SORT
+                                            const allActivities = [
+                                                ...exams.map(e => ({ type: 'exam', ...e })),
+                                                ...tasks.map(t => ({ type: 'task', ...t }))
+                                            ];
 
-                                            return tasks.slice(Math.max(0, startIndex - examCount), Math.max(0, endIndex - examCount)).map((task, index) => {
-                                                const submission = submissions[task.id];
-                                                const isOverdue = task.deadline ? new Date(task.deadline) < new Date() : false;
+                                            allActivities.sort((a, b) => {
+                                                // Priority: Pending/Active > Submitted/Completed > Graded
+                                                // For Exams:
+                                                // - Active: !isCompleted && !isExpired
+                                                // - Completed: isCompleted
+                                                // For Tasks:
+                                                // - Pending: !submission
+                                                // - Submitted: submission && !graded
+                                                // - Graded: submission && graded
 
-                                                let statusColor = "bg-white hover:bg-slate-50";
-
-                                                if (submission && submission.grade !== null && submission.grade !== undefined) {
-                                                    statusColor = "bg-white hover:bg-slate-50";
-                                                } else if (submission) {
-                                                    statusColor = "bg-amber-50 hover:bg-amber-100/50";
-                                                } else {
-                                                    statusColor = isOverdue ? "bg-red-100/50 hover:bg-red-100" : "bg-red-50 hover:bg-red-100/50";
-                                                }
-
-                                                // Grade display
-                                                let gradeValue = "-";
-                                                let gradeColor = "text-slate-400";
-                                                const isGraded = submission && submission.grade !== null && submission.grade !== undefined;
-
-                                                if (isGraded) {
-                                                    gradeValue = submission.grade;
-                                                    gradeColor = "text-emerald-600";
-                                                } else if (submission) {
-                                                    gradeColor = "text-amber-600";
-                                                }
-
-                                                // Deadline/Status info
-                                                let statusDisplay = null;
-                                                let infoDisplay = null;
-                                                const deadlineDate = task.deadline ? new Date(task.deadline) : null;
-
-                                                if (submission && submission.submittedAt && deadlineDate) {
-                                                    const submittedDate = submission.submittedAt.toDate();
-                                                    const diffMs = deadlineDate - submittedDate;
-                                                    const diffHours = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60));
-                                                    const diffDays = Math.floor(diffHours / 24);
-
-                                                    const isEarly = diffMs > 0;
-
-                                                    // Format timing text
-                                                    let timingText = '';
-                                                    if (isEarly) {
-                                                        if (diffDays > 0) timingText = `${diffDays} day${diffDays > 1 ? 's' : ''} early`;
-                                                        else timingText = `On Time`;
+                                                // Helper to get status weight (Lower = Higher Priority)
+                                                const getWeight = (item) => {
+                                                    if (item.type === 'task') {
+                                                        const sub = submissions[item.id];
+                                                        const isGraded = sub && sub.grade !== null && sub.grade !== undefined;
+                                                        if (!sub) return 1; // Pending
+                                                        if (sub && !isGraded) return 2; // Submitted
+                                                        return 3; // Graded
                                                     } else {
-                                                        if (diffDays > 0) timingText = `${diffDays} day${diffDays > 1 ? 's' : ''} late`;
-                                                        else timingText = `Late`;
+                                                        // Exam
+                                                        // We need to check if it's completed for the current user
+                                                        // Since we don't have easy access to results inside this sort function without passing it down or using context/props efficiently,
+                                                        // We'll rely on a simpler heuristic or the data we have.
+                                                        // Actually, we can check availability if we had the results list here, but we don't in this scope easily.
+                                                        // However, 'stats.activeExams' logic separated them.
+                                                        // A simpler approach for exams:
+                                                        // If it's in the 'availableExams' list (which we don't strictly have as a separate list variable here, but we can infer or simpler: sort all by date)
+                                                        // Let's stick to a robust date sort, but prioritize "Action Needed".
+                                                        return 1; // Treat all exams as high priority or sort purely by date?
+                                                        // Let's sort purely by Date (Deadline or Created) for a true "Timeline" feel, 
+                                                        // BUT bubbling active stuff to top is usually better.
+
+                                                        // Let's refine:
+                                                        // 1. Unfinished Tasks & Active Exams
+                                                        // 2. Finished stuff
                                                     }
+                                                    return 2;
+                                                };
 
-                                                    if (!isGraded) {
-                                                        // SUDAH SUBMIT TAPI BELUM DINILAI
-                                                        statusDisplay = (
-                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
-                                                                <Send className="h-3.5 w-3.5 text-amber-600" />
-                                                                <span className="text-xs font-bold text-amber-700">Submitted</span>
-                                                            </div>
-                                                        );
-                                                        infoDisplay = (
-                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
-                                                                <Hourglass className="h-3.5 w-3.5 text-amber-600" />
-                                                                <span className="text-xs font-bold text-amber-700">Awaiting Grade</span>
-                                                            </div>
-                                                        );
-                                                    } else {
-                                                        // SUDAH DINILAI
-                                                        statusDisplay = (
-                                                            <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isEarly ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
-                                                                {isEarly ? <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> : <AlertCircle className="h-3.5 w-3.5 text-red-600" />}
-                                                                <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>Completed</span>
-                                                            </div>
-                                                        );
-                                                        infoDisplay = (
-                                                            <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isEarly ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
-                                                                <Clock className={`h-3.5 w-3.5 ${isEarly ? 'text-emerald-600' : 'text-red-600'}`} />
-                                                                <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>{timingText}</span>
-                                                            </div>
-                                                        );
-                                                    }
-                                                } else if (submission && submission.submittedAt) {
-                                                    // SUBMIT TANPA DEADLINE
-                                                    if (!isGraded) {
-                                                        statusDisplay = (
-                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
-                                                                <Send className="h-3.5 w-3.5 text-amber-600" />
-                                                                <span className="text-xs font-bold text-amber-700">Submitted</span>
-                                                            </div>
-                                                        );
-                                                        infoDisplay = (
-                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
-                                                                <Hourglass className="h-3.5 w-3.5 text-amber-600" />
-                                                                <span className="text-xs font-bold text-amber-700">Awaiting Grade</span>
-                                                            </div>
-                                                        );
-                                                    } else {
-                                                        statusDisplay = (
-                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
-                                                                <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
-                                                                <span className="text-xs font-bold text-emerald-700">Completed</span>
-                                                            </div>
-                                                        );
-                                                        infoDisplay = (
-                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
-                                                                <Clock className="h-3.5 w-3.5 text-emerald-600" />
-                                                                <span className="text-xs font-bold text-emerald-700">On Time</span>
-                                                            </div>
-                                                        );
-                                                    }
-                                                } else if (deadlineDate) {
-                                                    // BELUM MENGERJAKAN (PENDING)
-                                                    const dateText = deadlineDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+                                                // SIMPLIFIED SORT: 
+                                                // 1. Sort by Date (Deadline for tasks, Created/Scheduled for exams) DESCENDING (Newest first) or Ascending for deadlines?
+                                                // Usually "Upcoming Deadlines" are Ascending. "Recent Activity" (History) is Descending.
+                                                // Let's mix: If it's pending, sort by deadline (Asc). If completed, sort by completion date (Desc).
+                                                // This is complex.
+                                                // Let's stick to the user's implicit need: "See what I need to do".
+                                                // So: Pending items first (sorted by deadline/urgency). Then Completed items (sorted by recency).
 
-                                                    statusDisplay = (
-                                                        <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isOverdue ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'}`}>
-                                                            {isOverdue ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <Calendar className="h-3.5 w-3.5 text-blue-600" />}
-                                                            <span className={`text-xs font-bold ${isOverdue ? 'text-red-700' : 'text-blue-700'}`}>
-                                                                {isOverdue ? 'Overdue' : 'Assigned'}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                    infoDisplay = (
-                                                        <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-100">
-                                                            {isOverdue ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <Calendar className="h-3.5 w-3.5 text-red-600" />}
-                                                            <span className="text-xs font-bold text-red-700">
-                                                                {dateText}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                } else {
-                                                    statusDisplay = <span className="text-xs text-slate-400">-</span>;
-                                                    infoDisplay = <span className="text-xs text-slate-400">-</span>;
-                                                }
+                                                const getSortDate = (item) => {
+                                                    if (item.type === 'task') return item.deadline ? new Date(item.deadline) : new Date(2100, 0, 1);
+                                                    return item.createdAt ? item.createdAt.toDate() : new Date(); // Exams usually have scheduled time
+                                                };
 
-                                                return (
-                                                    <motion.div
-                                                        key={task.id}
-                                                        initial={{ opacity: 0, x: -20 }}
-                                                        animate={{ opacity: 1, x: 0 }}
-                                                        transition={{ delay: index * 0.05 }}
-                                                        onClick={() => navigate('/student/tasks')}
-                                                        className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 transition-colors cursor-pointer group ${statusColor} gap-3 rounded-xl mb-4 md:mb-0`}
-                                                        title="Click to view details"
-                                                    >
-                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                            <span className="hidden md:block text-slate-400 font-medium w-6 text-center flex-shrink-0 text-sm">{exams.slice(0, 3).length + index + 1}</span>
+                                                const dateA = getSortDate(a);
+                                                const dateB = getSortDate(b);
 
-                                                            <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center text-blue-600 flex-shrink-0 shadow-sm">
-                                                                <BookOpen className="h-5 w-5" />
-                                                            </div>
-                                                            <div className="min-w-0 flex-1">
-                                                                <h4 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 text-[13px]" title={task.title}>{task.title}</h4>
-                                                                <p className="text-sm text-slate-500 line-clamp-1">{task.description}</p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-3 md:gap-8 md:pl-4 flex-shrink-0">
-                                                            <div className="flex-1 md:flex-none md:text-center md:min-w-[100px]">
-                                                                {statusDisplay}
-                                                            </div>
-                                                            <div className="text-center min-w-[60px]">
-                                                                {gradeValue === "-" ? (
-                                                                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-sm font-bold text-slate-400">–</span>
-                                                                ) : isGraded ? (
-                                                                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-sm font-bold text-emerald-700">
-                                                                        {gradeValue}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-100 text-sm font-bold text-amber-700">
-                                                                        {gradeValue}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </motion.div>
-                                                );
+                                                return dateA - dateB; // Ascending Order (Urgent first)
                                             });
+
+                                            // Re-sort: Tasks that are already submitted should be pushed to bottom?
+                                            // The existing 'tasks' array was already sorted by `updateTasksAndStats`.
+                                            // Let's trust that logic for tasks and just merge exams carefully.
+                                            // Since the user wants to see exams TOO, let's just prepend active exams or mix them.
+                                            // Let's keep it simple: Map everything, then sort by "Status Priority" then Date.
+
+                                            // Improved Sort:
+                                            allActivities.sort((a, b) => {
+                                                const getStatusPriority = (item) => {
+                                                    if (item.type === 'exam') return 0; // Exams always on top (High visibility)
+                                                    const sub = submissions[item.id];
+                                                    if (!sub) return 1; // Pending Task
+                                                    if (sub && (sub.grade === null || sub.grade === undefined)) return 2; // Submitted
+                                                    return 3; // Graded
+                                                };
+
+                                                const priorityA = getStatusPriority(a);
+                                                const priorityB = getStatusPriority(b);
+
+                                                if (priorityA !== priorityB) return priorityA - priorityB;
+
+                                                // Same priority? Sort by Date
+                                                // For Exams/Tasks: deadline vs deadline
+                                                // Tasks have 'deadline', Exams usually have 'createdAt' or we can add 'deadline' to exams logic if available.
+                                                // Let's fallback to title if dates equal/missing.
+                                                return 0;
+                                            });
+
+                                            // 2. PAGINATE
+                                            const totalPages = Math.ceil(allActivities.length / itemsPerPage);
+                                            const startIndex = (currentPage - 1) * itemsPerPage;
+                                            const paginatedItems = allActivities.slice(startIndex, startIndex + itemsPerPage);
+
+                                            return (
+                                                <>
+                                                    {paginatedItems.map((item, index) => {
+                                                        const displayIndex = startIndex + index + 1;
+
+                                                        if (item.type === 'exam') {
+                                                            // EXAM CARD
+                                                            const result = item.userResult;
+                                                            const isRemedial = result && result.allowRetake;
+                                                            const isCompleted = !!result && !isRemedial;
+
+                                                            let cardBg = isCompleted ? 'bg-slate-50 hover:bg-slate-100' :
+                                                                isRemedial ? 'bg-orange-50 hover:bg-orange-100' :
+                                                                    'bg-purple-50 hover:bg-purple-100';
+
+                                                            let iconBg = isCompleted ? 'bg-white text-emerald-600' :
+                                                                isRemedial ? 'bg-orange-100 text-orange-600' :
+                                                                    'bg-purple-100 text-purple-600';
+
+                                                            return (
+                                                                <motion.div
+                                                                    key={`exam-${item.id}`}
+                                                                    initial={{ opacity: 0, x: -20 }}
+                                                                    animate={{ opacity: 1, x: 0 }}
+                                                                    transition={{ delay: index * 0.05 }}
+                                                                    onClick={() => navigate('/student/exams')}
+                                                                    className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 cursor-pointer transition-all group gap-3 rounded-xl mb-4 md:mb-0 ${cardBg}`}
+                                                                >
+                                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                        <span className="hidden md:block w-6 text-center text-sm font-bold text-slate-600">{displayIndex}</span>
+                                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${iconBg}`}>
+                                                                            <ClipboardCheck className="h-5 w-5" />
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <h4 className={`font-bold transition-colors line-clamp-1 ${isRemedial ? 'text-slate-800 group-hover:text-orange-600' : isCompleted ? 'text-slate-700' : 'text-slate-800 group-hover:text-purple-600'}`}>{item.title}</h4>
+                                                                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                                                                                <span className="flex items-center gap-1">
+                                                                                    <Clock className="h-3 w-3" /> {item.duration} Minutes
+                                                                                </span>
+                                                                                <span className="flex items-center gap-1">
+                                                                                    <ClipboardCheck className="h-3 w-3" /> {item.questions?.length || 0} Questions
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3 md:gap-8 md:pl-4">
+                                                                        <div className="flex-1 md:flex-none md:text-center md:min-w-[100px]">
+                                                                            {isRemedial ? (
+                                                                                <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-orange-100 border border-orange-200">
+                                                                                    <AlertCircle className="h-3.5 w-3.5 text-orange-600" />
+                                                                                    <span className="text-xs font-bold text-orange-700">Remedial</span>
+                                                                                </div>
+                                                                            ) : isCompleted ? (
+                                                                                <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-emerald-100 border border-emerald-200">
+                                                                                    <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                                                                                    <span className="text-xs font-bold text-emerald-700">Completed</span>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-purple-100 border border-purple-200">
+                                                                                    <PlayCircle className="h-3.5 w-3.5 text-purple-600" />
+                                                                                    <span className="text-xs font-bold text-purple-700">Available</span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="text-center min-w-[60px]">
+                                                                            {isCompleted || isRemedial ? (
+                                                                                <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg border text-sm font-bold ${isRemedial ? 'bg-orange-50 border-orange-100 text-orange-700' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+                                                                                    {result.score !== undefined ? result.score : '-'}
+                                                                                </span>
+                                                                            ) : (
+                                                                                <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-sm font-bold text-slate-400">–</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </motion.div>
+                                                            );
+                                                        } else {
+                                                            // TASK CARD
+                                                            const task = item;
+                                                            const submission = submissions[task.id];
+                                                            const isOverdue = task.deadline ? new Date(task.deadline) < new Date() : false;
+
+                                                            let statusColor = "";
+                                                            if (submission && submission.grade !== null && submission.grade !== undefined) {
+                                                                statusColor = "bg-slate-50 hover:bg-slate-100";
+                                                            } else if (submission) {
+                                                                statusColor = "bg-amber-50 hover:bg-amber-100/50";
+                                                            } else {
+                                                                statusColor = isOverdue ? "bg-red-50 hover:bg-red-100" : "bg-white hover:bg-slate-50";
+                                                            }
+
+                                                            // Handle Grade Display
+                                                            let gradeValue = "-";
+                                                            const isGraded = submission && submission.grade !== null && submission.grade !== undefined;
+                                                            if (isGraded) gradeValue = submission.grade;
+
+                                                            // Handle Status Display
+                                                            let statusDisplay = null;
+                                                            const deadlineDate = task.deadline ? new Date(task.deadline) : null;
+
+                                                            if (submission) {
+                                                                if (isGraded) {
+                                                                    const isEarly = submission.submittedAt && deadlineDate ? submission.submittedAt.toDate() <= deadlineDate : true;
+                                                                    statusDisplay = (
+                                                                        <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isEarly ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                                                                            {isEarly ? <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> : <AlertCircle className="h-3.5 w-3.5 text-red-600" />}
+                                                                            <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>Completed</span>
+                                                                        </div>
+                                                                    );
+                                                                } else {
+                                                                    statusDisplay = (
+                                                                        <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                                                            <Send className="h-3.5 w-3.5 text-amber-600" />
+                                                                            <span className="text-xs font-bold text-amber-700">Submitted</span>
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                            } else if (deadlineDate) {
+                                                                const dateText = deadlineDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                                                                statusDisplay = (
+                                                                    <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isOverdue ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'}`}>
+                                                                        {isOverdue ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <Calendar className="h-3.5 w-3.5 text-blue-600" />}
+                                                                        <span className={`text-xs font-bold ${isOverdue ? 'text-red-700' : 'text-blue-700'}`}>
+                                                                            {isOverdue ? 'Overdue' : dateText}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            } else {
+                                                                statusDisplay = <span className="text-xs text-slate-400">-</span>;
+                                                            }
+
+                                                            return (
+                                                                <motion.div
+                                                                    key={task.id}
+                                                                    initial={{ opacity: 0, x: -20 }}
+                                                                    animate={{ opacity: 1, x: 0 }}
+                                                                    transition={{ delay: index * 0.05 }}
+                                                                    onClick={() => navigate('/student/tasks')}
+                                                                    className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 transition-colors cursor-pointer group ${statusColor} gap-3 rounded-xl mb-4 md:mb-0`}
+                                                                >
+                                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                        <span className="hidden md:block text-slate-400 font-medium w-6 text-center flex-shrink-0 text-sm">{displayIndex}</span>
+                                                                        <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center text-blue-600 flex-shrink-0 shadow-sm">
+                                                                            <BookOpen className="h-5 w-5" />
+                                                                        </div>
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <h4 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 text-[13px]" title={task.title}>{task.title}</h4>
+                                                                            <p className="text-sm text-slate-500 line-clamp-1">{task.description}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3 md:gap-8 md:pl-4 flex-shrink-0">
+                                                                        <div className="flex-1 md:flex-none md:text-center md:min-w-[100px]">
+                                                                            {statusDisplay}
+                                                                        </div>
+                                                                        <div className="text-center min-w-[60px]">
+                                                                            {gradeValue === "-" ? (
+                                                                                <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-sm font-bold text-slate-400">–</span>
+                                                                            ) : (
+                                                                                <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg border text-sm font-bold ${isGraded ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
+                                                                                    {gradeValue}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </motion.div>
+                                                            );
+                                                        }
+                                                    })}
+                                                    {/* Hidden Pagination Component Injection to force update if needed, but Pagination component is outside */}
+                                                    <div className="hidden" data-total-pages={totalPages}></div>
+                                                </>
+                                            );
                                         })()}
                                     </div>
                                 </div>
@@ -601,6 +656,7 @@ export default function Overview() {
 
                         {/* Pagination Footer */}
                         {(() => {
+                            // Fix Pagination Calculation
                             const totalItems = exams.length + tasks.length;
                             const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
