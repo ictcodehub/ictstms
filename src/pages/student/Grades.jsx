@@ -7,105 +7,146 @@ import { Award, BookOpen, TrendingUp, Star } from 'lucide-react';
 
 export default function Grades() {
     const { currentUser } = useAuth();
-    const [grades, setGrades] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [grades, setGrades] = useState([]);
     const [average, setAverage] = useState(0);
+    const [tasks, setTasks] = useState({});
+    const [exams, setExams] = useState({});
+    const [submissions, setSubmissions] = useState([]);
+    const [examResults, setExamResults] = useState([]);
 
+    // 1. Fetch Tasks & Exams (Metadata)
+    useEffect(() => {
+        const unsubscribeTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+            const tasksMap = {};
+            snapshot.forEach(doc => tasksMap[doc.id] = doc.data());
+            setTasks(tasksMap);
+        });
+
+        const unsubscribeExams = onSnapshot(collection(db, 'exams'), (snapshot) => {
+            const examsMap = {};
+            snapshot.forEach(doc => examsMap[doc.id] = doc.data());
+            setExams(examsMap);
+        });
+
+        return () => {
+            unsubscribeTasks();
+            unsubscribeExams();
+        };
+    }, []);
+
+    // 2. Fetch Student Submissions & Exam Results
     useEffect(() => {
         if (!currentUser) return;
 
-        console.log('🚀 [GRADES] Component mounted, user:', currentUser.uid);
+        setLoading(true);
 
-        let unsubscribeSubmissions = null;
-        let unsubscribeTasks = null;
+        const qSubmissions = query(collection(db, 'submissions'), where('studentId', '==', currentUser.uid));
+        const unsubscribeSubmissions = onSnapshot(qSubmissions, (snapshot) => {
+            setSubmissions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
 
-        const setupRealtimeListeners = async () => {
-            setLoading(true);
-            console.log('🔧 [GRADES] Setting up realtime listeners...');
+        const qExamResults = query(collection(db, 'exam_results'), where('studentId', '==', currentUser.uid));
+        const unsubscribeExamResults = onSnapshot(qExamResults, (snapshot) => {
+            setExamResults(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
 
-            try {
-                // Real-time listener for tasks
-                const tasksQuery = collection(db, 'tasks');
-                const tasksMap = {};
-
-                unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnapshot) => {
-                    console.log('📚 [TASKS] Tasks updated, count:', tasksSnapshot.docs.length);
-                    tasksSnapshot.forEach(doc => {
-                        tasksMap[doc.id] = doc.data();
-                    });
-                });
-
-                // Real-time listener for submissions with grades
-                const submissionsQuery = query(
-                    collection(db, 'submissions'),
-                    where('studentId', '==', currentUser.uid)
-                );
-
-                console.log('🔍 [GRADES] Setting up submissions listener for student:', currentUser.uid);
-
-                unsubscribeSubmissions = onSnapshot(submissionsQuery, async (submissionsSnapshot) => {
-                    console.log('🔔 [GRADES] ONSNAPSHOT TRIGGERED! Submissions count:', submissionsSnapshot.docs.length);
-
-                    // Ensure we have the latest tasks
-                    const tasksSnap = await getDocs(collection(db, 'tasks'));
-                    const currentTasksMap = {};
-                    tasksSnap.forEach(doc => {
-                        currentTasksMap[doc.id] = doc.data();
-                    });
-
-                    const gradesData = [];
-                    let totalGrade = 0;
-                    let gradedCount = 0;
-
-                    submissionsSnapshot.forEach(doc => {
-                        const submission = doc.data();
-                        console.log('📝 [GRADES] Processing submission:', doc.id, 'grade:', submission.grade);
-
-                        if (submission.grade !== null && submission.grade !== undefined) {
-                            const task = currentTasksMap[submission.taskId];
-                            if (task) {
-                                gradesData.push({
-                                    taskTitle: task.title,
-                                    grade: submission.grade,
-                                    comment: submission.feedback || submission.teacherComment,
-                                    submittedAt: submission.submittedAt
-                                });
-                                totalGrade += submission.grade;
-                                gradedCount++;
-                            }
-                        }
-                    });
-
-                    console.log('✅ [GRADES] Updating state with', gradesData.length, 'graded tasks');
-                    setGrades(gradesData);
-                    setAverage(gradedCount > 0 ? (totalGrade / gradedCount).toFixed(2) : 0);
-                    setLoading(false);
-                }, (error) => {
-                    console.error('❌ [GRADES] Error in submissions listener:', error);
-                    setLoading(false);
-                });
-
-                console.log('✅ [GRADES] Listeners setup complete');
-
-            } catch (error) {
-                console.error('❌ [GRADES] Error setting up listeners:', error);
-                setLoading(false);
-            }
-        };
-
-        setupRealtimeListeners();
-
-        // Cleanup listeners when component unmounts
         return () => {
-            console.log('🧹 [GRADES] Cleaning up listeners');
-            if (unsubscribeSubmissions) {
-                unsubscribeSubmissions();
-            }
-            if (unsubscribeTasks) {
-                unsubscribeTasks();
-            }
+            unsubscribeSubmissions();
+            unsubscribeExamResults();
         };
     }, [currentUser]);
+
+    // 3. Merge & Process Data
+    useEffect(() => {
+        if (!currentUser) return;
+
+        const processedGrades = [];
+
+        // Process Task Submissions
+        submissions.forEach(sub => {
+            if (sub.grade !== null && sub.grade !== undefined) {
+                const task = tasks[sub.taskId];
+                if (task) {
+                    processedGrades.push({
+                        id: sub.id,
+                        type: 'task',
+                        sourceId: sub.taskId, // For grouping
+                        taskTitle: task.title,
+                        submittedAt: sub.submittedAt,
+                        grade: sub.grade,
+                        feedback: sub.feedback || sub.teacherComment
+                    });
+                }
+            }
+        });
+
+        // Process Exam Results
+        examResults.forEach(res => {
+            // Exam results usually have a 'score' field, let's normalize to 'grade'
+            // Check your ExamTaker.jsx or database to be sure. Usually it is 'score' or 'grade'. 
+            // Based on previous context, it seems to be 'score' in exam_results.
+            const exam = exams[res.examId];
+            const grade = res.score !== undefined ? res.score : res.grade;
+
+            if (exam && grade !== undefined) {
+                processedGrades.push({
+                    id: res.id,
+                    type: 'exam',
+                    sourceId: res.examId, // For grouping
+                    taskTitle: exam.title, // Standardized key
+                    submittedAt: res.completedAt || res.submittedAt, // Exam results usually have completedAt
+                    grade: parseFloat(grade),
+                    feedback: 'Nilai Ujian Otomatis' // Exams might not have manual feedback yet
+                });
+            }
+        });
+
+        // Deduplicate: Keep highest grade per Source ID
+        const uniqueGradesMap = new Map();
+
+        processedGrades.forEach(item => {
+            // Use sourceId (taskId/examId) or fallback to item.id if missing
+            // For tasks we also need to add sourceId in the loop above or infer it
+            // Let's ensure tasks have sourceId too.
+            const uniqueKey = item.sourceId || item.id;
+
+            if (!uniqueGradesMap.has(uniqueKey)) {
+                uniqueGradesMap.set(uniqueKey, item);
+            } else {
+                const existing = uniqueGradesMap.get(uniqueKey);
+                if (item.grade > existing.grade) {
+                    uniqueGradesMap.set(uniqueKey, item);
+                }
+            }
+        });
+
+        const finalGrades = Array.from(uniqueGradesMap.values());
+
+        // Sort by date desc
+        finalGrades.sort((a, b) => {
+            const dateA = a.submittedAt?.seconds || 0;
+            const dateB = b.submittedAt?.seconds || 0;
+            return dateB - dateA;
+        });
+
+        setGrades(finalGrades);
+
+        // Calculate Stats
+        const validGrades = finalGrades.filter(g => typeof g.grade === 'number');
+        if (validGrades.length > 0) {
+            const total = validGrades.reduce((sum, g) => sum + g.grade, 0);
+            setAverage((total / validGrades.length).toFixed(2));
+        } else {
+            setAverage(0);
+        }
+
+        // Only unset loading if we have initialized listeners. 
+        // We can use a simple timeout or check if data is populated to avoid flash, 
+        // but essentially if we are here, we have processed the initial snapshots.
+        setLoading(false);
+
+    }, [tasks, exams, submissions, examResults, currentUser]);
 
     return (
         <div className="space-y-8">

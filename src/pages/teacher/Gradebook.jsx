@@ -65,28 +65,68 @@ export default function Gradebook() {
                     });
             }
 
-            // 3. Load Tasks created by this teacher
+            // 3. Load Tasks & Exams
+            // 3a. Tasks
             const tasksQuery = query(
                 collection(db, 'tasks'),
                 where('createdBy', '==', currentUser.uid)
             );
             const tasksSnap = await getDocs(tasksQuery);
-            const teacherTaskIds = tasksSnap.docs.map(doc => doc.id);
-            setTasks(tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            const initialTasks = tasksSnap.docs.map(doc => ({ id: doc.id, type: 'task', ...doc.data() }));
 
-            // 4. Load Submissions for these tasks
-            let submissionsList = [];
-            if (teacherTaskIds.length > 0) {
-                const allSubmissionsSnap = await getDocs(collection(db, 'submissions'));
-                submissionsList = allSubmissionsSnap.docs
-                    .filter(doc => teacherTaskIds.includes(doc.data().taskId))
+            // 3b. Exams (Treat as tasks for gradebook)
+            const examsQuery = query(
+                collection(db, 'exams'),
+                where('createdBy', '==', currentUser.uid)
+            );
+            const examsSnap = await getDocs(examsQuery);
+            const initialExams = examsSnap.docs.map(doc => ({
+                id: doc.id,
+                type: 'exam',
+                ...doc.data(),
+                deadline: doc.data().endTime // Map endTime to deadline for sorting
+            }));
+
+            // Merge Tasks & Exams
+            const allActivities = [...initialTasks, ...initialExams];
+            setTasks(allActivities);
+            const activityIds = allActivities.map(a => a.id);
+
+            // 4. Load Submissions & Exam Results
+            let allSubmissions = [];
+
+            if (activityIds.length > 0) {
+                // 4a. Task Submissions
+                const subQuery = query(collection(db, 'submissions')); // Fetch all then filter client-side for simplicity or build simpler logic if huge
+                // Optimization: In real app, query by taskId using 'in', but limits apply. 
+                // Given previous code fetched all then filtered, we stick to that pattern for safety/speed.
+                const subSnap = await getDocs(subQuery);
+                const taskSubs = subSnap.docs
+                    .filter(doc => activityIds.includes(doc.data().taskId))
                     .map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // 4b. Exam Results
+                const examResQuery = query(collection(db, 'exam_results'));
+                const examResSnap = await getDocs(examResQuery);
+                const examResults = examResSnap.docs
+                    .filter(doc => activityIds.includes(doc.data().examId))
+                    .map(doc => ({
+                        id: doc.id,
+                        taskId: doc.data().examId, // Map examId to taskId for unified lookup
+                        studentId: doc.data().studentId,
+                        grade: doc.data().score, // Map score to grade
+                        submittedAt: doc.data().submittedAt || doc.data().completedAt, // Handle potential field variations
+                        status: 'graded' // Exams are auto-graded
+                    }));
+
+                allSubmissions = [...taskSubs, ...examResults];
             }
-            setSubmissions(submissionsList);
+
+            setSubmissions(allSubmissions);
 
             const studentsWithLastSubmission = studentsList.map(student => {
-                const studentSubs = submissionsList.filter(sub => sub.studentId === student.uid);
-                const latestSub = studentSubs.sort((a, b) => b.submittedAt?.seconds - a.submittedAt?.seconds)[0];
+                const studentSubs = allSubmissions.filter(sub => sub.studentId === student.uid);
+                const latestSub = studentSubs.sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0))[0];
                 return {
                     ...student,
                     lastSubmission: latestSub?.submittedAt?.seconds || 0
@@ -95,9 +135,6 @@ export default function Gradebook() {
 
             studentsWithLastSubmission.sort((a, b) => b.lastSubmission - a.lastSubmission);
             setStudents(studentsWithLastSubmission);
-
-            // Tasks already loaded above
-            // setTasks(tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
         } catch (error) {
             console.error('Error loading data:', error);

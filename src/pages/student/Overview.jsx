@@ -11,11 +11,12 @@ export default function Overview() {
     const navigate = useNavigate();
     const [stats, setStats] = useState({
         totalTasks: 0,
-        completed: 0,
+        completedTasks: 0,
+        completedExams: 0,
         pending: 0,
         overdue: 0,
-        weeklyProgress: 0,
-        activeExams: 0
+        activeExams: 0,
+        totalExams: 0
     });
     const [tasks, setTasks] = useState([]);
     const [exams, setExams] = useState([]);
@@ -68,7 +69,6 @@ export default function Overview() {
                 unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnap) => {
                     currentTasks = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     updateTasksAndStats(currentTasks, currentSubmissions);
-                    updateTasksAndStats(currentTasks, currentSubmissions);
                 });
 
                 // Listen to Exams & Results for stats
@@ -120,10 +120,10 @@ export default function Overview() {
         const updateExamStats = (examsList, resultsList) => {
             // Count exams that are available (not completed or expired)
             const availableExams = examsList.filter(exam => {
-                // Find latest completed result (not in-progress sessions)
+                // Find latest completed result
                 const completedResults = resultsList.filter(r =>
                     r.examId === exam.id &&
-                    r.submittedAt &&
+                    (r.submittedAt || r.completedAt) &&
                     !r.allowRetake
                 );
 
@@ -132,13 +132,24 @@ export default function Overview() {
                     completedResults.some(r => r.allowRetake);
             });
 
+            // Count COMPLETED exams (submitted)
+            // Use Set to handle multiple results if any, though usually 1 per exam unless retake.
+            // We count 'exams completed', so if an exam has a result, it is completed (partially or fully).
+            const uniqueCompletedExamIds = new Set(resultsList.map(r => r.examId));
+            const completedExamsCount = uniqueCompletedExamIds.size;
+
             setExams(availableExams);
-            console.log('Active Exams Count:', availableExams.length, 'Total Exams:', examsList.length);
-            setStats(prev => ({ ...prev, activeExams: availableExams.length }));
+
+            setStats(prev => ({
+                ...prev,
+                activeExams: availableExams.length,
+                totalExams: examsList.length,
+                completedExams: completedExamsCount
+            }));
         };
 
         const updateTasksAndStats = (tasksList, subs) => {
-            // Sort tasks
+            // Sort tasks logic remains same
             tasksList.sort((a, b) => {
                 const subA = subs[a.id];
                 const subB = subs[b.id];
@@ -175,40 +186,38 @@ export default function Overview() {
             });
 
             const totalTasks = tasksList.length;
-            const weeklyProgress = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
 
-            setStats({
+            setStats(prev => ({
+                ...prev,
                 totalTasks,
-                completed,
+                completedTasks: completed,
                 pending,
-                overdue,
-                weeklyProgress
-            });
+                overdue
+            }));
             setLoading(false);
         };
 
         loadData();
 
         return () => {
-            if (unsubscribeSubmissions) {
-                unsubscribeSubmissions();
-            }
-            if (unsubscribeTasks) {
-                unsubscribeTasks();
-            }
+            if (unsubscribeSubmissions) unsubscribeSubmissions();
+            if (unsubscribeTasks) unsubscribeTasks();
             if (unsubscribeExams) unsubscribeExams();
             if (unsubscribeExamResults) unsubscribeExamResults();
         };
     }, [currentUser]);
 
-
+    // Derived totals for display
+    const totalActivities = stats.totalTasks + stats.totalExams;
+    const totalCompleted = stats.completedTasks + stats.completedExams;
+    const weeklyProgress = totalActivities > 0 ? Math.round((totalCompleted / totalActivities) * 100) : 0;
 
     const statCards = [
-        { label: 'Total Tasks', value: stats.totalTasks, icon: BookOpen, color: 'from-blue-500 to-cyan-500', link: '/student/tasks' },
+        { label: 'Total Activities', value: totalActivities, icon: BookOpen, color: 'from-blue-500 to-cyan-500', link: '/student/tasks' },
         { label: 'Active Exams', value: stats.activeExams ?? 0, icon: ClipboardCheck, color: 'from-purple-500 to-pink-500', link: '/student/exams' },
-        { label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'from-emerald-500 to-teal-500', link: '/student/tasks' },
-        { label: 'Pending', value: stats.pending, icon: Clock, color: 'from-amber-500 to-orange-500', link: '/student/tasks' },
-        { label: 'Overdue', value: stats.overdue, icon: AlertCircle, color: 'from-red-500 to-pink-500', link: '/student/tasks' },
+        { label: 'Completed', value: totalCompleted, icon: CheckCircle, color: 'from-emerald-500 to-teal-500', link: '/student/tasks' },
+        { label: 'Pending Tasks', value: stats.pending, icon: Clock, color: 'from-amber-500 to-orange-500', link: '/student/tasks' },
+        { label: 'Overdue Tasks', value: stats.overdue, icon: AlertCircle, color: 'from-red-500 to-pink-500', link: '/student/tasks' },
     ];
 
     const CircularProgress = ({ value }) => {
