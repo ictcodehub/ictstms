@@ -122,7 +122,7 @@ export default function Tasks() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.title || !formData.deadline || formData.assignedClasses.length === 0) {
-            toast.error('Mohon lengkapi semua data tugas');
+            toast.error('Please complete all task data');
             return;
         }
 
@@ -142,10 +142,10 @@ export default function Tasks() {
             }
             setShowModal(false);
             loadData();
-            toast.success('Tugas berhasil disimpan!');
+            toast.success('Task saved successfully!');
         } catch (error) {
             console.error('Error saving task:', error);
-            toast.error('Gagal menyimpan tugas');
+            toast.error('Failed to save task');
         } finally {
             setLoading(false);
         }
@@ -162,12 +162,12 @@ export default function Tasks() {
         try {
             await deleteDoc(doc(db, 'tasks', taskToDelete.id));
             setTasks(tasks.filter(t => t.id !== taskToDelete.id));
-            toast.success('Tugas berhasil dihapus!');
+            toast.success('Task deleted successfully!');
             setDeleteModalOpen(false);
             setTaskToDelete(null);
         } catch (error) {
             console.error('Error deleting task:', error);
-            toast.error('Gagal menghapus tugas');
+            toast.error('Failed to delete task');
         }
     };
 
@@ -275,9 +275,9 @@ export default function Tasks() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
-                        Manajemen Tugas
+                        Task Management
                     </h1>
-                    <p className="text-slate-500 mt-1">Buat dan kelola tugas untuk siswa Anda</p>
+                    <p className="text-slate-500 mt-1">Create and manage tasks for your students</p>
                 </div>
                 <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -286,7 +286,7 @@ export default function Tasks() {
                     className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg shadow-blue-200 flex items-center gap-2 transition-all"
                 >
                     <Plus className="h-5 w-5" />
-                    Buat Tugas
+                    Create Task
                 </motion.button>
             </div>
 
@@ -298,7 +298,7 @@ export default function Tasks() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Cari tugas..."
+                            placeholder="Search tasks..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
@@ -313,9 +313,9 @@ export default function Tasks() {
                             onChange={(e) => setFilterStatus(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm appearance-none bg-white cursor-pointer"
                         >
-                            <option value="all">Semua Status</option>
-                            <option value="active">Aktif</option>
-                            <option value="overdue">Terlambat</option>
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="overdue">Overdue</option>
                         </select>
                     </div>
 
@@ -327,7 +327,7 @@ export default function Tasks() {
                             onChange={(e) => setFilterClass(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm appearance-none bg-white cursor-pointer"
                         >
-                            <option value="all">Semua Kelas</option>
+                            <option value="all">All Classes</option>
                             {classes.map(cls => (
                                 <option key={cls.id} value={cls.id}>{cls.name}</option>
                             ))}
@@ -342,11 +342,11 @@ export default function Tasks() {
                             onChange={(e) => setSortBy(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm appearance-none bg-white cursor-pointer"
                         >
-                            <option value="newest">Terbaru</option>
-                            <option value="oldest">Terlama</option>
-                            <option value="deadline-soon">Deadline Terdekat</option>
-                            <option value="deadline-late">Deadline Terjauh</option>
-                            <option value="title">Judul A-Z</option>
+                            <option value="newest">Newest</option>
+                            <option value="oldest">Oldest</option>
+                            <option value="deadline-soon">Closest Deadline</option>
+                            <option value="deadline-late">Farthest Deadline</option>
+                            <option value="title">Title A-Z</option>
                         </select>
                     </div>
                 </div>
@@ -354,7 +354,7 @@ export default function Tasks() {
                 {/* Active Filters Display */}
                 {(searchQuery || filterStatus !== 'all' || filterClass !== 'all' || sortBy !== 'newest') && (
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
-                        <span className="text-xs text-slate-500">Filter aktif:</span>
+                        <span className="text-xs text-slate-500">Active filters:</span>
                         {searchQuery && (
                             <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-lg">
                                 "{searchQuery}"
@@ -362,7 +362,7 @@ export default function Tasks() {
                         )}
                         {filterStatus !== 'all' && (
                             <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-lg">
-                                {filterStatus === 'active' ? 'Aktif' : 'Terlambat'}
+                                {filterStatus === 'active' ? 'Active' : 'Overdue'}
                             </span>
                         )}
                         {filterClass !== 'all' && (
@@ -379,7 +379,7 @@ export default function Tasks() {
                             }}
                             className="ml-auto text-xs text-slate-500 hover:text-red-600 transition-colors"
                         >
-                            Reset Filter
+                            Reset Filters
                         </button>
                     </div>
                 )}
@@ -396,18 +396,18 @@ export default function Tasks() {
                         <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                             <FileText className="h-10 w-10 text-slate-400" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-800 mb-2">Tidak ada tugas ditemukan</h3>
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">No tasks found</h3>
                         <p className="text-slate-500 mb-8 max-w-md mx-auto">
                             {searchQuery || filterStatus !== 'all' || filterClass !== 'all'
-                                ? 'Coba ubah filter atau kata kunci pencarian Anda.'
-                                : 'Mulai dengan membuat tugas baru untuk kelas Anda.'}
+                                ? 'Try changing your filter or search keywords.'
+                                : 'Start by creating a new task for your classes.'}
                         </p>
                         {!searchQuery && filterStatus === 'all' && filterClass === 'all' && (
                             <button
                                 onClick={() => handleOpenModal()}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors"
                             >
-                                Buat Tugas Pertama
+                                Create First Task
                             </button>
                         )}
                     </div>
@@ -418,9 +418,9 @@ export default function Tasks() {
                                 <thead className="bg-slate-50/50 border-b border-slate-200">
                                     <tr>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">No</th>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Detail Tugas</th>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kelas</th>
-                                        <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Tenggat Waktu</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Task Details</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Class</th>
+                                        <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Deadline</th>
                                         <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
                                     </tr>
@@ -444,7 +444,7 @@ export default function Tasks() {
                                                         {task.title}
                                                     </h3>
                                                     <p className="text-xs text-slate-500 line-clamp-1">
-                                                        {task.description || 'Tidak ada deskripsi'}
+                                                        {task.description || 'No description'}
                                                     </p>
                                                 </div>
                                             </td>
@@ -479,7 +479,7 @@ export default function Tasks() {
                                                     ) : (
                                                         <>
                                                             <CheckCircle2 className="h-3 w-3" />
-                                                            Aktif
+                                                            Active
                                                         </>
                                                     )}
                                                 </div>
@@ -489,21 +489,21 @@ export default function Tasks() {
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
                                                         className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-all"
-                                                        title="Lihat detail"
+                                                        title="View details"
                                                     >
                                                         <Eye className="h-4 w-4" />
                                                     </button>
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
                                                         className="text-amber-600 bg-amber-50 hover:bg-amber-100 p-2 rounded-lg transition-all"
-                                                        title="Edit tugas"
+                                                        title="Edit task"
                                                     >
                                                         <Edit2 className="h-4 w-4" />
                                                     </button>
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); handleDelete(task); }}
                                                         className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-all"
-                                                        title="Hapus tugas"
+                                                        title="Delete task"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </button>
@@ -529,7 +529,7 @@ export default function Tasks() {
                                 disabled={currentPage === 1}
                                 className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
                             >
-                                Sebelumnya
+                                Previous
                             </button>
                             <div className="flex gap-1">
                                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -583,20 +583,20 @@ export default function Tasks() {
                             <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 text-white shrink-0">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-2xl font-bold">
-                                        {editingTask ? 'Edit Tugas' : 'Buat Tugas Baru'}
+                                        {editingTask ? 'Edit Task' : 'Create New Task'}
                                     </h2>
                                     <button onClick={() => setShowModal(false)} className="text-white/80 hover:text-white transition-colors">
                                         <X className="h-6 w-6" />
                                     </button>
                                 </div>
-                                <p className="text-blue-100 mt-1">Isi detail tugas untuk siswa Anda</p>
+                                <p className="text-blue-100 mt-1">Fill in task details for your students</p>
                             </div>
 
                             <div className="p-6 overflow-y-auto custom-scrollbar">
                                 <form onSubmit={handleSubmit} className="space-y-5">
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Judul Tugas <span className="text-red-500">*</span>
+                                            Task Title <span className="text-red-500">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -610,7 +610,7 @@ export default function Tasks() {
 
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Deskripsi
+                                            Description
                                         </label>
                                         <textarea
                                             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white min-h-[120px]"
@@ -622,7 +622,7 @@ export default function Tasks() {
 
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Tenggat Waktu <span className="text-red-500">*</span>
+                                            Deadline <span className="text-red-500">*</span>
                                         </label>
                                         <input
                                             type="datetime-local"
@@ -635,7 +635,7 @@ export default function Tasks() {
 
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Tugaskan ke Kelas <span className="text-red-500">*</span>
+                                            Assign to Classes <span className="text-red-500">*</span>
                                         </label>
                                         <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar p-2 bg-slate-50 rounded-xl border border-slate-200">
                                             {classes.map(cls => (
@@ -661,7 +661,7 @@ export default function Tasks() {
                                         </div>
                                         {classes.length === 0 && (
                                             <div className="text-center p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 mt-2">
-                                                <p className="text-sm text-slate-500">Belum ada kelas. Buat kelas terlebih dahulu di menu Kelas.</p>
+                                                <p className="text-sm text-slate-500">No classes yet. Create a class first in the Classes menu.</p>
                                             </div>
                                         )}
                                     </div>
@@ -672,7 +672,7 @@ export default function Tasks() {
                                             onClick={() => setShowModal(false)}
                                             className="flex-1 px-6 py-3 rounded-xl border-2 border-slate-400 bg-white text-slate-800 font-bold hover:bg-slate-50 transition-all"
                                         >
-                                            Batal
+                                            Cancel
                                         </button>
                                         <button
                                             type="submit"
@@ -680,7 +680,7 @@ export default function Tasks() {
                                             className="flex-1 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-xl hover:bg-blue-700 active:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             style={{ backgroundColor: loading ? undefined : '#2563eb' }}
                                         >
-                                            {loading ? 'Menyimpan...' : (editingTask ? 'Simpan Perubahan' : 'Buat Tugas')}
+                                            {loading ? 'Saving...' : (editingTask ? 'Save Changes' : 'Create Task')}
                                         </button>
                                     </div>
                                 </form>
@@ -702,12 +702,12 @@ export default function Tasks() {
                         >
                             <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 text-white shrink-0">
                                 <div className="flex items-center justify-between">
-                                    <h2 className="text-2xl font-bold">Kelas Ditugaskan</h2>
+                                    <h2 className="text-2xl font-bold">Assigned Classes</h2>
                                     <button onClick={() => setShowClassModal(false)} className="text-white/80 hover:text-white transition-colors">
                                         <X className="h-6 w-6" />
                                     </button>
                                 </div>
-                                <p className="text-blue-100 mt-1">Daftar kelas yang ditugaskan untuk tugas ini</p>
+                                <p className="text-blue-100 mt-1">List of classes assigned to this task</p>
                             </div>
 
                             <div className="p-6 overflow-y-auto custom-scrollbar">
@@ -716,7 +716,7 @@ export default function Tasks() {
                                         <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <GraduationCap className="h-8 w-8 text-slate-400" />
                                         </div>
-                                        <p className="text-slate-500">Tidak ada kelas yang ditugaskan</p>
+                                        <p className="text-slate-500">No classes assigned</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
@@ -735,7 +735,7 @@ export default function Tasks() {
                                                     <h3 className="font-bold text-slate-800">{cls.name}</h3>
                                                     <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
                                                         <Users className="h-4 w-4" />
-                                                        <span>{classStats[cls.id]?.studentCount || 0} Siswa</span>
+                                                        <span>{classStats[cls.id]?.studentCount || 0} Students</span>
                                                     </div>
                                                 </div>
                                             </motion.div>
@@ -763,7 +763,7 @@ export default function Tasks() {
                                     <div className="bg-white/20 p-2 rounded-lg">
                                         <Trash2 className="h-6 w-6 text-white" />
                                     </div>
-                                    <h3 className="font-bold text-lg">Hapus Tugas?</h3>
+                                    <h3 className="font-bold text-lg">Delete Task?</h3>
                                 </div>
                                 <button onClick={() => setDeleteModalOpen(false)} className="text-white/70 hover:text-white">
                                     <X className="h-5 w-5" />
@@ -771,9 +771,9 @@ export default function Tasks() {
                             </div>
                             <div className="p-6 space-y-4">
                                 <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-red-800 text-sm">
-                                    <p className="font-bold mb-1">PERINGATAN:</p>
-                                    <p>Anda akan menghapus tugas <strong>"{taskToDelete.title}"</strong>.</p>
-                                    <p className="mt-1 opacity-80">Semua pengumpulan siswa untuk tugas ini juga akan dihapus permanen.</p>
+                                    <p className="font-bold mb-1">WARNING:</p>
+                                    <p>You are about to delete task <strong>"{taskToDelete.title}"</strong>.</p>
+                                    <p className="mt-1 opacity-80">All student submissions for this task will also be permanently deleted.</p>
                                 </div>
 
                                 <div className="pt-2 flex gap-3">
@@ -781,14 +781,14 @@ export default function Tasks() {
                                         onClick={() => setDeleteModalOpen(false)}
                                         className="flex-1 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-medium text-slate-700"
                                     >
-                                        Batal
+                                        Cancel
                                     </button>
                                     <button
                                         onClick={confirmDelete}
                                         className="flex-1 px-4 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg shadow-red-200 flex items-center justify-center gap-2"
                                     >
                                         <Trash2 className="h-4 w-4" />
-                                        Ya, Hapus
+                                        Yes, Delete
                                     </button>
                                 </div>
                             </div>

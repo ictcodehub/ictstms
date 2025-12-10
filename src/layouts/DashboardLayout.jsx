@@ -10,10 +10,14 @@ import {
     Menu,
     X,
     Flame,
-    ClipboardCheck
+    ClipboardCheck,
+    Calendar as CalendarIcon,
+    BarChart3
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ProfileDropdown from '../components/ProfileDropdown';
+import ThemeToggle from '../components/ThemeToggle';
+import LanguageToggle from '../components/LanguageToggle';
 
 export default function DashboardLayout({ children }) {
     const { currentUser, logout, userRole } = useAuth();
@@ -41,6 +45,8 @@ export default function DashboardLayout({ children }) {
         { path: '/teacher/tasks', icon: BookOpen, label: 'Tasks' },
         { path: '/teacher/exams', icon: ClipboardCheck, label: 'Exams' },
         { path: '/teacher/gradebook', icon: ClipboardList, label: 'Gradebook' },
+        { path: '/teacher/calendar', icon: CalendarIcon, label: 'Calendar' },
+        { path: '/teacher/analytics', icon: BarChart3, label: 'Analytics' },
     ];
 
     const studentMenuItems = [
@@ -60,7 +66,7 @@ export default function DashboardLayout({ children }) {
     };
 
     return (
-        <div className="flex h-screen bg-sky-50 overflow-hidden">
+        <div className="flex h-screen bg-sky-50 dark:bg-slate-900 overflow-hidden">
             {/* Overlay for mobile */}
             <AnimatePresence>
                 {sidebarOpen && isMobile && (
@@ -81,7 +87,7 @@ export default function DashboardLayout({ children }) {
                     x: sidebarOpen ? 0 : -300
                 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className={`fixed left-0 top-0 h-full bg-white border-r border-blue-100 text-slate-600 w-64 shadow-2xl flex flex-col z-50`}
+                className={`fixed left-0 top-0 h-full bg-white dark:bg-slate-800 border-r border-blue-100 dark:border-slate-700 text-slate-600 dark:text-slate-300 w-64 shadow-2xl flex flex-col z-50`}
             >
                 <div className="p-6 flex-1 overflow-y-auto">
                     {/* App Branding */}
@@ -150,20 +156,24 @@ export default function DashboardLayout({ children }) {
                     }`}
             >
                 {/* Header */}
-                <header className="bg-white/80 backdrop-blur-md border-b border-blue-100 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-30 flex-shrink-0">
+                <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-blue-100 dark:border-slate-700 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-30 flex-shrink-0">
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-slate-600"
+                        className="p-2 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-600 dark:text-slate-300"
                         aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
                     >
                         {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                     </button>
 
-                    <ProfileDropdown currentUser={currentUser} logout={logout} />
+                    <div className="flex items-center gap-3">
+                        <LanguageToggle />
+                        <ThemeToggle />
+                        <ProfileDropdown currentUser={currentUser} logout={logout} />
+                    </div>
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+                <main className="flex-1 overflow-y-auto p-4 sm:p-6 dark:bg-slate-900">
                     {children || <Outlet />}
                 </main>
             </div>

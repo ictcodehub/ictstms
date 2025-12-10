@@ -24,10 +24,10 @@ export default function TaskDetail({ task, classes = [], onBack }) {
         return (
             <div className="p-8">
                 <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-                    <h2 className="text-xl font-bold text-red-800 mb-2">Error: Tugas Tidak Ditemukan</h2>
-                    <p className="text-red-600 mb-4">Data tugas hilang atau tidak terdefinisi.</p>
+                    <h2 className="text-xl font-bold text-red-800 mb-2">Error: Task Not Found</h2>
+                    <p className="text-red-600 mb-4">Task data is missing or undefined.</p>
                     <button onClick={onBack} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">
-                        Kembali ke Tugas
+                        Back to Tasks
                     </button>
                 </div>
             </div>
@@ -39,11 +39,11 @@ export default function TaskDetail({ task, classes = [], onBack }) {
         return (
             <div className="p-8">
                 <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-                    <h2 className="text-xl font-bold text-red-800 mb-2">Error Memuat Detail Tugas</h2>
+                    <h2 className="text-xl font-bold text-red-800 mb-2">Error Loading Task Details</h2>
                     <p className="text-red-600 mb-4">{error.message}</p>
                     <pre className="text-xs bg-white p-4 rounded overflow-auto max-h-64">{error.stack}</pre>
                     <button onClick={onBack} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">
-                        Kembali ke Tugas
+                        Back to Tasks
                     </button>
                 </div>
             </div>
@@ -130,13 +130,13 @@ export default function TaskDetail({ task, classes = [], onBack }) {
 
     const handleSaveGrade = async () => {
         if (!currentSubmission?.submission) {
-            toast.error('Siswa belum mengumpulkan tugas');
+            toast.error('Student has not submitted the task');
             return;
         }
 
         const grade = parseFloat(gradeData.grade);
         if (isNaN(grade) || grade < 0 || grade > 100) {
-            toast.error('Nilai harus antara 0-100');
+            toast.error('Grade must be between 0-100');
             return;
         }
 
@@ -161,10 +161,10 @@ export default function TaskDetail({ task, classes = [], onBack }) {
             }));
 
             setShowGradeModal(false);
-            toast.success('Nilai berhasil disimpan!');
+            toast.success('Grade saved successfully!');
         } catch (error) {
             console.error('Error saving grade:', error);
-            toast.error('Gagal menyimpan nilai: ' + error.message);
+            toast.error('Failed to save grade: ' + error.message);
         } finally {
             setSaving(false);
         }
@@ -176,7 +176,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
         if (!submission) {
             return {
                 status: 'not_submitted',
-                label: 'Belum Submit',
+                label: 'Not Submitted',
                 color: 'text-red-700',
                 bgColor: 'bg-red-50',
                 borderColor: 'border-red-200',
@@ -188,7 +188,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
         if (submission.grade !== undefined && submission.grade !== null) {
             return {
                 status: 'graded',
-                label: 'Sudah Dinilai',
+                label: 'Graded',
                 color: 'text-blue-700',
                 bgColor: 'bg-blue-50',
                 borderColor: 'border-blue-200',
@@ -201,7 +201,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
 
         return {
             status: 'ungraded',
-            label: isLate ? 'Terlambat & Belum Dinilai' : 'Belum Dinilai',
+            label: isLate ? 'Late & Not Graded' : 'Not Graded',
             color: 'text-amber-700',
             bgColor: 'bg-amber-50',
             borderColor: 'border-amber-200',
@@ -387,7 +387,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                     </div>
                     <div className="flex items-center gap-2 text-slate-600">
                         <BookOpen className="h-5 w-5 text-blue-500" />
-                        <span className="font-medium">{task?.assignedClasses?.length || 0} Kelas</span>
+                        <span className="font-medium">{task?.assignedClasses?.length || 0} Class</span>
                     </div>
                 </div>
             </div>
@@ -400,7 +400,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                             <Users className="h-6 w-6 text-blue-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Total Siswa</p>
+                            <p className="text-xs text-slate-500 font-medium">Total Students</p>
                             <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
                         </div>
                     </div>
@@ -411,7 +411,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                             <CheckCircle2 className="h-6 w-6 text-green-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Sudah Submit</p>
+                            <p className="text-xs text-slate-500 font-medium">Submitted</p>
                             <p className="text-2xl font-bold text-slate-800">{stats.submitted}</p>
                         </div>
                     </div>
@@ -422,7 +422,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                             <XCircle className="h-6 w-6 text-red-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Belum Submit</p>
+                            <p className="text-xs text-slate-500 font-medium">Not Submitted</p>
                             <p className="text-2xl font-bold text-slate-800">{stats.total - stats.submitted}</p>
                         </div>
                     </div>
@@ -433,7 +433,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                             <FileText className="h-6 w-6 text-amber-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Sudah Dinilai</p>
+                            <p className="text-xs text-slate-500 font-medium">Graded</p>
                             <p className="text-2xl font-bold text-slate-800">{stats.graded}</p>
                         </div>
                     </div>
@@ -444,7 +444,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                             <Award className="h-6 w-6 text-purple-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Rata-rata</p>
+                            <p className="text-xs text-slate-500 font-medium">Average</p>
                             <p className="text-2xl font-bold text-slate-800">{stats.avgGrade}</p>
                         </div>
                     </div>
@@ -454,7 +454,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
             {/* Student List */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <h2 className="text-lg font-bold text-slate-800">Daftar Siswa</h2>
+                    <h2 className="text-lg font-bold text-slate-800">Student List</h2>
 
                     {/* Class Filter */}
                     <div className="relative">
@@ -464,7 +464,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                             onChange={(e) => setFilterClass(e.target.value)}
                             className="pl-10 pr-8 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm appearance-none bg-white cursor-pointer min-w-[200px]"
                         >
-                            <option value="all">Semua Kelas</option>
+                            <option value="all">All Classes</option>
                             {task?.assignedClasses?.map(classId => {
                                 const cls = classes.find(c => c.id === classId);
                                 return cls ? (
@@ -490,7 +490,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                     className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer group hover:bg-slate-100 transition-colors"
                                     onClick={() => handleSort('class')}
                                 >
-                                    Kelas <SortIcon column="class" />
+                                    Class <SortIcon column="class" />
                                 </th>
                                 <th
                                     className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer group hover:bg-slate-100 transition-colors"
@@ -564,7 +564,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className="text-xs text-slate-600 bg-white px-2 py-1 rounded-lg border border-slate-200 font-medium">
-                                                    {cls?.name || 'Kelas Tidak Diketahui'}
+                                                    {cls?.name || 'Unknown Class'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
@@ -639,7 +639,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                         >
                             <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 text-white flex justify-between items-center">
                                 <div>
-                                    <h2 className="text-xl font-bold">Penilaian Tugas</h2>
+                                    <h2 className="text-xl font-bold">Grade Task</h2>
                                     <p className="text-blue-100 text-sm mt-1">{currentSubmission.student.name}</p>
                                 </div>
                                 <button onClick={() => setShowGradeModal(false)} className="text-white/80 hover:text-white transition-colors">
@@ -712,7 +712,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                         onClick={() => setShowGradeModal(false)}
                                         className="flex-1 px-6 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all"
                                     >
-                                        Batal
+                                        Cancel
                                     </button>
                                     <button
                                         onClick={handleSaveGrade}
@@ -722,7 +722,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                         {saving ? (
                                             <>
                                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                Menyimpan...
+                                                Saving...
                                             </>
                                         ) : (
                                             <>
@@ -750,7 +750,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                         >
                             <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 text-white flex justify-between items-center flex-shrink-0">
                                 <div>
-                                    <h2 className="text-xl font-bold">Detail Tugas</h2>
+                                    <h2 className="text-xl font-bold">Task Details</h2>
                                     <p className="text-blue-100 text-sm mt-1">{task?.title}</p>
                                 </div>
                                 <button onClick={() => setShowTaskDetailModal(false)} className="text-white/80 hover:text-white transition-colors">
@@ -759,7 +759,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                             </div>
                             <div className="p-6 overflow-y-auto flex-1">
                                 <div className="space-y-6">
-                                    {/* Deadline and Kelas Info - Moved to top */}
+                                    {/* Deadline and Class Info - Moved to top */}
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
                                             <div className="flex items-center gap-2 mb-2">
@@ -771,7 +771,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                         <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <BookOpen className="h-4 w-4 text-purple-600" />
-                                                <p className="text-xs text-purple-700 font-bold uppercase tracking-wide">Kelas</p>
+                                                <p className="text-xs text-purple-700 font-bold uppercase tracking-wide">Class</p>
                                             </div>
                                             <div className="flex flex-wrap gap-1">
                                                 {task?.assignedClasses?.length > 0 ? (
@@ -794,7 +794,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                     <div>
                                         <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
                                             <FileText className="h-4 w-4 text-blue-600" />
-                                            Materi / Deskripsi Tugas
+                                            Material / Task Description
                                         </h3>
                                         <div
                                             className="bg-white p-6 rounded-xl border-2 border-slate-200 shadow-sm"
@@ -804,7 +804,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                             }}
                                         >
                                             <div
-                                                dangerouslySetInnerHTML={{ __html: task?.description || '<p class="text-slate-400 italic">Tidak ada deskripsi</p>' }}
+                                                dangerouslySetInnerHTML={{ __html: task?.description || '<p class="text-slate-400 italic">No description</p>' }}
                                                 style={{
                                                     whiteSpace: 'pre-wrap',
                                                     wordBreak: 'break-word',

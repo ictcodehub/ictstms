@@ -1,8 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, AlertCircle, X } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, memo } from 'react';
 
-export default function Toast({ message, type = 'success', onClose, duration = 3000 }) {
+const Toast = ({ message, type = 'success', onClose, duration = 3000 }) => {
     useEffect(() => {
         if (duration) {
             const timer = setTimeout(() => {
@@ -43,4 +43,7 @@ export default function Toast({ message, type = 'success', onClose, duration = 3
             </button>
         </motion.div>
     );
-}
+};
+
+// Memoize to prevent unnecessary re-renders
+export default memo(Toast);

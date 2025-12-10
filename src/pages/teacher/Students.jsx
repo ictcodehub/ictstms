@@ -163,7 +163,7 @@ export default function Students() {
             toast.success("Data siswa berhasil disimpan!");
         } catch (error) {
             console.error("Error saving student:", error);
-            toast.error("Gagal menyimpan data siswa.");
+            toast.error("Failed to save student data.");
         } finally {
             setSaving(false);
         }
@@ -185,7 +185,7 @@ export default function Students() {
             toast.success("Siswa berhasil dihapus!");
         } catch (error) {
             console.error('Error deleting student:', error);
-            toast.error('Gagal menghapus siswa');
+            toast.error('Failed to delete student');
         } finally {
             setDeleting(false);
         }
@@ -305,7 +305,7 @@ export default function Students() {
                                 <TrendingUp className="h-6 w-6 text-cyan-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500 font-medium">Rata-rata Kelas</p>
+                                <p className="text-xs text-slate-500 font-medium">Class Average</p>
                                 <p className="text-2xl font-bold text-slate-800">
                                     {students.length > 0
                                         ? (Object.values(studentStats).reduce((sum, s) => sum + parseFloat(s.avgGrade || 0), 0) / students.length).toFixed(1)
@@ -321,7 +321,7 @@ export default function Students() {
                                 <BookOpen className="h-6 w-6 text-sky-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500 font-medium">Tugas Dikumpulkan</p>
+                                <p className="text-xs text-slate-500 font-medium">Tasks Submitted</p>
                                 <p className="text-2xl font-bold text-slate-800">
                                     {Object.values(studentStats).reduce((sum, s) => sum + s.submitted, 0)}
                                 </p>
@@ -368,7 +368,7 @@ export default function Students() {
                                 value={selectedClass}
                                 onChange={(e) => setSelectedClass(e.target.value)}
                             >
-                                <option value="all">Semua Kelas</option>
+                                <option value="all">All Classes</option>
                                 {classesList.map((cls) => (
                                     <option key={cls.id} value={cls.id}>{cls.name}</option>
                                 ))}
@@ -416,7 +416,7 @@ export default function Students() {
                                             onClick={() => handleSort('class')}
                                         >
                                             <div className="flex items-center gap-2">
-                                                Kelas
+                                                Class
                                                 <ArrowUpDown className="h-3 w-3" />
                                             </div>
                                         </th>
@@ -521,7 +521,7 @@ export default function Students() {
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); handleDeleteClick(student); }}
                                                             className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition-all"
-                                                            title="Hapus siswa"
+                                                            title="Delete student"
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </button>
@@ -538,7 +538,7 @@ export default function Students() {
                         {totalPages > 1 && (
                             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
                                 <div className="text-sm text-slate-500">
-                                    Menampilkan <span className="font-bold text-slate-800">{startIndex + 1}</span> - <span className="font-bold text-slate-800">{Math.min(endIndex, filteredStudents.length)}</span> dari <span className="font-bold text-slate-800">{filteredStudents.length}</span> siswa
+                                    Showing <span className="font-bold text-slate-800">{startIndex + 1}</span> - <span className="font-bold text-slate-800">{Math.min(endIndex, filteredStudents.length)}</span> dari <span className="font-bold text-slate-800">{filteredStudents.length}</span> siswa
                                 </div>
                                 <div className="flex gap-2">
                                     <button
@@ -633,7 +633,7 @@ export default function Students() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Kelas</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Class</label>
                                     <div className="relative">
                                         <School className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                                         <select
@@ -657,7 +657,7 @@ export default function Students() {
                                         onClick={() => setShowModal(false)}
                                         className="flex-1 px-6 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all"
                                     >
-                                        Batal
+                                        Cancel
                                     </button>
                                     <button
                                         type="submit"
@@ -667,7 +667,7 @@ export default function Students() {
                                         {saving ? (
                                             <>
                                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                Menyimpan...
+                                                Saving...
                                             </>
                                         ) : (
                                             <>
@@ -697,7 +697,7 @@ export default function Students() {
                                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <AlertTriangle className="h-8 w-8 text-red-600" />
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-800 mb-2">Hapus Siswa?</h3>
+                                <h3 className="text-xl font-bold text-slate-800 mb-2">Delete Student?</h3>
                                 <p className="text-slate-500 mb-6">
                                     Apakah Anda yakin ingin menghapus siswa <span className="font-bold text-slate-800">{studentToDelete?.name || 'ini'}</span>? Tindakan ini tidak dapat dibatalkan.
                                 </p>
@@ -706,7 +706,7 @@ export default function Students() {
                                         onClick={() => setShowDeleteModal(false)}
                                         className="flex-1 px-4 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all"
                                     >
-                                        Batal
+                                        Cancel
                                     </button>
                                     <button
                                         onClick={confirmDelete}
@@ -721,7 +721,7 @@ export default function Students() {
                                         ) : (
                                             <>
                                                 <Trash2 className="h-5 w-5" />
-                                                Hapus
+                                                Delete
                                             </>
                                         )}
                                     </button>

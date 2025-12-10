@@ -1,14 +1,29 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import TeacherDashboard from './pages/teacher/Dashboard';
-import StudentDashboard from './pages/student/Dashboard';
-import AdminLayout from './pages/admin/AdminLayout';
-import AdminDashboard from './pages/admin/Dashboard';
-import UserManagement from './pages/admin/UserManagement';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
+import './i18n/config';
+
+// Lazy load page components for code splitting
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const TeacherDashboard = lazy(() => import('./pages/teacher/Dashboard'));
+const StudentDashboard = lazy(() => import('./pages/student/Dashboard'));
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+
+// Loading component for lazy loaded routes
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+      <p className="text-slate-600 font-medium">Loading...</p>
+    </div>
+  </div>
+);
 
 
 // Protected Route Component
@@ -41,43 +56,47 @@ const RootRedirect = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Toaster position="top-right" reverseOrder={false} />
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <Toaster position="top-right" reverseOrder={false} />
+        <Router>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
-          {/* Teacher Routes */}
-          <Route path="/teacher/*" element={
-            <ProtectedRoute role="teacher">
-              <TeacherDashboard />
-            </ProtectedRoute>
-          } />
+              {/* Teacher Routes */}
+              <Route path="/teacher/*" element={
+                <ProtectedRoute role="teacher">
+                  <TeacherDashboard />
+                </ProtectedRoute>
+              } />
 
-          {/* Student Routes */}
-          <Route path="/student/*" element={
-            <ProtectedRoute role="student">
-              <StudentDashboard />
-            </ProtectedRoute>
-          } />
+              {/* Student Routes */}
+              <Route path="/student/*" element={
+                <ProtectedRoute role="student">
+                  <StudentDashboard />
+                </ProtectedRoute>
+              } />
 
-          {/* Admin Routes */}
-          <Route path="/admin" element={
-            <ProtectedRoute role="admin">
-              <AdminLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<UserManagement />} />
-          </Route>
+              {/* Admin Routes */}
+              <Route path="/admin" element={
+                <ProtectedRoute role="admin">
+                  <AdminLayout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<AdminDashboard />} />
+                <Route path="users" element={<UserManagement />} />
+              </Route>
 
-          {/* Default Redirect */}
-          <Route path="/" element={<RootRedirect />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+              {/* Default Redirect */}
+              <Route path="/" element={<RootRedirect />} />
+            </Routes>
+          </Suspense>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

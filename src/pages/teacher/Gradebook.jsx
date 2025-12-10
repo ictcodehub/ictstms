@@ -311,7 +311,7 @@ export default function Gradebook() {
                             <FileText className="h-5 w-5 text-red-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Total Tugas</p>
+                            <p className="text-xs text-slate-500 font-medium">Total Tasks</p>
                             <p className="text-2xl font-bold text-slate-800">{stats.totalTasks}</p>
                         </div>
                     </div>
@@ -340,7 +340,7 @@ export default function Gradebook() {
                                 value={selectedClass}
                                 onChange={(e) => setSelectedClass(e.target.value)}
                             >
-                                <option value="all">Semua Kelas</option>
+                                <option value="all">All Classes</option>
                                 {classes.map(cls => (
                                     <option key={cls.id} value={cls.id}>{cls.name}</option>
                                 ))}
@@ -411,7 +411,7 @@ export default function Gradebook() {
                                         <h2 className="text-2xl font-bold text-slate-800 mb-1">{selectedStudent.name}</h2>
                                         <p className="text-sm text-slate-500">{selectedStudent.email}</p>
                                         <p className="text-xs text-slate-400 mt-1">
-                                            Kelas: {classes.find(c => c.id === selectedStudent.classId)?.name || '-'}
+                                            Class: {classes.find(c => c.id === selectedStudent.classId)?.name || '-'}
                                         </p>
                                     </div>
                                     <div className="flex gap-3">
@@ -429,7 +429,7 @@ export default function Gradebook() {
 
                             <div className="p-6">
                                 <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-lg font-bold text-slate-800">Riwayat Tugas</h3>
+                                    <h3 className="text-lg font-bold text-slate-800">Task History</h3>
                                     <div className="flex flex-wrap gap-2 text-xs">
                                         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 rounded-lg border border-green-200">
                                             <CheckCircle className="h-3.5 w-3.5 text-green-600" />
@@ -441,7 +441,7 @@ export default function Gradebook() {
                                         </div>
                                         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 rounded-lg border border-red-200">
                                             <AlertCircle className="h-3.5 w-3.5 text-red-600" />
-                                            <span className="text-red-700 font-medium">Terlambat</span>
+                                            <span className="text-red-700 font-medium">Late</span>
                                         </div>
                                         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg border border-slate-200">
                                             <FileText className="h-3.5 w-3.5 text-slate-600" />
@@ -452,7 +452,7 @@ export default function Gradebook() {
                                 {studentTasks.length === 0 ? (
                                     <div className="text-center py-12 text-slate-500">
                                         <FileText className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-                                        <p>Tidak ada tugas untuk siswa ini</p>
+                                        <p>No tasks for this student</p>
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto">
@@ -535,7 +535,7 @@ export default function Gradebook() {
                                                                 {task.status === 'overdue' && (
                                                                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-700 border border-red-100">
                                                                         <AlertCircle className="h-3 w-3" />
-                                                                        Terlambat
+                                                                        Late
                                                                     </span>
                                                                 )}
                                                                 {task.status === 'pending' && (

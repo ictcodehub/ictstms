@@ -233,11 +233,11 @@ export default function TeacherOverview() {
     };
 
     const statsCards = [
-        { label: 'Total Siswa', value: stats.totalStudents, icon: Users, color: 'from-blue-500 to-cyan-500', path: '/teacher/students' },
-        { label: 'Total Kelas', value: stats.totalClasses, icon: BookOpen, color: 'from-sky-500 to-indigo-500', path: '/teacher/classes' },
-        { label: 'Total Ujian', value: stats.totalExams, icon: ClipboardCheck, color: 'from-pink-500 to-rose-500', path: '/teacher/exams' },
-        { label: 'Tugas Aktif', value: stats.activeTasks, icon: ClipboardList, color: 'from-cyan-500 to-teal-500', path: '/teacher/tasks' },
-        { label: 'Perlu Dinilai', value: stats.needsGrading, icon: AlertCircle, color: 'from-indigo-500 to-purple-500', path: '/teacher/gradebook' },
+        { label: 'Total Students', value: stats.totalStudents, icon: Users, color: 'from-blue-500 to-cyan-500', path: '/teacher/students' },
+        { label: 'Total Classes', value: stats.totalClasses, icon: BookOpen, color: 'from-sky-500 to-indigo-500', path: '/teacher/classes' },
+        { label: 'Total Exams', value: stats.totalExams, icon: ClipboardCheck, color: 'from-pink-500 to-rose-500', path: '/teacher/exams' },
+        { label: 'Active Tasks', value: stats.activeTasks, icon: ClipboardList, color: 'from-cyan-500 to-teal-500', path: '/teacher/tasks' },
+        { label: 'Needs Grading', value: stats.needsGrading, icon: AlertCircle, color: 'from-indigo-500 to-purple-500', path: '/teacher/gradebook' },
     ];
 
     const getTimeAgo = (date) => {
@@ -304,7 +304,7 @@ export default function TeacherOverview() {
             case 'new_student':
                 return (
                     <>
-                        Siswa baru <span className="text-purple-600 font-bold">{activity.studentName}</span> bergabung ke Kelas {activity.className}
+                        New student <span className="text-purple-600 font-bold">{activity.studentName}</span> joined Class {activity.className}
                     </>
                 );
             case 'deadline':
@@ -316,7 +316,7 @@ export default function TeacherOverview() {
             case 'new_task':
                 return (
                     <>
-                        Tugas baru dibuat
+                        New task created
                     </>
                 );
             case 'new_exam':
@@ -339,7 +339,7 @@ export default function TeacherOverview() {
                     </span>
                 ) : (
                     <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
-                        Perlu Dinilai
+                        Needs Grading
                     </span>
                 );
             case 'new_student':

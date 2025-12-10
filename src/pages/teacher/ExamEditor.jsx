@@ -85,7 +85,7 @@ export default function ExamEditor() {
                 }
             } catch (error) {
                 console.error("Error loading exam:", error);
-                toast.error("Gagal memuat ujian");
+                toast.error("Failed to load exam");
             } finally {
                 setInitialLoading(false);
             }
@@ -155,7 +155,7 @@ export default function ExamEditor() {
     };
 
     const deleteQuestion = (qId) => {
-        if (window.confirm("Hapus soal ini?")) {
+        if (window.confirm("Delete this question?")) {
             setQuestions(questions.filter(q => q.id !== qId));
             if (activeQuestionId === qId) setActiveQuestionId(null);
         }
@@ -368,7 +368,7 @@ export default function ExamEditor() {
             navigate('/teacher/exams');
         } catch (error) {
             console.error("Error saving exam:", error);
-            toast.error("Gagal menyimpan ujian");
+            toast.error("Failed to save exam");
         } finally {
             setLoading(false);
         }
@@ -429,7 +429,7 @@ export default function ExamEditor() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                             <textarea
                                 className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none min-h-[80px]"
                                 value={examData.description}
@@ -480,7 +480,7 @@ export default function ExamEditor() {
                     </div>
 
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4">Kelas Peserta</h3>
+                        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4">Participant Classes</h3>
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                             {classes.map(cls => (
                                 <label key={cls.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
@@ -569,7 +569,7 @@ export default function ExamEditor() {
                                             <button onClick={() => duplicateQuestion(question)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors" title="Duplikat">
                                                 <Copy className="h-4 w-4" />
                                             </button>
-                                            <button onClick={() => deleteQuestion(question.id)} className="p-2 text-slate-400 hover:text-red-600 transition-colors" title="Hapus">
+                                            <button onClick={() => deleteQuestion(question.id)} className="p-2 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
                                         </div>
@@ -875,7 +875,7 @@ export default function ExamEditor() {
                                     onClick={() => setShowLinkModal(false)}
                                     className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors"
                                 >
-                                    Batal
+                                    Cancel
                                 </button>
                                 <button
                                     onClick={() => {

@@ -116,13 +116,13 @@ export default function ClassDetail({ classData, classes, onBack }) {
 
         try {
             await deleteDoc(doc(db, 'users', studentToDelete.id));
-            toast.success('Siswa berhasil dihapus');
+            toast.success('Student deleted successfully');
             setDeleteModalOpen(false);
             setStudentToDelete(null);
             loadClassData(); // Reload data
         } catch (error) {
             console.error("Error deleting student:", error);
-            toast.error("Gagal menghapus siswa.");
+            toast.error("Failed to delete student.");
         }
     };
 
@@ -141,10 +141,10 @@ export default function ClassDetail({ classData, classes, onBack }) {
             }
             setShowModal(false);
             loadClassData();
-            toast.success("Data siswa berhasil disimpan!");
+            toast.success("Student data saved successfully!");
         } catch (error) {
             console.error("Error saving student:", error);
-            toast.error("Gagal menyimpan data siswa.");
+            toast.error("Failed to save student data.");
         } finally {
             setSaving(false);
         }
@@ -243,7 +243,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                             <Star className="h-5 w-5 text-blue-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Rata-rata Kelas</p>
+                            <p className="text-xs text-slate-500 font-medium">Class Average</p>
                             <p className="text-2xl font-bold text-slate-800">{classStats.avgGrade}</p>
                         </div>
                     </div>
@@ -277,7 +277,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                             <Users className="h-5 w-5 text-indigo-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Total Siswa</p>
+                            <p className="text-xs text-slate-500 font-medium">Total Students</p>
                             <p className="text-2xl font-bold text-slate-800">{classStats.totalStudents}</p>
                         </div>
                     </div>
@@ -294,7 +294,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                             <BookOpen className="h-5 w-5 text-purple-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Total Tugas</p>
+                            <p className="text-xs text-slate-500 font-medium">Total Tasks</p>
                             <p className="text-2xl font-bold text-slate-800">{classStats.totalTasks}</p>
                         </div>
                     </div>
@@ -307,14 +307,14 @@ export default function ClassDetail({ classData, classes, onBack }) {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                     <input
                         type="text"
-                        placeholder="Cari siswa..."
+                        placeholder="Search students..."
                         className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 focus:bg-white transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
                 <div className="text-sm text-slate-500 font-medium">
-                    Total: <span className="text-slate-800 font-bold">{filteredStudents.length}</span> Siswa
+                    Total: <span className="text-slate-800 font-bold">{filteredStudents.length}</span> Student
                 </div>
             </div>
 
@@ -329,8 +329,8 @@ export default function ClassDetail({ classData, classes, onBack }) {
                         <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Search className="h-8 w-8 text-slate-400" />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-800">Tidak ada siswa</h3>
-                        <p className="text-slate-500">Belum ada siswa di kelas ini atau tidak ditemukan.</p>
+                        <h3 className="text-lg font-bold text-slate-800">No students</h3>
+                        <p className="text-slate-500">No students in this class yet or not found.</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -343,7 +343,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                         onClick={() => handleSort('name')}
                                     >
                                         <div className="flex items-center gap-1.5">
-                                            Siswa
+                                            Student
                                             <ArrowUpDown className="h-3 w-3 opacity-40 group-hover:opacity-100" />
                                         </div>
                                     </th>
@@ -352,7 +352,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                         onClick={() => handleSort('tasks')}
                                     >
                                         <div className="flex items-center justify-center gap-1.5">
-                                            Tugas
+                                            Tasks
                                             <ArrowUpDown className="h-3 w-3 opacity-40 group-hover:opacity-100" />
                                         </div>
                                     </th>
@@ -405,14 +405,14 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleEditClick(student); }}
                                                     className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition-all"
-                                                    title="Edit siswa"
+                                                    title="Edit student"
                                                 >
                                                     <Edit2 className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleDeleteClick(student); }}
                                                     className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition-all"
-                                                    title="Hapus siswa"
+                                                    title="Delete student"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
@@ -438,7 +438,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                             className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
                         >
                             <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 text-white flex justify-between items-center">
-                                <h2 className="text-xl font-bold">Edit Data Siswa</h2>
+                                <h2 className="text-xl font-bold">Edit Data Student</h2>
                                 <button onClick={() => setShowModal(false)} className="text-white/80 hover:text-white transition-colors">
                                     <X className="h-6 w-6" />
                                 </button>
@@ -446,14 +446,14 @@ export default function ClassDetail({ classData, classes, onBack }) {
 
                             <form onSubmit={handleSubmit} className="p-6 space-y-4">
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Nama Lengkap</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
                                     <input
                                         type="text"
                                         required
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="Nama Siswa"
+                                        placeholder="Nama Student"
                                     />
                                 </div>
                                 <div>
@@ -468,7 +468,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Kelas</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Class</label>
                                     <div className="relative">
                                         <School className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                                         <select
@@ -492,7 +492,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                         onClick={() => setShowModal(false)}
                                         className="flex-1 px-6 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all"
                                     >
-                                        Batal
+                                        Cancel
                                     </button>
                                     <button
                                         type="submit"
@@ -502,12 +502,12 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                         {saving ? (
                                             <>
                                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                Menyimpan...
+                                                Saving...
                                             </>
                                         ) : (
                                             <>
                                                 <Save className="h-5 w-5" />
-                                                Simpan
+                                                Save
                                             </>
                                         )}
                                     </button>
@@ -533,7 +533,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                     <div className="bg-white/20 p-2 rounded-lg">
                                         <Trash2 className="h-6 w-6 text-white" />
                                     </div>
-                                    <h3 className="font-bold text-lg">Hapus Siswa?</h3>
+                                    <h3 className="font-bold text-lg">Delete Student?</h3>
                                 </div>
                                 <button onClick={() => setDeleteModalOpen(false)} className="text-white/70 hover:text-white">
                                     <X className="h-5 w-5" />
@@ -541,9 +541,9 @@ export default function ClassDetail({ classData, classes, onBack }) {
                             </div>
                             <div className="p-6 space-y-4">
                                 <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-red-800 text-sm">
-                                    <p className="font-bold mb-1">PERINGATAN:</p>
-                                    <p>Anda akan menghapus siswa <strong>"{studentToDelete.name}"</strong> dari kelas ini.</p>
-                                    <p className="mt-1 opacity-80">Semua data pengumpulan dan nilai siswa ini akan dihapus permanen.</p>
+                                    <p className="font-bold mb-1">WARNING:</p>
+                                    <p>You are about to delete student <strong>"{studentToDelete.name}"</strong> from this class.</p>
+                                    <p className="mt-1 opacity-80">All submission data and grades for this student will be permanently deleted.</p>
                                 </div>
 
                                 <div className="pt-2 flex gap-3">
@@ -551,14 +551,14 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                         onClick={() => setDeleteModalOpen(false)}
                                         className="flex-1 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-medium text-slate-700"
                                     >
-                                        Batal
+                                        Cancel
                                     </button>
                                     <button
                                         onClick={confirmDelete}
                                         className="flex-1 px-4 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg shadow-red-200 flex items-center justify-center gap-2"
                                     >
                                         <Trash2 className="h-4 w-4" />
-                                        Ya, Hapus
+                                        Yes, Delete
                                     </button>
                                 </div>
                             </div>

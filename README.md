@@ -1,8 +1,24 @@
-# 📚 STMS - Student Task Management System
+# 📚 ICT STMS - Student Task Management System
 
 > Developed by **Ajit Prasetiyo**
 
-Sistem Manajemen Tugas Siswa berbasis web yang modern dan intuitif, dirancang untuk memudahkan guru dan siswa dalam mengelola tugas, pengumpulan, dan penilaian secara digital.
+Modern web-based Student Task Management System designed to help teachers and students manage assignments, submissions, and grading digitally.
+
+---
+
+## 📖 Documentation
+
+**Complete documentation is available in the `/docs` folder:**
+
+- 📘 **[Setup Guide](./docs/SETUP.md)** - Installation and configuration
+- 🏗️ **[Architecture](./docs/ARCHITECTURE.md)** - System design and structure
+- 🔌 **[API Documentation](./docs/API.md)** - Function and API reference
+- 🗄️ **[Firebase Schema](./docs/FIREBASE_SCHEMA.md)** - Database structure
+- 🎨 **[Components](./docs/COMPONENTS.md)** - UI component documentation
+- 🧪 **[Testing Guide](./TESTING_GUIDE.md)** - Testing documentation
+- 📋 **[Documentation Index](./docs/README.md)** - Full documentation index
+
+---
 
 ## 🌟 Fitur Utama
 

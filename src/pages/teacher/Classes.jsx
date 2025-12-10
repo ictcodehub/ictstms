@@ -169,7 +169,7 @@ export default function Classes() {
         setLoading(true);
         try {
             await deleteDoc(doc(db, 'classes', classToDelete.id));
-            toast.success('Kelas berhasil dihapus');
+            toast.success('Class deleted successfully');
 
             // If deleted class was selected, deselect it
             if (selectedClass?.id === classToDelete.id) {
@@ -181,7 +181,7 @@ export default function Classes() {
             loadClasses();
         } catch (error) {
             console.error('Error deleting class:', error);
-            toast.error('Gagal menghapus kelas');
+            toast.error('Failed to delete class');
         } finally {
             setLoading(false);
         }
@@ -216,7 +216,7 @@ export default function Classes() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
-                        Manajemen Kelas
+                        Class Management
                     </h1>
                     <p className="text-slate-500 mt-1">Kelola kelas, siswa, dan aktivitas pembelajaran</p>
                 </div>
@@ -227,7 +227,7 @@ export default function Classes() {
                     className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg shadow-blue-200 flex items-center gap-2 transition-all"
                 >
                     <Plus className="h-5 w-5" />
-                    Tambah Kelas
+                    Add Class
                 </motion.button>
             </div>
 
@@ -236,7 +236,7 @@ export default function Classes() {
                 <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col max-h-[500px] lg:h-[calc(100vh-12rem)] lg:sticky lg:top-6">
                     <div className="p-4 border-b border-slate-100 space-y-3 flex-shrink-0">
                         <div className="flex items-center justify-between">
-                            <h3 className="font-bold text-slate-800">Daftar Kelas</h3>
+                            <h3 className="font-bold text-slate-800">Class List</h3>
                             <div className="relative group">
                                 <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                                     <ArrowUpDown className="h-4 w-4" />
@@ -254,7 +254,7 @@ export default function Classes() {
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                             <input
                                 type="text"
-                                placeholder="Cari Kelas..."
+                                placeholder="Search Class..."
                                 className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-slate-50 focus:bg-white transition-all"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -269,7 +269,7 @@ export default function Classes() {
                             </div>
                         ) : sortedClasses.length === 0 ? (
                             <div className="text-center py-8 text-slate-500 text-sm">
-                                {searchTerm ? 'Kelas tidak ditemukan' : 'Belum ada kelas'}
+                                {searchTerm ? 'Class not found' : 'No classes yet'}
                             </div>
                         ) : (
                             sortedClasses.map((cls) => {
@@ -347,7 +347,7 @@ export default function Classes() {
                             <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mb-4">
                                 <GraduationCap className="h-10 w-10 text-slate-400" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-800 mb-2">Pilih Kelas</h3>
+                            <h3 className="text-xl font-bold text-slate-800 mb-2">Select a Class</h3>
                             <p className="text-slate-500 max-w-md">
                                 Pilih salah satu kelas dari daftar di samping untuk melihat detail, mengelola siswa, dan memantau aktivitas.
                             </p>
@@ -369,18 +369,18 @@ export default function Classes() {
                             <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 text-white">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-2xl font-bold">
-                                        {editingClass ? 'Edit Kelas' : 'Buat Kelas Baru'}
+                                        {editingClass ? 'Edit Class' : 'Create New Class'}
                                     </h2>
                                     <button onClick={() => setShowModal(false)} className="text-white/80 hover:text-white transition-colors">
                                         <X className="h-6 w-6" />
                                     </button>
                                 </div>
-                                <p className="text-blue-100 mt-1">Isi detail informasi kelas di bawah ini</p>
+                                <p className="text-blue-100 mt-1">Fill in class details below</p>
                             </div>
 
                             <form onSubmit={handleSubmit} className="p-6 space-y-5">
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Nama Kelas</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Class Name</label>
                                     <input
                                         type="text"
                                         required
@@ -409,7 +409,7 @@ export default function Classes() {
                                         onClick={() => setShowModal(false)}
                                         className="flex-1 px-6 py-3 rounded-xl border-2 border-slate-400 bg-white text-slate-800 font-bold hover:bg-slate-50 transition-all"
                                     >
-                                        Batal
+                                        Cancel
                                     </button>
                                     <button
                                         type="submit"
@@ -417,7 +417,7 @@ export default function Classes() {
                                         className="flex-1 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-xl hover:bg-blue-700 active:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ backgroundColor: loading ? undefined : '#2563eb' }}
                                     >
-                                        {loading ? 'Menyimpan...' : (editingClass ? 'Simpan Perubahan' : 'Buat Kelas')}
+                                        {loading ? 'Saving...' : (editingClass ? 'Save Changes' : 'Create Class')}
                                     </button>
                                 </div>
                             </form>
@@ -441,7 +441,7 @@ export default function Classes() {
                                     <div className="bg-white/20 p-2 rounded-lg">
                                         <Trash2 className="h-6 w-6 text-white" />
                                     </div>
-                                    <h3 className="font-bold text-lg">Hapus Kelas?</h3>
+                                    <h3 className="font-bold text-lg">Delete Class?</h3>
                                 </div>
                                 <button onClick={() => setDeleteModalOpen(false)} className="text-white/70 hover:text-white">
                                     <X className="h-5 w-5" />
@@ -459,14 +459,14 @@ export default function Classes() {
                                         onClick={() => setDeleteModalOpen(false)}
                                         className="flex-1 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-medium text-slate-700"
                                     >
-                                        Batal
+                                        Cancel
                                     </button>
                                     <button
                                         onClick={confirmDelete}
                                         className="flex-1 px-4 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg shadow-red-200 flex items-center justify-center gap-2"
                                     >
                                         <Trash2 className="h-4 w-4" />
-                                        Ya, Hapus
+                                        Yes, Delete
                                     </button>
                                 </div>
                             </div>

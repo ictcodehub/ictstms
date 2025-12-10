@@ -97,7 +97,7 @@ export default function ExamResults() {
 
         } catch (error) {
             console.error("Error loading info:", error);
-            toast.error("Gagal memuat data nilai");
+            toast.error("Failed to load grade data");
         } finally {
             setLoading(false);
         }
@@ -139,10 +139,10 @@ export default function ExamResults() {
                 }));
             }
 
-            toast.success("Siswa diizinkan remedial");
+            toast.success("Student allowed remedial");
         } catch (error) {
             console.error("Error updating result:", error);
-            toast.error("Gagal mengupdate status");
+            toast.error("Failed to update status");
         }
     };
 
@@ -177,7 +177,7 @@ export default function ExamResults() {
                         <p className="text-slate-500">{student.email}</p>
                         <div className="flex gap-2 mt-2">
                             <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold border border-slate-200">
-                                {student.attempts.length} Percobaan
+                                {student.attempts.length} Attempt
                             </span>
                             {student.bestScore !== undefined && (
                                 <span className="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-bold border border-green-200">
@@ -200,10 +200,10 @@ export default function ExamResults() {
                             <div key={attempt.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-bold text-slate-700">Percobaan {student.attempts.length - idx}</span>
+                                        <span className="font-bold text-slate-700">Attempt {student.attempts.length - idx}</span>
                                         {attempt.allowRetake && (
                                             <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold border border-orange-200">
-                                                Remedial Aktif
+                                                Remedial Active
                                             </span>
                                         )}
                                     </div>
@@ -292,7 +292,7 @@ export default function ExamResults() {
                             <thead className="bg-slate-50 border-b border-slate-100">
                                 <tr>
                                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Percobaan</th>
+                                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Attempt</th>
                                     <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Status Terakhir</th>
                                     <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Nilai Terbaik</th>
                                     <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>

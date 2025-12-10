@@ -137,7 +137,7 @@ export default function StudentDetail({ student, onBack, onTaskClick, hideSubmis
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-700 border border-red-100">
                         <AlertCircle className="h-3 w-3" />
-                        Terlambat
+                        Late
                     </span>
                 );
             default:
@@ -196,7 +196,7 @@ export default function StudentDetail({ student, onBack, onTaskClick, hideSubmis
                             <BookOpen className="h-6 w-6 text-blue-600" />
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 font-medium">Total Tugas</p>
+                            <p className="text-xs text-slate-500 font-medium">Total Tasks</p>
                             <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
                         </div>
                     </div>
@@ -239,7 +239,7 @@ export default function StudentDetail({ student, onBack, onTaskClick, hideSubmis
             {/* Tasks List */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-6 border-b border-slate-100">
-                    <h2 className="text-lg font-bold text-slate-800">Riwayat Tugas</h2>
+                    <h2 className="text-lg font-bold text-slate-800">Task History</h2>
                 </div>
 
                 <div className="overflow-x-auto">

@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Toast from './Toast';
 
-export default function ToastContainer({ toasts, removeToast }) {
+const ToastContainer = ({ toasts, removeToast }) => {
     return (
         <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-md">
             <AnimatePresence>
@@ -17,4 +18,7 @@ export default function ToastContainer({ toasts, removeToast }) {
             </AnimatePresence>
         </div>
     );
-}
+};
+
+// Memoize to prevent unnecessary re-renders
+export default memo(ToastContainer);

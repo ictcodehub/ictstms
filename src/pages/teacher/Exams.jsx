@@ -45,7 +45,7 @@ export default function Exams() {
             setLoading(false);
         }, (error) => {
             console.error("Error loading exams:", error);
-            toast.error("Gagal memuat daftar ujian");
+            toast.error("Failed to load exam list");
             setLoading(false);
         });
 
@@ -58,10 +58,10 @@ export default function Exams() {
         try {
             await deleteDoc(doc(db, 'exams', examId));
             setExams(prev => prev.filter(e => e.id !== examId));
-            toast.success("Ujian berhasil dihapus");
+            toast.success("Exam deleted successfully");
         } catch (error) {
             console.error("Error deleting exam:", error);
-            toast.error("Gagal menghapus ujian");
+            toast.error("Failed to delete exam");
         }
     };
 
@@ -77,9 +77,9 @@ export default function Exams() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
-                        Manajemen Ujian
+                        Exam Management
                     </h1>
-                    <p className="text-slate-500 mt-1">Buat dan kelola ujian CBT untuk siswa</p>
+                    <p className="text-slate-500 mt-1">Create and manage CBT exams for students</p>
                 </div>
                 <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -111,9 +111,9 @@ export default function Exams() {
                         onChange={(e) => setFilterStatus(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer bg-white"
                     >
-                        <option value="all">Semua Status</option>
+                        <option value="all">All Status</option>
                         <option value="draft">Draft</option>
-                        <option value="published">Terbit</option>
+                        <option value="published">Published</option>
                     </select>
                 </div>
             </div>
@@ -170,7 +170,7 @@ export default function Exams() {
                                             {exam.title}
                                         </h3>
                                         <p className="text-sm text-slate-500 line-clamp-1">
-                                            {exam.description || 'Tidak ada deskripsi'}
+                                            {exam.description || 'No description'}
                                         </p>
                                     </div>
                                 </div>
@@ -201,7 +201,7 @@ export default function Exams() {
                                             ? 'bg-green-50 text-green-600 border-green-200'
                                             : 'bg-slate-100 text-slate-600 border-slate-200'
                                             }`}>
-                                            {exam.status === 'published' ? 'Terbit' : 'Draft'}
+                                            {exam.status === 'published' ? 'Published' : 'Draft'}
                                         </span>
                                     </div>
 
@@ -231,7 +231,7 @@ export default function Exams() {
                                                 handleDelete(exam.id);
                                             }}
                                             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                            title="Hapus"
+                                            title="Delete"
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </button>

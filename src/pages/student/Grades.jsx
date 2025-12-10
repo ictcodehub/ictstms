@@ -97,7 +97,7 @@ export default function Grades() {
                     taskTitle: exam.title, // Standardized key
                     submittedAt: res.completedAt || res.submittedAt, // Exam results usually have completedAt
                     grade: parseFloat(grade),
-                    feedback: 'Nilai Ujian Otomatis' // Exams might not have manual feedback yet
+                    feedback: 'Automatic Exam Grade' // Exams might not have manual feedback yet
                 });
             }
         });
