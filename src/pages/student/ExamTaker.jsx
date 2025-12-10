@@ -4,7 +4,7 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, XCircle, LayoutGrid } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, XCircle, LayoutGrid, FileText, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired } from '../../utils/examSession';
 
@@ -611,6 +611,70 @@ export default function ExamTaker() {
                                 <h2 className="text-lg font-normal text-slate-800 mb-8 leading-relaxed">
                                     {currentQ.text}
                                 </h2>
+
+                                {/* Attachments Section */}
+                                {currentQ.attachments && currentQ.attachments.length > 0 && (
+                                    <div className="mb-8 grid grid-cols-1 gap-4">
+                                        {currentQ.attachments.map((att) => (
+                                            <div key={att.id} className="overflow-hidden bg-slate-50 border border-slate-200 rounded-xl">
+                                                {att.type === 'image' && (
+                                                    <div className="relative group">
+                                                        <img
+                                                            src={att.url}
+                                                            alt={att.name}
+                                                            className="w-full max-h-[400px] object-contain bg-slate-900/5"
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                {att.type === 'video' && (
+                                                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                                                        <video controls className="w-full h-full">
+                                                            <source src={att.url} type="video/mp4" />
+                                                            Your browser does not support the video tag.
+                                                        </video>
+                                                    </div>
+                                                )}
+
+                                                {att.type === 'file' && (
+                                                    <a
+                                                        href={att.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-3 p-4 hover:bg-slate-100 transition-colors group"
+                                                    >
+                                                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                                                            <FileText className="h-5 w-5" />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{att.name}</p>
+                                                            <p className="text-xs text-slate-500">Click to view document</p>
+                                                        </div>
+                                                        <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-blue-500" />
+                                                    </a>
+                                                )}
+
+                                                {att.type === 'link' && (
+                                                    <a
+                                                        href={att.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-3 p-4 hover:bg-slate-100 transition-colors group"
+                                                    >
+                                                        <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                                                            <LinkIcon className="h-5 w-5" />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">{att.name || att.url}</p>
+                                                            <p className="text-xs text-slate-500">{att.url}</p>
+                                                        </div>
+                                                        <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-indigo-500" />
+                                                    </a>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
 
                                 <div className="flex-1 space-y-3">
                                     {/* Render Options based on Type */}

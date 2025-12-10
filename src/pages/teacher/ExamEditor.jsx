@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { collection, doc, getDoc, getDocs, addDoc, updateDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../lib/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Save,
@@ -11,7 +13,12 @@ import {
     CheckCircle2,
     X,
     Copy,
-    FileText
+    FileText,
+    Image as ImageIcon,
+    File,
+    Video,
+    Link,
+    Paperclip
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -37,6 +44,8 @@ export default function ExamEditor() {
 
     const [questions, setQuestions] = useState([]);
     const [activeQuestionId, setActiveQuestionId] = useState(null);
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const [linkModalData, setLinkModalData] = useState({ questionId: null, url: '', name: '' });
 
     // Load initial data
     useEffect(() => {
@@ -127,6 +136,7 @@ export default function ExamEditor() {
             id: crypto.randomUUID(),
             type: 'single_choice', // default
             text: '',
+            attachments: [],
             options: [
                 { id: 'opt1', text: '', isCorrect: false },
                 { id: 'opt2', text: '', isCorrect: false },
@@ -158,6 +168,133 @@ export default function ExamEditor() {
             text: question.text + ' (Copy)'
         };
         setQuestions([...questions, newQuestion]);
+    };
+
+    // Attachment Handlers
+    const handleFileUpload = async (questionId, file) => {
+        if (!file) return;
+
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error("File terlalu besar (Maksimal 10MB)");
+            return;
+        }
+
+        const toastId = toast.loading("Mengupload file...");
+        try {
+            const folder = id ? `exams/${id}` : `exams/temp/${Date.now()}`;
+            const storageRef = ref(storage, `${folder}/${questionId}/${file.name}`);
+
+            console.log("Starting upload...", file.name);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log('Upload is ' + progress + '% done');
+                },
+                (error) => {
+                    console.error("Upload error details:", error);
+                    // Trigger fallback immediately on error
+                    handleUploadFallback(file, questionId, toastId);
+                },
+                async () => {
+                    try {
+                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                        console.log('File available at', downloadURL);
+
+                        // ... (ketersediaan URL sukses) ...
+
+                        let type = 'file';
+                        if (file.type.startsWith('image/')) type = 'image';
+                        if (file.type.startsWith('video/')) type = 'video';
+
+                        const newAttachment = {
+                            id: crypto.randomUUID(),
+                            type,
+                            url: downloadURL,
+                            name: file.name
+                        };
+
+                        saveAttachment(questionId, newAttachment);
+                        toast.success("File berhasil diupload", { id: toastId });
+                    } catch (urlError) {
+                        console.error("Error getting URL:", urlError);
+                        handleUploadFallback(file, questionId, toastId);
+                    }
+                }
+            );
+        } catch (error) {
+            console.error("Error uploading file:", error);
+            handleUploadFallback(file, questionId, toastId);
+        }
+    };
+
+    // Helper for saving attachment to state
+    const saveAttachment = (questionId, newAttachment) => {
+        const question = questions.find(q => q.id === questionId);
+        const updatedAttachments = [...(question.attachments || []), newAttachment];
+        updateQuestion(questionId, { attachments: updatedAttachments });
+    };
+
+    // Fallback for when Storage is unavailable (Free Tier/CORS issues)
+    const handleUploadFallback = (file, questionId, toastId) => {
+        console.log("Attempting fallback upload...");
+
+        // 1. Try Base64 for small images (Persistent)
+        if (file.type.startsWith('image/') && file.size < 500 * 1024) { // < 500KB
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result;
+                const newAttachment = {
+                    id: crypto.randomUUID(),
+                    type: 'image',
+                    url: base64String, // Save Base64 string directly
+                    name: file.name + ' (Local)'
+                };
+                saveAttachment(questionId, newAttachment);
+                toast.success("Disimpan lokal (Base64)", { id: toastId, icon: '⚠️' });
+            };
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        // 2. Use Object URL for others (Temporary Preview)
+        const objectUrl = URL.createObjectURL(file);
+        let type = 'file';
+        if (file.type.startsWith('image/')) type = 'image';
+        if (file.type.startsWith('video/')) type = 'video';
+
+        const newAttachment = {
+            id: crypto.randomUUID(),
+            type,
+            url: objectUrl,
+            name: file.name + ' (Preview Only)'
+        };
+        saveAttachment(questionId, newAttachment);
+        toast.success("Mode Preview (Storage non-aktif)", { id: toastId, icon: '⚠️' });
+    };
+
+    const handleAddLink = (questionId, url, label) => {
+        if (!url) return;
+
+        const newAttachment = {
+            id: crypto.randomUUID(),
+            type: 'link',
+            url,
+            name: label || url
+        };
+
+        const question = questions.find(q => q.id === questionId);
+        const updatedAttachments = [...(question.attachments || []), newAttachment];
+        updateQuestion(questionId, { attachments: updatedAttachments });
+        toast.success("Link berhasil ditambahkan");
+    };
+
+    const removeAttachment = (questionId, attachmentId) => {
+        const question = questions.find(q => q.id === questionId);
+        const updatedAttachments = question.attachments.filter(a => a.id !== attachmentId);
+        updateQuestion(questionId, { attachments: updatedAttachments });
+        toast.success("Lampiran dihapus");
     };
 
     // Question Type Logic
@@ -244,7 +381,7 @@ export default function ExamEditor() {
     return (
         <div className="pb-20">
             {/* Top Bar */}
-            <div className="bg-white border-b border-slate-200 sticky top-0 z-10 py-4 flex items-center justify-between shadow-sm">
+            <div className="bg-white border-b border-slate-200 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <button onClick={() => navigate('/teacher/exams')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                         <ArrowLeft className="h-6 w-6 text-slate-500" />
@@ -448,6 +585,81 @@ export default function ExamEditor() {
                                                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px] text-lg"
                                                 placeholder="Tulis pertanyaan di sini..."
                                             />
+
+                                            {/* Attachment UI */}
+                                            <div className="mt-4">
+                                                <div className="flex flex-wrap gap-2 mb-3">
+                                                    {question.attachments && question.attachments.map(att => (
+                                                        <div key={att.id} className="relative group bg-slate-50 border border-slate-200 rounded-lg p-2 flex items-center gap-3 pr-8 min-w-[150px]">
+                                                            {att.type === 'image' && (
+                                                                <div className="w-10 h-10 rounded bg-slate-200 overflow-hidden flex-shrink-0">
+                                                                    <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                                                                </div>
+                                                            )}
+                                                            {att.type === 'video' && <Video className="w-8 h-8 text-blue-500" />}
+                                                            {att.type === 'file' && <File className="w-8 h-8 text-orange-500" />}
+                                                            {att.type === 'link' && <Link className="w-8 h-8 text-green-500" />}
+
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-xs font-medium text-slate-700 truncate" title={att.name}>{att.name}</p>
+                                                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 hover:underline truncate block">
+                                                                    Lihat
+                                                                </a>
+                                                            </div>
+
+                                                            <button
+                                                                onClick={() => removeAttachment(question.id, att.id)}
+                                                                className="absolute top-1 right-1 p-1 bg-white rounded-full shadow-sm text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                                            >
+                                                                <X className="h-3 w-3" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
+                                                        <ImageIcon className="h-4 w-4" />
+                                                        Gambar
+                                                        <input
+                                                            type="file"
+                                                            className="hidden"
+                                                            accept="image/*"
+                                                            onChange={(e) => handleFileUpload(question.id, e.target.files[0])}
+                                                        />
+                                                    </label>
+                                                    <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
+                                                        <Paperclip className="h-4 w-4" />
+                                                        File / Dokumen
+                                                        <input
+                                                            type="file"
+                                                            className="hidden"
+                                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                                                            onChange={(e) => handleFileUpload(question.id, e.target.files[0])}
+                                                        />
+                                                    </label>
+                                                    <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
+                                                        <Video className="h-4 w-4" />
+                                                        Video
+                                                        <input
+                                                            type="file"
+                                                            className="hidden"
+                                                            accept="video/*"
+                                                            onChange={(e) => handleFileUpload(question.id, e.target.files[0])}
+                                                        />
+                                                    </label>
+                                                    <button
+                                                        onClick={() => {
+                                                            setLinkModalData({ questionId: question.id, url: '', name: '' });
+                                                            setShowLinkModal(true);
+                                                        }}
+                                                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors"
+                                                    >
+                                                        <Link className="h-4 w-4" />
+                                                        Link
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         {/* Options Editor */}
@@ -612,6 +824,74 @@ export default function ExamEditor() {
                     </AnimatePresence>
                 </div>
             </div>
+
+            {/* Custom Link Modal */}
+            <AnimatePresence>
+                {showLinkModal && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                    <Link className="h-5 w-5 text-blue-600" />
+                                    Tambah Link
+                                </h3>
+                                <button onClick={() => setShowLinkModal(false)} className="text-slate-400 hover:text-red-500 transition-colors">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Judul Link (Opsional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Contoh: Video Referensi"
+                                        value={linkModalData.name}
+                                        onChange={(e) => setLinkModalData(prev => ({ ...prev, name: e.target.value }))}
+                                        className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">URL / Tautan <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="url"
+                                        placeholder="https://..."
+                                        value={linkModalData.url}
+                                        onChange={(e) => setLinkModalData(prev => ({ ...prev, url: e.target.value }))}
+                                        className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+                                <button
+                                    onClick={() => setShowLinkModal(false)}
+                                    className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (!linkModalData.url) return toast.error("URL tidak boleh kosong");
+                                        handleAddLink(linkModalData.questionId, linkModalData.url, linkModalData.name);
+                                        setShowLinkModal(false);
+                                    }}
+                                    className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition-colors"
+                                >
+                                    Simpan
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
