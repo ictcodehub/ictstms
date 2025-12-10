@@ -50,18 +50,16 @@ export default function Login() {
                 className="bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl w-full max-w-md relative z-10 border border-white/50"
             >
                 <div className="text-center mb-8">
-                    <motion.div
+                    <motion.img
+                        src="/favicon.png"
+                        alt="Logo"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
-                        className="bg-gradient-to-br from-orange-400 to-yellow-500 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200"
-                    >
-                        <svg className="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M3.89 15.672L6.255.461A.542.542 0 017.27.288l2.543 4.771zm16.794 3.692l-2.25-14a.54.54 0 00-.919-.295L3.316 19.365l7.856 4.427a1.621 1.621 0 001.588 0zM14.3 7.147l-1.82-3.482a.542.542 0 00-.96 0L3.53 17.984z" />
-                        </svg>
-                    </motion.div>
+                        className="w-20 h-20 rounded-2xl mx-auto mb-6 shadow-lg bg-white p-2"
+                    />
                     <h2 className="text-3xl font-bold text-slate-800 mb-2">ICT Codehub</h2>
-                    <p className="text-slate-500">Student Task Management Platform</p>
+                    <p className="text-slate-500">Learning Management System</p>
                 </div>
 
 
