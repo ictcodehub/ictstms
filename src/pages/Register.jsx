@@ -98,7 +98,7 @@ export default function Register() {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
-                        className="w-20 h-20 rounded-2xl mx-auto mb-6 shadow-lg bg-white p-2"
+                        className="w-24 h-24 mx-auto mb-6 rounded-xl"
                     />
                     <h2 className="text-3xl font-bold text-slate-800 mb-2">Create Account</h2>
                     <p className="text-slate-500">Start your learning journey today</p>

@@ -88,7 +88,7 @@ export default function DashboardLayout({ children }) {
                     <div className="mb-6">
                         <div className="flex items-center gap-3 mb-3">
                             {/* Firebase Icon */}
-                            <img src="/favicon.png" alt="Logo" className="w-10 h-10 rounded-lg shadow-md bg-white p-1" />
+                            <img src="/favicon.png" alt="Logo" className="w-12 h-12 rounded-lg" />
                             <div className="flex-1">
                                 <h1 className="text-lg font-bold text-slate-800 leading-tight">
                                     ICT Codehub
