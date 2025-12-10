@@ -396,7 +396,7 @@ export default function TeacherOverview() {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                         {statsCards.map((stat, index) => (
                             <motion.div
                                 key={index}
@@ -404,17 +404,18 @@ export default function TeacherOverview() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.1 }}
                                 onClick={() => navigate(stat.path)}
-                                className={`bg-gradient-to-br ${stat.color} p-6 rounded-2xl shadow-lg text-white relative overflow-hidden group cursor-pointer hover:scale-105 transition-transform`}
+                                className={`bg-gradient-to-br ${stat.color} p-5 rounded-2xl shadow-lg text-white relative overflow-hidden group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1`}
                             >
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8 blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
-                                <div className="relative z-10">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                                            <stat.icon className="h-6 w-6 text-white" />
-                                        </div>
+                                <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-500"></div>
+
+                                <div className="relative z-10 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-white/80 text-sm font-medium mb-1">{stat.label}</p>
+                                        <p className="text-3xl font-bold">{stat.value}</p>
                                     </div>
-                                    <h3 className="text-3xl font-bold mb-1">{stat.value}</h3>
-                                    <p className="text-blue-50 font-medium text-sm opacity-90">{stat.label}</p>
+                                    <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
+                                        <stat.icon className="h-8 w-8 text-white" />
+                                    </div>
                                 </div>
                             </motion.div>
                         ))}

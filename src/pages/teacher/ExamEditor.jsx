@@ -10,7 +10,8 @@ import {
     Trash2,
     CheckCircle2,
     X,
-    Copy
+    Copy,
+    FileText
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -66,6 +67,9 @@ export default function ExamEditor() {
                         randomizeAnswers: data.randomizeAnswers || false
                     });
                     setQuestions(data.questions || []);
+                    if (data.questions && data.questions.length > 0) {
+                        setActiveQuestionId(data.questions[0].id);
+                    }
                 } else {
                     toast.error("Ujian tidak ditemukan");
                     navigate('/teacher/exams');
@@ -238,9 +242,9 @@ export default function ExamEditor() {
     }
 
     return (
-        <div className="pb-20 max-w-7xl mx-auto">
+        <div className="pb-20">
             {/* Top Bar */}
-            <div className="bg-white border-b border-slate-200 sticky top-0 z-10 px-6 py-4 flex items-center justify-between shadow-sm">
+            <div className="bg-white border-b border-slate-200 sticky top-0 z-10 py-4 flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-4">
                     <button onClick={() => navigate('/teacher/exams')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                         <ArrowLeft className="h-6 w-6 text-slate-500" />
@@ -252,10 +256,10 @@ export default function ExamEditor() {
                         </span>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                     <button
                         onClick={() => setExamData(prev => ({ ...prev, status: prev.status === 'draft' ? 'published' : 'draft' }))}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all border ${examData.status === 'draft' ? 'border-green-600 text-green-600 hover:bg-green-50' : 'border-slate-300 text-slate-500 hover:bg-slate-50'}`}
+                        className="border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-medium transition-all"
                     >
                         {examData.status === 'draft' ? 'Terbitkan' : 'Jadikan Draft'}
                     </button>
@@ -270,7 +274,7 @@ export default function ExamEditor() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 py-6">
                 {/* Left: General Settings */}
                 <div className="space-y-6">
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
@@ -587,6 +591,24 @@ export default function ExamEditor() {
                                 </motion.div>
                             );
                         })()}
+                        {!activeQuestionId && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 flex flex-col items-center justify-center text-center min-h-[500px]">
+                                <div className="bg-slate-50 p-6 rounded-full mb-6">
+                                    <FileText className="h-16 w-16 text-slate-300" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-800 mb-2">Belum ada pertanyaan</h3>
+                                <p className="text-slate-500 max-w-sm mb-8">
+                                    Mulai buat ujian Anda dengan menambahkan pertanyaan baru.
+                                </p>
+                                <button
+                                    onClick={addQuestion}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold flex items-center gap-3 shadow-xl shadow-blue-200 hover:-translate-y-1 transition-all"
+                                >
+                                    <Plus className="h-6 w-6" />
+                                    Buat Pertanyaan Pertama
+                                </button>
+                            </div>
+                        )}
                     </AnimatePresence>
                 </div>
             </div>
