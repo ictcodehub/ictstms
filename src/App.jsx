@@ -1,9 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
-import './i18n/config';
 
 // Lazy load page components for code splitting
 const Login = lazy(() => import('./pages/Login'));
@@ -56,47 +54,45 @@ const RootRedirect = () => {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <Toaster position="top-right" reverseOrder={false} />
-        <Router>
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
+    <AuthProvider>
+      <Toaster position="top-right" reverseOrder={false} />
+      <Router>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
-              {/* Teacher Routes */}
-              <Route path="/teacher/*" element={
-                <ProtectedRoute role="teacher">
-                  <TeacherDashboard />
-                </ProtectedRoute>
-              } />
+            {/* Teacher Routes */}
+            <Route path="/teacher/*" element={
+              <ProtectedRoute role="teacher">
+                <TeacherDashboard />
+              </ProtectedRoute>
+            } />
 
-              {/* Student Routes */}
-              <Route path="/student/*" element={
-                <ProtectedRoute role="student">
-                  <StudentDashboard />
-                </ProtectedRoute>
-              } />
+            {/* Student Routes */}
+            <Route path="/student/*" element={
+              <ProtectedRoute role="student">
+                <StudentDashboard />
+              </ProtectedRoute>
+            } />
 
-              {/* Admin Routes */}
-              <Route path="/admin" element={
-                <ProtectedRoute role="admin">
-                  <AdminLayout />
-                </ProtectedRoute>
-              }>
-                <Route index element={<AdminDashboard />} />
-                <Route path="users" element={<UserManagement />} />
-              </Route>
+            {/* Admin Routes */}
+            <Route path="/admin" element={
+              <ProtectedRoute role="admin">
+                <AdminLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<UserManagement />} />
+            </Route>
 
-              {/* Default Redirect */}
-              <Route path="/" element={<RootRedirect />} />
-            </Routes>
-          </Suspense>
-        </Router>
-      </AuthProvider>
-    </ThemeProvider>
+            {/* Default Redirect */}
+            <Route path="/" element={<RootRedirect />} />
+          </Routes>
+        </Suspense>
+      </Router>
+    </AuthProvider>
   );
 }
 

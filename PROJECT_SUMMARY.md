@@ -58,7 +58,7 @@ ICT STMS (Student Task Management System) is a comprehensive web-based learning 
 - Bundle analyzer integrated
 
 ### ✅ Task 7: New Features
-All 6 major features implemented:
+All 4 major features implemented:
 
 #### 🎨 Dark Mode
 - Full theme support (light/dark)
@@ -66,22 +66,6 @@ All 6 major features implemented:
 - Theme persistence in localStorage
 - All components dark mode compatible
 - ThemeToggle in header
-
-#### 📅 Calendar View
-- Interactive calendar for task deadlines
-- Month, Week, Day, Agenda views
-- Color-coded by priority
-- Click events for details
-- Real-time Firestore updates
-
-#### 📊 Analytics Dashboard
-- Comprehensive metrics
-- Total tasks, submissions, students
-- Average grades calculation
-- Submission rate tracking
-- On-time submission rate
-- Grade distribution chart
-- Class performance comparison
 
 #### 🔢 Bulk Operations
 - useBulkOperations custom hook

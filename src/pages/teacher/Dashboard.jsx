@@ -8,8 +8,6 @@ import Gradebook from './Gradebook';
 import Exams from './Exams';
 import ExamEditor from './ExamEditor';
 import ExamResults from './ExamResults';
-import Calendar from './Calendar';
-import Analytics from './Analytics';
 
 export default function TeacherDashboard() {
     return (
@@ -24,8 +22,6 @@ export default function TeacherDashboard() {
                 <Route path="exams/edit/:id" element={<ExamEditor />} />
                 <Route path="exams/results/:id" element={<ExamResults />} />
                 <Route path="gradebook" element={<Gradebook />} />
-                <Route path="calendar" element={<Calendar />} />
-                <Route path="analytics" element={<Analytics />} />
             </Routes>
         </DashboardLayout>
     );

@@ -4,8 +4,9 @@ import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { ClipboardCheck, Clock, CheckCircle2, AlertCircle, ArrowRight, Search, Filter, ChevronDown, Trophy, Calendar } from 'lucide-react';
+import { ClipboardCheck, Clock, CheckCircle2, AlertCircle, ArrowRight, Search, Filter, ChevronDown, Trophy, Calendar, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Pagination from '../../components/Pagination';
 
 export default function StudentExams() {
     const { currentUser } = useAuth();
@@ -16,6 +17,19 @@ export default function StudentExams() {
     const [studentClassName, setStudentClassName] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(window.innerWidth < 768 ? 5 : 10);
+
+    // Responsive itemsPerPage
+    useEffect(() => {
+        const handleResize = () => {
+            setItemsPerPage(window.innerWidth < 768 ? 5 : 10);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     useEffect(() => {
         const loadStudentData = async () => {
@@ -107,7 +121,7 @@ export default function StudentExams() {
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-orange-700 text-xs font-bold rounded-full border border-orange-200">
                         <ArrowRight className="h-3 w-3" />
-                        Remedial Tersedia
+                        Remedial
                     </span>
                 );
             }
@@ -196,7 +210,8 @@ export default function StudentExams() {
                 </div>
             )}
 
-            <div className="flex flex-col md:flex-row gap-4">
+            {/* Search and Filter */}
+            <div className="flex flex-col gap-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
                     <input
@@ -207,7 +222,9 @@ export default function StudentExams() {
                         className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                     />
                 </div>
-                <div className="relative min-w-[200px]">
+
+                {/* Desktop Filter */}
+                <div className="hidden md:block relative min-w-[200px]">
                     <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
                     <select
                         value={filterStatus}
@@ -220,6 +237,47 @@ export default function StudentExams() {
                         <option value="retake">Retake Available</option>
                     </select>
                     <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4 pointer-events-none" />
+                </div>
+
+                {/* Mobile Filter - Custom Dropdown */}
+                <div className="md:hidden relative">
+                    <button
+                        onClick={() => setIsFilterOpen(!isFilterOpen)}
+                        className="w-full pl-9 pr-9 py-3 text-sm rounded-lg border border-slate-200 bg-white font-medium text-left relative"
+                    >
+                        <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                        <span className="text-slate-700">
+                            {filterStatus === 'all' ? 'All Status' :
+                                filterStatus === 'not_started' ? 'Not Started' :
+                                    filterStatus === 'completed' ? 'Completed' : 'Retake Available'}
+                        </span>
+                        <ChevronDown className={`absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isFilterOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden">
+                            {[
+                                { value: 'all', label: 'All Status' },
+                                { value: 'not_started', label: 'Not Started' },
+                                { value: 'completed', label: 'Completed' },
+                                { value: 'retake', label: 'Retake Available' }
+                            ].map((option) => (
+                                <button
+                                    key={option.value}
+                                    onClick={() => {
+                                        setFilterStatus(option.value);
+                                        setIsFilterOpen(false);
+                                    }}
+                                    className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${filterStatus === option.value
+                                        ? 'bg-blue-50 text-blue-700 font-semibold'
+                                        : 'text-slate-700 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -238,125 +296,252 @@ export default function StudentExams() {
                 </div>
             ) : (
                 <div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
-                    {/* TABLE HEADER */}
-                    <div className="flex items-center justify-between py-4 px-6 bg-slate-50 border-b border-slate-200">
+                    {/* TABLE HEADER - Desktop Only */}
+                    <div className="hidden md:flex items-center justify-between py-4 px-6 bg-slate-50 border-b border-slate-200">
                         <div className="flex items-center gap-3 flex-1">
                             <span className="w-6 text-center text-[13px] font-bold text-slate-500 uppercase tracking-wider">No</span>
+                            <div className="w-10"></div>
                             <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Exam Details</span>
                         </div>
                         <div className="flex items-center gap-8 pl-4">
                             <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Duration</span>
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[140px] text-center">Date</span>
                             <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[120px] text-center">Status</span>
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[70px] text-center">Score</span>
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[140px] text-center">Action</span>
+                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[60px] text-center">Score</span>
+                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Action</span>
                         </div>
                     </div>
 
-                    {/* TABLE BODY */}
-                    <div className="divide-y divide-slate-100">
-                        {filteredExams.map((exam, index) => {
-                            const status = getExamStatus(exam);
-                            const isCompleted = exam.attempt && !exam.attempt.allowRetake;
+                    {/* TABLE BODY - Desktop View */}
+                    <div className="hidden md:block divide-y divide-slate-100" style={{ minHeight: '650px' }}>
+                        {(() => {
+                            const startIndex = (currentPage - 1) * itemsPerPage;
+                            const endIndex = startIndex + itemsPerPage;
+                            const paginatedExams = filteredExams.slice(startIndex, endIndex);
 
-                            return (
-                                <motion.div
-                                    key={exam.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.03 }}
-                                    className={`flex items-center justify-between py-4 px-6 transition-colors ${isCompleted ? 'bg-emerald-50/30 hover:bg-emerald-50/50' :
-                                        exam.attempt?.allowRetake ? 'bg-orange-50/30 hover:bg-orange-50/50' :
-                                            'bg-white hover:bg-slate-50'
-                                        }`}
-                                >
-                                    {/* Left Section: Number + Details */}
-                                    <div className="flex items-center gap-3 flex-1">
-                                        <span className="w-6 text-center text-sm font-bold text-slate-400">
-                                            {index + 1}
-                                        </span>
-                                        <div className="flex-1">
-                                            <h3 className="text-base font-bold text-slate-800 mb-0.5">
-                                                {exam.title}
-                                            </h3>
-                                            <p className="text-sm text-slate-500 line-clamp-1">
-                                                {exam.description || 'No description'}
-                                            </p>
-                                        </div>
-                                    </div>
+                            return paginatedExams.map((exam, index) => {
+                                const status = getExamStatus(exam);
+                                const isCompleted = exam.attempt && !exam.attempt.allowRetake;
 
-                                    {/* Right Section: Info Columns */}
-                                    <div className="flex items-center gap-8 pl-4">
-                                        {/* Duration */}
-                                        <div className="min-w-[100px] text-center">
-                                            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600">
-                                                <Clock className="h-4 w-4" />
-                                                {exam.duration} min
+                                return (
+                                    <motion.div
+                                        key={exam.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.03 }}
+                                        className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 transition-colors gap-3 md:gap-0 rounded-xl mb-4 md:rounded-none md:mb-0 ${isCompleted ? 'bg-emerald-50/30 md:hover:bg-emerald-50/50' :
+                                            exam.attempt?.allowRetake ? 'bg-orange-50/30 md:hover:bg-orange-50/50' :
+                                                'bg-white md:hover:bg-slate-50'
+                                            }`}
+                                    >
+                                        {/* Left Section: Number + Icon + Details */}
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            {/* Number */}
+                                            <span className="w-6 text-center text-sm font-bold text-slate-400">
+                                                {startIndex + index + 1}
                                             </span>
+
+                                            {/* Icon */}
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${isCompleted ? 'bg-emerald-100 text-emerald-600' :
+                                                exam.attempt?.allowRetake ? 'bg-orange-100 text-orange-600' :
+                                                    'bg-purple-100 text-purple-600'
+                                                }`}>
+                                                <ClipboardCheck className="h-5 w-5" />
+                                            </div>
+
+                                            {/* Details */}
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-base font-bold text-slate-800 mb-0.5 line-clamp-1">
+                                                    {exam.title}
+                                                </h3>
+                                                <p className="text-sm text-slate-500 line-clamp-1">
+                                                    {exam.description || `${exam.questions?.length || 0} Questions`}
+                                                </p>
+                                            </div>
                                         </div>
 
-                                        {/* Date */}
-                                        <div className="min-w-[140px] text-center">
-                                            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600">
-                                                <Calendar className="h-4 w-4" />
-                                                {exam.attempt?.submittedAt
-                                                    ? new Date(exam.attempt.submittedAt.toDate()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
-                                                    : exam.createdAt
-                                                        ? new Date(exam.createdAt.toDate()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
-                                                        : '-'
-                                                }
-                                            </span>
-                                        </div>
-
-                                        {/* Status */}
-                                        <div className="min-w-[120px] flex justify-center">
-                                            {getStatusBadge(exam)}
-                                        </div>
-
-                                        {/* Score */}
-                                        <div className="min-w-[70px] text-center">
-                                            {exam.attempt && !exam.attempt.allowRetake ? (
-                                                <span className="inline-flex items-center gap-1 text-base font-bold text-emerald-600">
-                                                    <Trophy className="h-4 w-4" />
-                                                    {Math.round(exam.attempt.score)}
+                                        {/* Right Section: Table Columns */}
+                                        <div className="flex items-center gap-8 pl-4">
+                                            {/* Duration */}
+                                            <div className="min-w-[100px] flex justify-center">
+                                                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600">
+                                                    <Clock className="h-4 w-4" />
+                                                    {exam.duration} min
                                                 </span>
-                                            ) : exam.attempt?.allowRetake ? (
-                                                <span className="inline-flex items-center gap-1 text-sm font-medium text-slate-500">
-                                                    <Trophy className="h-3.5 w-3.5" />
-                                                    {Math.round(exam.attempt.score)}
-                                                </span>
-                                            ) : (
-                                                <span className="text-slate-400">-</span>
-                                            )}
-                                        </div>
+                                            </div>
 
-                                        {/* Action */}
-                                        <div className="min-w-[140px] flex justify-center">
-                                            {isCompleted ? (
-                                                <button
-                                                    disabled
-                                                    className="px-3 py-1.5 bg-slate-200 text-slate-500 rounded-lg text-xs font-bold cursor-not-allowed"
-                                                >
-                                                    Completed
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={() => navigate(`/student/exams/${exam.id}`)}
-                                                    className={`px-3 py-1.5 ${exam.attempt?.allowRetake
-                                                        ? 'bg-orange-600 hover:bg-orange-700'
-                                                        : 'bg-blue-600 hover:bg-blue-700'
-                                                        } text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5`}
-                                                >
-                                                    {exam.attempt?.allowRetake ? 'Retake' : 'Start'}
-                                                    <ArrowRight className="h-3.5 w-3.5" />
-                                                </button>
-                                            )}
+                                            {/* Status Badge */}
+                                            <div className="min-w-[120px] flex justify-center">
+                                                {getStatusBadge(exam)}
+                                            </div>
+
+                                            {/* Score */}
+                                            <div className="min-w-[60px] flex justify-center">
+                                                {exam.attempt && !exam.attempt.allowRetake ? (
+                                                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-sm font-bold text-emerald-700 gap-1">
+                                                        <Trophy className="h-4 w-4" />
+                                                        {Math.round(exam.attempt.score)}
+                                                    </span>
+                                                ) : exam.attempt?.allowRetake ? (
+                                                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-100 text-sm font-bold text-orange-700 gap-1">
+                                                        <Trophy className="h-3.5 w-3.5" />
+                                                        {Math.round(exam.attempt.score)}
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-sm font-bold text-slate-400">–</span>
+                                                )}
+                                            </div>
+
+                                            {/* Action Button */}
+                                            <div className="min-w-[100px] flex justify-center">
+                                                {isCompleted ? (
+                                                    <button
+                                                        disabled
+                                                        className="px-3 py-1.5 bg-slate-200 text-slate-500 rounded-lg text-xs font-bold cursor-not-allowed"
+                                                    >
+                                                        Completed
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => navigate(`/student/exams/${exam.id}`)}
+                                                        className={`px-3 py-1.5 ${exam.attempt?.allowRetake
+                                                            ? 'bg-orange-600 hover:bg-orange-700'
+                                                            : 'bg-blue-600 hover:bg-blue-700'
+                                                            } text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5`}
+                                                    >
+                                                        {exam.attempt?.allowRetake ? 'Retake' : 'Start'}
+                                                        <ArrowRight className="h-3.5 w-3.5" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                </motion.div>
-                            );
-                        })}
+                                    </motion.div>
+                                );
+                            });
+                        })()}
                     </div>
+
+                    {/* MOBILE CARDS - Mobile Only */}
+                    <div className="md:hidden p-6 space-y-0" style={{ minHeight: '650px' }}>
+                        {(() => {
+                            const startIndex = (currentPage - 1) * itemsPerPage;
+                            const endIndex = startIndex + itemsPerPage;
+                            const paginatedExams = filteredExams.slice(startIndex, endIndex);
+
+                            return paginatedExams.map((exam, index) => {
+                                const status = getExamStatus(exam);
+                                const isCompleted = exam.attempt && !exam.attempt.allowRetake;
+
+                                return (
+                                    <motion.div
+                                        key={`mobile-${exam.id}`}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.03 }}
+                                        className={`flex flex-col p-4 transition-all rounded-2xl mb-4 border-2 ${isCompleted ? 'bg-emerald-50/50 border-emerald-200' :
+                                            exam.attempt?.allowRetake ? 'bg-orange-50/50 border-orange-200' :
+                                                'bg-white border-slate-200 hover:border-blue-300 hover:shadow-md'
+                                            }`}
+                                    >
+                                        {/* Header: Icon + Title + Status */}
+                                        <div className="flex items-start gap-3 mb-3">
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${isCompleted ? 'bg-emerald-100 text-emerald-600' :
+                                                exam.attempt?.allowRetake ? 'bg-orange-100 text-orange-600' :
+                                                    'bg-purple-100 text-purple-600'
+                                                }`}>
+                                                <ClipboardCheck className="h-6 w-6" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-start justify-between gap-2 mb-2">
+                                                    <h3 className="text-base font-bold text-slate-800 line-clamp-1 flex-1">
+                                                        {exam.title}
+                                                    </h3>
+                                                    {/* Status Badge */}
+                                                    <div className="flex-shrink-0">
+                                                        {getStatusBadge(exam)}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-xs text-slate-500">
+                                                    <span className="flex items-center gap-1">
+                                                        <Clock className="h-3.5 w-3.5" /> {exam.duration} min
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <ClipboardList className="h-3.5 w-3.5" /> {exam.questions?.length || 0} Questions
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Divider */}
+                                        <div className="border-t border-slate-200 my-3"></div>
+
+                                        {/* Score - Full Width (Only if has score) */}
+                                        {exam.attempt && (
+                                            <div className="mb-3">
+                                                {exam.attempt && !exam.attempt.allowRetake ? (
+                                                    <div className="w-full py-3 px-4 bg-emerald-100 border-2 border-emerald-200 rounded-xl flex items-center justify-center gap-2">
+                                                        <Trophy className="h-5 w-5 text-emerald-600" />
+                                                        <span className="text-sm font-bold text-emerald-700">Score: {Math.round(exam.attempt.score)}</span>
+                                                    </div>
+                                                ) : exam.attempt?.allowRetake && (
+                                                    <div className="w-full py-3 px-4 bg-orange-100 border-2 border-orange-200 rounded-xl flex items-center justify-center gap-2">
+                                                        <Trophy className="h-5 w-5 text-orange-600" />
+                                                        <span className="text-sm font-bold text-orange-700">Previous Score: {Math.round(exam.attempt.score)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Action Button - Full Width & Prominent */}
+                                        {isCompleted ? (
+                                            <button
+                                                disabled
+                                                className="w-full py-3 px-4 bg-slate-200 text-slate-500 rounded-xl text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2 mt-3"
+                                            >
+                                                <CheckCircle2 className="h-5 w-5" />
+                                                Completed
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => navigate(`/student/exams/${exam.id}`)}
+                                                className={`w-full py-3.5 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg mt-3 ${exam.attempt?.allowRetake
+                                                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-orange-200'
+                                                    : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-blue-200'
+                                                    }`}
+                                            >
+                                                {exam.attempt?.allowRetake ? (
+                                                    <>
+                                                        <ArrowRight className="h-5 w-5" />
+                                                        Retake Exam
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <ArrowRight className="h-5 w-5" />
+                                                        Start Exam
+                                                    </>
+                                                )}
+                                            </button>
+                                        )}
+                                    </motion.div>
+                                );
+                            });
+                        })()}
+                    </div>
+
+                    {/* Pagination Footer */}
+                    {(() => {
+                        const totalItems = filteredExams.length;
+                        const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
+                        return (
+                            <div className="bg-white px-6 py-5 border-t border-slate-200">
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    onPageChange={setCurrentPage}
+                                />
+                            </div>
+                        );
+                    })()}
                 </div>
             )}
         </div>

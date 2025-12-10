@@ -16,26 +16,6 @@ All notable changes to the ICT STMS project.
 - ✅ All components support dark mode
 - ✅ ThemeToggle component in header
 
-#### 📅 Calendar View
-- ✅ Interactive calendar for task deadlines
-- ✅ Month, Week, Day, Agenda views
-- ✅ Color-coded by priority (High=Red, Medium=Orange, Low=Blue)
-- ✅ Click events to view details
-- ✅ Real-time updates from Firestore
-- ✅ Responsive design
-- ✅ Calendar route at /teacher/calendar
-
-#### 📊 Analytics Dashboard
-- ✅ Comprehensive analytics dashboard
-- ✅ Total tasks, submissions, students metrics
-- ✅ Average grade calculation
-- ✅ Submission rate tracking (percentage)
-- ✅ On-time submission rate
-- ✅ Grade distribution chart (Excellent/Good/Average/Below)
-- ✅ Class performance comparison table
-- ✅ Real-time data from Firestore
-- ✅ Analytics route at /teacher/analytics
-
 #### 🔢 Bulk Operations
 - ✅ useBulkOperations custom hook
 - ✅ Multi-select with checkboxes

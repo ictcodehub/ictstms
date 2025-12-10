@@ -1,10 +1,9 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
     content: [
         "./index.html",
-        "./src/**/*.{js,ts,jsx,tsx}",
+        "./src/**/*.{js,jsx,ts,tsx}",
     ],
-    darkMode: 'class', // Enable dark mode with class strategy
     theme: {
         extend: {
             colors: {
@@ -19,7 +18,20 @@ export default {
             },
         },
     },
-    plugins: [],
+    plugins: [
+        function({ addUtilities }) {
+            addUtilities({
+                '.scrollbar-hide': {
+                    /* Firefox */
+                    'scrollbar-width': 'none',
+                    /* Safari and Chrome */
+                    '&::-webkit-scrollbar': {
+                        display: 'none'
+                    }
+                }
+            })
+        }
+    ],
 }
 
 

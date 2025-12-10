@@ -1,10 +1,47 @@
 import { useState, useEffect, useRef } from 'react';
 import { LogOut, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+
+// Capitalize name properly (Title Case)
+const capitalizeName = (name) => {
+    if (!name) return '';
+    return name
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+};
 
 export default function ProfileDropdown({ currentUser, logout }) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
+    const [fullName, setFullName] = useState('');
+    
+    // Fetch full name from Firestore
+    useEffect(() => {
+        const fetchUserName = async () => {
+            if (!currentUser) return;
+
+            try {
+                const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', currentUser.uid)));
+                if (!userDoc.empty) {
+                    const userData = userDoc.docs[0].data();
+                    setFullName(userData.name || currentUser.email?.split('@')[0] || 'User');
+                } else {
+                    setFullName(currentUser.email?.split('@')[0] || 'User');
+                }
+            } catch (error) {
+                console.error('Error fetching user name:', error);
+                setFullName(currentUser.email?.split('@')[0] || 'User');
+            }
+        };
+
+        fetchUserName();
+    }, [currentUser]);
+    
+    // Get properly formatted name
+    const displayName = capitalizeName(fullName || 'User');
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -31,11 +68,13 @@ export default function ProfileDropdown({ currentUser, logout }) {
                 className="flex items-center gap-3 focus:outline-none"
             >
                 <div className="text-right hidden sm:block">
-                    <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Selamat datang</p>
-                    <p className="font-semibold text-slate-800 truncate max-w-[200px]">{currentUser?.email}</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Welcome</p>
+                    <p className="font-semibold text-slate-800 truncate max-w-[300px]">
+                        {displayName}
+                    </p>
                 </div>
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold shadow-md shadow-blue-200 flex-shrink-0 hover:shadow-lg transition-shadow cursor-pointer">
-                    {currentUser?.email?.[0].toUpperCase()}
+                    {displayName[0].toUpperCase()}
                 </div>
             </button>
 
@@ -53,11 +92,14 @@ export default function ProfileDropdown({ currentUser, logout }) {
                         <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 border-b border-slate-200">
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
-                                    {currentUser?.email?.[0].toUpperCase()}
+                                    {displayName[0].toUpperCase()}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-xs text-slate-500 font-medium">Logged in as</p>
-                                    <p className="font-semibold text-slate-800 truncate">{currentUser?.email}</p>
+                                    <p className="text-xs text-slate-500 font-medium">Account</p>
+                                    <p className="font-semibold text-slate-800 truncate">
+                                        {displayName}
+                                    </p>
+                                    <p className="text-xs text-slate-500 truncate mt-0.5">{currentUser?.email}</p>
                                 </div>
                             </div>
                         </div>
