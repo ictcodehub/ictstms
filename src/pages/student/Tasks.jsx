@@ -20,6 +20,7 @@ export default function Tasks() {
     const [editingTask, setEditingTask] = useState(null); // Track which task is being edited
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [userClass, setUserClass] = useState(null);
 
     useEffect(() => {
         let unsubscribeSubmissions = null;
@@ -38,6 +39,17 @@ export default function Tasks() {
 
                 const userData = userDoc.docs[0].data();
                 const classId = userData.classId;
+
+                if (classId) {
+                    const classDoc = await getDocs(query(collection(db, 'classes'), where('__name__', '==', classId)));
+                    if (!classDoc.empty) {
+                        setUserClass(classDoc.docs[0].data());
+                    }
+                } else {
+                    setUserClass(null);
+                    setLoading(false);
+                    return;
+                }
 
                 let currentTasks = [];
                 let currentSubmissions = {};
@@ -220,8 +232,25 @@ export default function Tasks() {
                 <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
                     My Tasks
                 </h1>
-                <p className="text-slate-500 mt-1">Manage and complete your tasks here.</p>
+                <div className="flex items-center gap-2 mt-1">
+                    <p className="text-slate-500">Manage and complete your tasks here.</p>
+                    {userClass && (
+                        <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
+                            {userClass.name}
+                        </span>
+                    )}
+                </div>
             </div>
+
+            {!loading && !userClass && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4">
+                    <AlertCircle className="h-6 w-6 text-amber-600 shrink-0 mt-1" />
+                    <div>
+                        <h3 className="text-lg font-bold text-amber-800">You are not assigned to any class</h3>
+                        <p className="text-amber-700 mt-1">Please contact your teacher to be added to a class so you can see your tasks.</p>
+                    </div>
+                </div>
+            )}
 
             <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">

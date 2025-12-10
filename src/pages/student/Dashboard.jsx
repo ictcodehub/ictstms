@@ -1,10 +1,12 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PartyPopper, X, Award, TrendingUp, Target } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import Overview from './Overview';
 import Tasks from './Tasks';
 import Grades from './Grades';
+import StudentExams from './StudentExams';
+import ExamTaker from './ExamTaker';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGradeNotifications } from '../../hooks/useGradeNotifications';
@@ -12,6 +14,7 @@ import { useGradeNotifications } from '../../hooks/useGradeNotifications';
 export default function StudentDashboard() {
     const { currentUser } = useAuth();
     const { notification, dismissNotification } = useGradeNotifications(currentUser);
+    const location = useLocation();
 
     // Color coding based on grade
     const getGradeColor = (grade) => {
@@ -37,12 +40,26 @@ export default function StudentDashboard() {
         return TrendingUp;
     };
 
+    // Check if we're on the exam taking page
+    const isExamPage = location.pathname.includes('/student/exams/') && location.pathname.split('/').length > 3;
+
+    // If on exam page, render without sidebar
+    if (isExamPage) {
+        return (
+            <Routes>
+                <Route path="exams/:examId" element={<ExamTaker />} />
+            </Routes>
+        );
+    }
+
+    // Otherwise render with sidebar
     return (
         <DashboardLayout>
             <ErrorBoundary>
                 <Routes>
                     <Route index element={<Overview />} />
                     <Route path="tasks" element={<Tasks />} />
+                    <Route path="exams" element={<StudentExams />} />
                     <Route path="grades" element={<Grades />} />
                 </Routes>
             </ErrorBoundary>

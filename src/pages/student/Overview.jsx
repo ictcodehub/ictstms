@@ -3,7 +3,7 @@ import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { BookOpen, CheckCircle, Clock, AlertCircle, Calendar, TrendingUp, ChevronRight, Hourglass, Send } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, AlertCircle, Calendar, TrendingUp, ChevronRight, Hourglass, Send, ClipboardCheck, PlayCircle, ClipboardList, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Overview() {
@@ -14,15 +14,22 @@ export default function Overview() {
         completed: 0,
         pending: 0,
         overdue: 0,
-        weeklyProgress: 0
+        weeklyProgress: 0,
+        activeExams: 0
     });
     const [tasks, setTasks] = useState([]);
+    const [exams, setExams] = useState([]);
     const [submissions, setSubmissions] = useState({});
     const [loading, setLoading] = useState(true);
+    const [userClass, setUserClass] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         let unsubscribeSubmissions = null;
         let unsubscribeTasks = null;
+        let unsubscribeExams = null;
+        let unsubscribeExamResults = null;
 
         const loadData = async () => {
             if (!currentUser) return;
@@ -38,6 +45,17 @@ export default function Overview() {
                 const userData = userDoc.docs[0].data();
                 const classId = userData.classId;
 
+                if (classId) {
+                    const classDoc = await getDocs(query(collection(db, 'classes'), where('__name__', '==', classId)));
+                    if (!classDoc.empty) {
+                        setUserClass(classDoc.docs[0].data());
+                    }
+                } else {
+                    setUserClass(null);
+                    setLoading(false);
+                    return;
+                }
+
                 let currentTasks = [];
                 let currentSubmissions = {};
 
@@ -50,6 +68,31 @@ export default function Overview() {
                 unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnap) => {
                     currentTasks = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     updateTasksAndStats(currentTasks, currentSubmissions);
+                    updateTasksAndStats(currentTasks, currentSubmissions);
+                });
+
+                // Listen to Exams & Results for stats
+                let currentExams = [];
+                let currentExamResults = [];
+
+                const examsQuery = query(
+                    collection(db, 'exams'),
+                    where('assignedClasses', 'array-contains', classId),
+                    where('status', '==', 'published')
+                );
+
+                unsubscribeExams = onSnapshot(examsQuery, (snap) => {
+                    currentExams = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    updateExamStats(currentExams, currentExamResults);
+                });
+
+                const examResultsQuery = query(
+                    collection(db, 'exam_results'),
+                    where('studentId', '==', currentUser.uid)
+                );
+                unsubscribeExamResults = onSnapshot(examResultsQuery, (snap) => {
+                    currentExamResults = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    updateExamStats(currentExams, currentExamResults);
                 });
 
                 // Setup real-time listener for submissions
@@ -72,6 +115,26 @@ export default function Overview() {
                 console.error('Error setting up listener:', error);
                 setLoading(false);
             }
+        };
+
+        const updateExamStats = (examsList, resultsList) => {
+            // Count exams that are available (not completed or expired)
+            const availableExams = examsList.filter(exam => {
+                // Find latest completed result (not in-progress sessions)
+                const completedResults = resultsList.filter(r =>
+                    r.examId === exam.id &&
+                    r.submittedAt &&
+                    !r.allowRetake
+                );
+
+                // Available if no completed result OR latest allows retake
+                return completedResults.length === 0 ||
+                    completedResults.some(r => r.allowRetake);
+            });
+
+            setExams(availableExams);
+            console.log('Active Exams Count:', availableExams.length, 'Total Exams:', examsList.length);
+            setStats(prev => ({ ...prev, activeExams: availableExams.length }));
         };
 
         const updateTasksAndStats = (tasksList, subs) => {
@@ -133,6 +196,8 @@ export default function Overview() {
             if (unsubscribeTasks) {
                 unsubscribeTasks();
             }
+            if (unsubscribeExams) unsubscribeExams();
+            if (unsubscribeExamResults) unsubscribeExamResults();
         };
     }, [currentUser]);
 
@@ -140,6 +205,7 @@ export default function Overview() {
 
     const statCards = [
         { label: 'Total Tasks', value: stats.totalTasks, icon: BookOpen, color: 'from-blue-500 to-cyan-500', link: '/student/tasks' },
+        { label: 'Active Exams', value: stats.activeExams ?? 0, icon: ClipboardCheck, color: 'from-purple-500 to-pink-500', link: '/student/exams' },
         { label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'from-emerald-500 to-teal-500', link: '/student/tasks' },
         { label: 'Pending', value: stats.pending, icon: Clock, color: 'from-amber-500 to-orange-500', link: '/student/tasks' },
         { label: 'Overdue', value: stats.overdue, icon: AlertCircle, color: 'from-red-500 to-pink-500', link: '/student/tasks' },
@@ -193,8 +259,25 @@ export default function Overview() {
                 <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
                     Student Dashboard
                 </h1>
-                <p className="text-slate-500 mt-1">Welcome, track your learning progress today.</p>
+                <div className="flex items-center gap-2 mt-1">
+                    <p className="text-slate-500">Welcome, track your learning progress today.</p>
+                    {userClass && (
+                        <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
+                            {userClass.name}
+                        </span>
+                    )}
+                </div>
             </div>
+
+            {!loading && !userClass && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4">
+                    <AlertCircle className="h-6 w-6 text-amber-600 shrink-0 mt-1" />
+                    <div>
+                        <h3 className="text-lg font-bold text-amber-800">You are not assigned to any class</h3>
+                        <p className="text-amber-700 mt-1">Please contact your teacher to be added to a class so you can see your tasks and exams.</p>
+                    </div>
+                </div>
+            )}
 
             {loading ? (
                 <div className="flex items-center justify-center h-64">
@@ -202,7 +285,7 @@ export default function Overview() {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-5 gap-4">
                         {statCards.map((card, index) => (
                             <motion.div
                                 key={card.label}
@@ -210,14 +293,14 @@ export default function Overview() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.1 }}
                                 onClick={() => navigate(card.link)}
-                                className={`bg-gradient-to-br ${card.color} p-6 rounded-2xl shadow-lg text-white relative overflow-hidden group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1`}
+                                className={`bg-gradient-to-br ${card.color} p-5 rounded-2xl shadow-lg text-white relative overflow-hidden group cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1`}
                             >
                                 <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-500"></div>
 
                                 <div className="relative z-10 flex items-center justify-between">
                                     <div>
                                         <p className="text-white/80 text-sm font-medium mb-1">{card.label}</p>
-                                        <p className="text-4xl font-bold">{card.value}</p>
+                                        <p className="text-3xl font-bold">{card.value}</p>
                                     </div>
                                     <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
                                         <card.icon className="h-8 w-8 text-white" />
@@ -232,7 +315,7 @@ export default function Overview() {
                             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                                 <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                     <BookOpen className="h-5 w-5 text-blue-500" />
-                                    Recent Tasks
+                                    Recent Activity
                                 </h3>
                                 <button
                                     onClick={() => navigate('/student/tasks')}
@@ -243,12 +326,12 @@ export default function Overview() {
                             </div>
 
                             <div className="p-6">
-                                {tasks.length === 0 ? (
+                                {tasks.length === 0 && exams.length === 0 ? (
                                     <div className="text-center py-8 text-slate-500">
                                         <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <BookOpen className="h-8 w-8 text-blue-300" />
                                         </div>
-                                        <p>No tasks assigned yet.</p>
+                                        <p>No recent activity yet.</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-0">
@@ -257,7 +340,7 @@ export default function Overview() {
                                             <div className="flex items-center gap-3 flex-1">
                                                 <span className="w-6 text-center text-[13px] font-bold text-slate-500 uppercase tracking-wider">No</span>
                                                 <div className="w-10"></div>
-                                                <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Task Details</span>
+                                                <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Activity Details</span>
                                             </div>
                                             <div className="flex items-center gap-8 pl-4">
                                                 <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Status</span>
@@ -265,231 +348,327 @@ export default function Overview() {
                                             </div>
                                         </div>
 
-                                        {/* TABLE BODY */}
+                                        {/* TABLE BODY - Combined Tasks and Exams */}
                                         <div className="divide-y divide-slate-100">
-                                            {tasks.slice(0, 5).map((task, index) => {
-                                                const submission = submissions[task.id];
-                                                const isOverdue = task.deadline ? new Date(task.deadline) < new Date() : false;
-
-                                                let statusColor = "bg-white hover:bg-slate-50";
-
-                                                if (submission && submission.grade !== null && submission.grade !== undefined) {
-                                                    statusColor = "bg-white hover:bg-slate-50";
-                                                } else if (submission) {
-                                                    statusColor = "bg-amber-50 hover:bg-amber-100/50";
-                                                } else {
-                                                    statusColor = isOverdue ? "bg-red-100/50 hover:bg-red-100" : "bg-red-50 hover:bg-red-100/50";
-                                                }
-
-                                                // Grade display
-                                                let gradeValue = "-";
-                                                let gradeColor = "text-slate-400";
-                                                const isGraded = submission && submission.grade !== null && submission.grade !== undefined;
-
-                                                if (isGraded) {
-                                                    gradeValue = submission.grade;
-                                                    gradeColor = "text-emerald-600";
-                                                } else if (submission) {
-                                                    gradeColor = "text-amber-600";
-                                                }
-
-                                                // Deadline/Status info
-                                                let statusDisplay = null;
-                                                let infoDisplay = null;
-                                                const deadlineDate = task.deadline ? new Date(task.deadline) : null;
-
-                                                if (submission && submission.submittedAt && deadlineDate) {
-                                                    const submittedDate = submission.submittedAt.toDate();
-                                                    const diffMs = deadlineDate - submittedDate;
-                                                    const diffHours = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60));
-                                                    const diffDays = Math.floor(diffHours / 24);
-
-                                                    const isEarly = diffMs > 0;
-
-                                                    // Format timing text
-                                                    let timingText = '';
-                                                    if (isEarly) {
-                                                        if (diffDays > 0) timingText = `${diffDays} day${diffDays > 1 ? 's' : ''} early`;
-                                                        else timingText = `On Time`;
-                                                    } else {
-                                                        if (diffDays > 0) timingText = `${diffDays} day${diffDays > 1 ? 's' : ''} late`;
-                                                        else timingText = `Late`;
-                                                    }
-
-                                                    if (!isGraded) {
-                                                        // SUDAH SUBMIT TAPI BELUM DINILAI
-                                                        statusDisplay = (
-                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
-                                                                <Send className="h-3.5 w-3.5 text-amber-600" />
-                                                                <span className="text-xs font-bold text-amber-700">Submitted</span>
+                                            {/* Show Exams First */}
+                                            {exams.slice(0, 3).map((exam, index) => (
+                                                <motion.div
+                                                    key={`exam-${exam.id}`}
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: index * 0.05 }}
+                                                    onClick={() => navigate(`/student/exams/${exam.id}`)}
+                                                    className="flex items-center justify-between py-4 px-6 bg-purple-50/30 hover:bg-purple-50 cursor-pointer transition-all group"
+                                                >
+                                                    <div className="flex items-center gap-3 flex-1">
+                                                        <span className="w-6 text-center text-sm font-bold text-slate-600">{index + 1}</span>
+                                                        <div className="w-10 h-10 shrink-0"></div>
+                                                        <div className="flex-1">
+                                                            <h4 className="font-bold text-slate-800 line-clamp-1 group-hover:text-purple-600 transition-colors">{exam.title}</h4>
+                                                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                                                                <span className="flex items-center gap-1">
+                                                                    <Clock className="h-3 w-3" /> {exam.duration} Minutes
+                                                                </span>
+                                                                <span className="flex items-center gap-1">
+                                                                    <ClipboardCheck className="h-3 w-3" /> {exam.questions?.length || 0} Questions
+                                                                </span>
                                                             </div>
-                                                        );
-                                                        infoDisplay = (
-                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
-                                                                <Hourglass className="h-3.5 w-3.5 text-amber-600" />
-                                                                <span className="text-xs font-bold text-amber-700">Awaiting Grade</span>
-                                                            </div>
-                                                        );
-                                                    } else {
-                                                        // SUDAH DINILAI
-                                                        statusDisplay = (
-                                                            <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isEarly ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
-                                                                {isEarly ? <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> : <AlertCircle className="h-3.5 w-3.5 text-red-600" />}
-                                                                <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>Completed</span>
-                                                            </div>
-                                                        );
-                                                        infoDisplay = (
-                                                            <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isEarly ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
-                                                                <Clock className={`h-3.5 w-3.5 ${isEarly ? 'text-emerald-600' : 'text-red-600'}`} />
-                                                                <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>{timingText}</span>
-                                                            </div>
-                                                        );
-                                                    }
-                                                } else if (submission && submission.submittedAt) {
-                                                    // SUBMIT TANPA DEADLINE
-                                                    if (!isGraded) {
-                                                        statusDisplay = (
-                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
-                                                                <Send className="h-3.5 w-3.5 text-amber-600" />
-                                                                <span className="text-xs font-bold text-amber-700">Submitted</span>
-                                                            </div>
-                                                        );
-                                                        infoDisplay = (
-                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
-                                                                <Hourglass className="h-3.5 w-3.5 text-amber-600" />
-                                                                <span className="text-xs font-bold text-amber-700">Awaiting Grade</span>
-                                                            </div>
-                                                        );
-                                                    } else {
-                                                        statusDisplay = (
-                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
-                                                                <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
-                                                                <span className="text-xs font-bold text-emerald-700">Completed</span>
-                                                            </div>
-                                                        );
-                                                        infoDisplay = (
-                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
-                                                                <Clock className="h-3.5 w-3.5 text-emerald-600" />
-                                                                <span className="text-xs font-bold text-emerald-700">On Time</span>
-                                                            </div>
-                                                        );
-                                                    }
-                                                } else if (deadlineDate) {
-                                                    // BELUM MENGERJAKAN (PENDING)
-                                                    const dateText = deadlineDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
-
-                                                    statusDisplay = (
-                                                        <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isOverdue ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'}`}>
-                                                            {isOverdue ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <Calendar className="h-3.5 w-3.5 text-blue-600" />}
-                                                            <span className={`text-xs font-bold ${isOverdue ? 'text-red-700' : 'text-blue-700'}`}>
-                                                                {isOverdue ? 'Overdue' : 'Assigned'}
-                                                            </span>
                                                         </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-8 pl-4">
+                                                        <div className="text-center min-w-[100px]">
+                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-purple-100 border border-purple-200">
+                                                                <PlayCircle className="h-3.5 w-3.5 text-purple-600" />
+                                                                <span className="text-xs font-bold text-purple-700">Available</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-center min-w-[60px]">
+                                                            <span className="text-slate-400 text-sm font-bold">-</span>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+
+                                            {/* Then Show Tasks */}
+                                            {(() => {
+                                                const examCount = exams.slice(0, 3).length;
+                                                const startIndex = (currentPage - 1) * itemsPerPage;
+                                                const endIndex = startIndex + itemsPerPage;
+                                                const allItems = [...exams.slice(0, 3), ...tasks];
+                                                const paginatedItems = allItems.slice(startIndex, endIndex);
+                                                const tasksToShow = paginatedItems.filter((item, idx) => idx >= examCount || startIndex >= examCount);
+
+                                                return tasks.slice(Math.max(0, startIndex - examCount), Math.max(0, endIndex - examCount)).map((task, index) => {
+                                                    const submission = submissions[task.id];
+                                                    const isOverdue = task.deadline ? new Date(task.deadline) < new Date() : false;
+
+                                                    let statusColor = "bg-white hover:bg-slate-50";
+
+                                                    if (submission && submission.grade !== null && submission.grade !== undefined) {
+                                                        statusColor = "bg-white hover:bg-slate-50";
+                                                    } else if (submission) {
+                                                        statusColor = "bg-amber-50 hover:bg-amber-100/50";
+                                                    } else {
+                                                        statusColor = isOverdue ? "bg-red-100/50 hover:bg-red-100" : "bg-red-50 hover:bg-red-100/50";
+                                                    }
+
+                                                    // Grade display
+                                                    let gradeValue = "-";
+                                                    let gradeColor = "text-slate-400";
+                                                    const isGraded = submission && submission.grade !== null && submission.grade !== undefined;
+
+                                                    if (isGraded) {
+                                                        gradeValue = submission.grade;
+                                                        gradeColor = "text-emerald-600";
+                                                    } else if (submission) {
+                                                        gradeColor = "text-amber-600";
+                                                    }
+
+                                                    // Deadline/Status info
+                                                    let statusDisplay = null;
+                                                    let infoDisplay = null;
+                                                    const deadlineDate = task.deadline ? new Date(task.deadline) : null;
+
+                                                    if (submission && submission.submittedAt && deadlineDate) {
+                                                        const submittedDate = submission.submittedAt.toDate();
+                                                        const diffMs = deadlineDate - submittedDate;
+                                                        const diffHours = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60));
+                                                        const diffDays = Math.floor(diffHours / 24);
+
+                                                        const isEarly = diffMs > 0;
+
+                                                        // Format timing text
+                                                        let timingText = '';
+                                                        if (isEarly) {
+                                                            if (diffDays > 0) timingText = `${diffDays} day${diffDays > 1 ? 's' : ''} early`;
+                                                            else timingText = `On Time`;
+                                                        } else {
+                                                            if (diffDays > 0) timingText = `${diffDays} day${diffDays > 1 ? 's' : ''} late`;
+                                                            else timingText = `Late`;
+                                                        }
+
+                                                        if (!isGraded) {
+                                                            // SUDAH SUBMIT TAPI BELUM DINILAI
+                                                            statusDisplay = (
+                                                                <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                                                    <Send className="h-3.5 w-3.5 text-amber-600" />
+                                                                    <span className="text-xs font-bold text-amber-700">Submitted</span>
+                                                                </div>
+                                                            );
+                                                            infoDisplay = (
+                                                                <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                                                    <Hourglass className="h-3.5 w-3.5 text-amber-600" />
+                                                                    <span className="text-xs font-bold text-amber-700">Awaiting Grade</span>
+                                                                </div>
+                                                            );
+                                                        } else {
+                                                            // SUDAH DINILAI
+                                                            statusDisplay = (
+                                                                <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isEarly ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                                                                    {isEarly ? <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> : <AlertCircle className="h-3.5 w-3.5 text-red-600" />}
+                                                                    <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>Completed</span>
+                                                                </div>
+                                                            );
+                                                            infoDisplay = (
+                                                                <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isEarly ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                                                                    <Clock className={`h-3.5 w-3.5 ${isEarly ? 'text-emerald-600' : 'text-red-600'}`} />
+                                                                    <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>{timingText}</span>
+                                                                </div>
+                                                            );
+                                                        }
+                                                    } else if (submission && submission.submittedAt) {
+                                                        // SUBMIT TANPA DEADLINE
+                                                        if (!isGraded) {
+                                                            statusDisplay = (
+                                                                <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                                                    <Send className="h-3.5 w-3.5 text-amber-600" />
+                                                                    <span className="text-xs font-bold text-amber-700">Submitted</span>
+                                                                </div>
+                                                            );
+                                                            infoDisplay = (
+                                                                <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                                                                    <Hourglass className="h-3.5 w-3.5 text-amber-600" />
+                                                                    <span className="text-xs font-bold text-amber-700">Awaiting Grade</span>
+                                                                </div>
+                                                            );
+                                                        } else {
+                                                            statusDisplay = (
+                                                                <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                                                                    <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                                                                    <span className="text-xs font-bold text-emerald-700">Completed</span>
+                                                                </div>
+                                                            );
+                                                            infoDisplay = (
+                                                                <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                                                                    <Clock className="h-3.5 w-3.5 text-emerald-600" />
+                                                                    <span className="text-xs font-bold text-emerald-700">On Time</span>
+                                                                </div>
+                                                            );
+                                                        }
+                                                    } else if (deadlineDate) {
+                                                        // BELUM MENGERJAKAN (PENDING)
+                                                        const dateText = deadlineDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+
+                                                        statusDisplay = (
+                                                            <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isOverdue ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'}`}>
+                                                                {isOverdue ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <Calendar className="h-3.5 w-3.5 text-blue-600" />}
+                                                                <span className={`text-xs font-bold ${isOverdue ? 'text-red-700' : 'text-blue-700'}`}>
+                                                                    {isOverdue ? 'Overdue' : 'Assigned'}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                        infoDisplay = (
+                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-100">
+                                                                {isOverdue ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <Calendar className="h-3.5 w-3.5 text-red-600" />}
+                                                                <span className="text-xs font-bold text-red-700">
+                                                                    {dateText}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    } else {
+                                                        statusDisplay = <span className="text-xs text-slate-400">-</span>;
+                                                        infoDisplay = <span className="text-xs text-slate-400">-</span>;
+                                                    }
+
+                                                    return (
+                                                        <motion.div
+                                                            key={task.id}
+                                                            initial={{ opacity: 0, x: -20 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            transition={{ delay: index * 0.05 }}
+                                                            onClick={() => navigate('/student/tasks')}
+                                                            className={`flex items-center justify-between py-4 px-6 transition-colors cursor-pointer group ${statusColor}`}
+                                                            title="Click to view details"
+                                                        >
+                                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                <span className="text-slate-400 font-medium w-6 text-center flex-shrink-0 text-sm">{exams.slice(0, 3).length + index + 1}</span>
+
+                                                                <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center text-blue-600 flex-shrink-0 shadow-sm">
+                                                                    <BookOpen className="h-5 w-5" />
+                                                                </div>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <h4 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 text-[13px]" title={task.title}>{task.title}</h4>
+                                                                    <p className="text-sm text-slate-500 line-clamp-1">{task.description}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-8 pl-4 flex-shrink-0">
+                                                                <div className="text-center min-w-[100px]">
+                                                                    {statusDisplay}
+                                                                </div>
+                                                                <div className="text-center min-w-[60px]">
+                                                                    {gradeValue === "-" ? (
+                                                                        <span className="text-slate-400 text-sm font-bold">{gradeValue}</span>
+                                                                    ) : isGraded ? (
+                                                                        <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-sm font-bold text-emerald-700">
+                                                                            {gradeValue}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-100 text-sm font-bold text-amber-700">
+                                                                            {gradeValue}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </motion.div>
                                                     );
-                                                    infoDisplay = (
-                                                        <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-100">
-                                                            {isOverdue ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <Calendar className="h-3.5 w-3.5 text-red-600" />}
-                                                            <span className="text-xs font-bold text-red-700">
-                                                                {dateText}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                } else {
-                                                    statusDisplay = <span className="text-xs text-slate-400">-</span>;
-                                                    infoDisplay = <span className="text-xs text-slate-400">-</span>;
-                                                }
-
-                                                return (
-                                                    <motion.div
-                                                        key={task.id}
-                                                        initial={{ opacity: 0, x: -20 }}
-                                                        animate={{ opacity: 1, x: 0 }}
-                                                        transition={{ delay: index * 0.05 }}
-                                                        onClick={() => navigate('/student/tasks')}
-                                                        className={`flex items-center justify-between py-4 px-6 transition-colors cursor-pointer group ${statusColor}`}
-                                                        title="Click to view details"
-                                                    >
-                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                            <span className="text-slate-400 font-medium w-6 text-center flex-shrink-0 text-sm">{index + 1}</span>
-
-                                                            <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center text-blue-600 flex-shrink-0 shadow-sm">
-                                                                <BookOpen className="h-5 w-5" />
-                                                            </div>
-                                                            <div className="min-w-0 flex-1">
-                                                                <h4 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 text-[13px]" title={task.title}>{task.title}</h4>
-                                                                <p className="text-sm text-slate-500 line-clamp-1">{task.description}</p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-8 pl-4 flex-shrink-0">
-                                                            <div className="text-center min-w-[100px]">
-                                                                {statusDisplay}
-                                                            </div>
-                                                            <div className="text-center min-w-[60px]">
-                                                                {gradeValue === "-" ? (
-                                                                    <span className="text-slate-400 text-sm font-bold">{gradeValue}</span>
-                                                                ) : isGraded ? (
-                                                                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-sm font-bold text-emerald-700">
-                                                                        {gradeValue}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-100 text-sm font-bold text-amber-700">
-                                                                        {gradeValue}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </motion.div>
-                                                );
-                                            })}
+                                                });
+                                            })()}
                                         </div>
                                     </div>
                                 )}
                             </div>
+
+                            {/* Pagination Footer */}
+                            {(() => {
+                                const totalItems = exams.length + tasks.length;
+                                const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+                                if (totalPages <= 1) return null;
+
+                                return (
+                                    <div className="bg-slate-50 px-6 py-4 border-t border-slate-100">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <button
+                                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                                disabled={currentPage === 1}
+                                                className="p-2 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                <ChevronLeft className="h-4 w-4 text-slate-600" />
+                                            </button>
+
+                                            {[...Array(totalPages)].map((_, i) => (
+                                                <button
+                                                    key={i + 1}
+                                                    onClick={() => setCurrentPage(i + 1)}
+                                                    className={`w-8 h-8 rounded-lg font-bold text-sm transition-colors ${currentPage === i + 1
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'hover:bg-white text-slate-600'
+                                                        }`}
+                                                >
+                                                    {i + 1}
+                                                </button>
+                                            ))}
+
+                                            <button
+                                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                                disabled={currentPage === totalPages}
+                                                className="p-2 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                <ChevronRight className="h-4 w-4 text-slate-600" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
 
-                        <div className="bg-gradient-to-br from-blue-900 to-slate-900 rounded-3xl shadow-lg text-white p-6 relative overflow-hidden h-fit">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
-                            <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
+                        {/* Sidebar Column */}
+                        <div className="flex flex-col gap-6">
+                            {/* Learning Progress Widget */}
+                            <div className="bg-gradient-to-br from-blue-900 to-slate-900 rounded-3xl shadow-lg text-white p-6 relative overflow-hidden h-fit">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                                <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
 
-                            <div className="relative z-10 flex flex-col space-y-8">
-                                <div>
-                                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                                        <TrendingUp className="h-5 w-5 text-cyan-400" />
-                                        Learning Progress
-                                    </h3>
-                                    <p className="text-blue-100 text-sm">
-                                        {stats.weeklyProgress === 100
-                                            ? "Excellent! All tasks completed. 🎉"
-                                            : stats.weeklyProgress >= 75
-                                                ? "Almost there! You're close to finishing all tasks. 🚀"
-                                                : stats.weeklyProgress >= 50
-                                                    ? "Good job! You're halfway there. Keep it up! 💪"
-                                                    : "Let's start working on your tasks one by one! ✨"}
-                                    </p>
-                                </div>
+                                <div className="relative z-10 flex flex-col space-y-8">
+                                    <div>
+                                        <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                                            <TrendingUp className="h-5 w-5 text-cyan-400" />
+                                            Learning Progress
+                                        </h3>
+                                        <p className="text-blue-100 text-sm">
+                                            {stats.weeklyProgress === 100
+                                                ? "Excellent! All tasks completed. 🎉"
+                                                : stats.weeklyProgress >= 75
+                                                    ? "Almost there! You're close to finishing all tasks. 🚀"
+                                                    : stats.weeklyProgress >= 50
+                                                        ? "Good job! You're halfway there. Keep it up! 💪"
+                                                        : "Let's start working on your tasks one by one! ✨"}
+                                        </p>
+                                    </div>
 
-                                <div className="flex flex-col items-center justify-center flex-shrink-0">
-                                    <CircularProgress value={stats.weeklyProgress} />
-                                    <div className="mt-4 text-center">
-                                        <p className="text-2xl font-bold text-white">{stats.completed} / {stats.totalTasks}</p>
-                                        <p className="text-sm font-medium text-blue-200">Tasks Completed</p>
+                                    <div className="flex flex-col items-center justify-center flex-shrink-0">
+                                        <CircularProgress value={stats.weeklyProgress} />
+                                        <div className="mt-4 text-center">
+                                            <p className="text-2xl font-bold text-white">{stats.completed} / {stats.totalTasks}</p>
+                                            <p className="text-sm font-medium text-blue-200">Tasks Completed</p>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <button
+                                            onClick={() => navigate('/student/tasks')}
+                                            className="w-full py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/10 transition-all font-medium text-sm flex items-center justify-center gap-2"
+                                        >
+                                            Continue Learning <ChevronRight className="h-4 w-4" />
+                                        </button>
                                     </div>
                                 </div>
-
-                                <div>
-                                    <button
-                                        onClick={() => navigate('/student/tasks')}
-                                        className="w-full py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/10 transition-all font-medium text-sm flex items-center justify-center gap-2"
-                                    >
-                                        Continue Learning <ChevronRight className="h-4 w-4" />
-                                    </button>
-                                </div>
                             </div>
+
                         </div>
                     </div>
                 </>
-            )
-            }
-        </div >
+            )}
+        </div>
     );
 }

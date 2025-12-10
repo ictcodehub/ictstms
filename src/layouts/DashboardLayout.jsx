@@ -9,7 +9,8 @@ import {
     GraduationCap,
     Menu,
     X,
-    Flame
+    Flame,
+    ClipboardCheck
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -38,12 +39,14 @@ export default function DashboardLayout({ children }) {
         { path: '/teacher/classes', icon: Users, label: 'Classes' },
         { path: '/teacher/students', icon: GraduationCap, label: 'Students' },
         { path: '/teacher/tasks', icon: BookOpen, label: 'Tasks' },
+        { path: '/teacher/exams', icon: ClipboardCheck, label: 'Exams' },
         { path: '/teacher/gradebook', icon: ClipboardList, label: 'Gradebook' },
     ];
 
     const studentMenuItems = [
         { path: '/student', icon: LayoutDashboard, label: 'Overview' },
         { path: '/student/tasks', icon: BookOpen, label: 'My Tasks' },
+        { path: '/student/exams', icon: ClipboardCheck, label: 'Exams' },
         { path: '/student/grades', icon: ClipboardList, label: 'My Grades' },
     ];
 

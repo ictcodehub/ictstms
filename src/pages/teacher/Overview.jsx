@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { Users, BookOpen, ClipboardList, AlertCircle, Calendar, CheckCircle, Clock, UserPlus, Plus } from 'lucide-react';
+import { Users, BookOpen, ClipboardList, AlertCircle, Calendar, CheckCircle, Clock, UserPlus, Plus, ClipboardCheck } from 'lucide-react';
 
 export default function TeacherOverview() {
     const { currentUser } = useAuth();
@@ -13,7 +13,8 @@ export default function TeacherOverview() {
         totalStudents: 0,
         totalClasses: 0,
         activeTasks: 0,
-        needsGrading: 0
+        needsGrading: 0,
+        totalExams: 0
     });
     const [recentActivities, setRecentActivities] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -70,6 +71,13 @@ export default function TeacherOverview() {
                 const grade = doc.data().grade;
                 return grade === null || grade === undefined;
             });
+
+            // 5. Load Exams
+            const examsQuery = query(
+                collection(db, 'exams'),
+                where('createdBy', '==', currentUser.uid)
+            );
+            const examsSnap = await getDocs(examsQuery);
 
             // Helper to parse date from Firestore Timestamp or String
             const parseDate = (dateField) => {
@@ -186,6 +194,23 @@ export default function TeacherOverview() {
                 }
             });
 
+            // 5. New Exam Activities (within 7 days)
+            examsSnap.docs.forEach(doc => {
+                const exam = doc.data();
+                const createdAt = parseDate(exam.createdAt);
+
+                if (createdAt && createdAt.getTime() > sevenDaysAgo) {
+                    allActivities.push({
+                        id: `newexam-${doc.id}`,
+                        type: 'new_exam',
+                        timestamp: createdAt,
+                        examTitle: exam.title,
+                        examId: doc.id,
+                        initial: '📝'
+                    });
+                }
+            });
+
             // Sort all activities by timestamp (most recent first) and limit to 10
             const sortedActivities = allActivities
                 .filter(activity => activity.timestamp) // Filter out activities without timestamp
@@ -196,7 +221,8 @@ export default function TeacherOverview() {
                 totalStudents: studentsSnap.size,
                 totalClasses: classesSnap.size,
                 activeTasks: activeTasks.length,
-                needsGrading: needsGrading.length
+                needsGrading: needsGrading.length,
+                totalExams: examsSnap.size
             });
             setRecentActivities(sortedActivities);
         } catch (error) {
@@ -209,6 +235,7 @@ export default function TeacherOverview() {
     const statsCards = [
         { label: 'Total Siswa', value: stats.totalStudents, icon: Users, color: 'from-blue-500 to-cyan-500', path: '/teacher/students' },
         { label: 'Total Kelas', value: stats.totalClasses, icon: BookOpen, color: 'from-sky-500 to-indigo-500', path: '/teacher/classes' },
+        { label: 'Total Ujian', value: stats.totalExams, icon: ClipboardCheck, color: 'from-pink-500 to-rose-500', path: '/teacher/exams' },
         { label: 'Tugas Aktif', value: stats.activeTasks, icon: ClipboardList, color: 'from-cyan-500 to-teal-500', path: '/teacher/tasks' },
         { label: 'Perlu Dinilai', value: stats.needsGrading, icon: AlertCircle, color: 'from-indigo-500 to-purple-500', path: '/teacher/gradebook' },
     ];
@@ -242,6 +269,9 @@ export default function TeacherOverview() {
                     }
                 });
                 break;
+            case 'new_exam':
+                navigate('/teacher/exams');
+                break;
             default:
                 break;
         }
@@ -256,6 +286,8 @@ export default function TeacherOverview() {
                 return 'bg-gradient-to-br from-orange-500 to-amber-500 text-white';
             case 'new_task':
                 return 'bg-gradient-to-br from-cyan-500 to-teal-500 text-white';
+            case 'new_exam':
+                return 'bg-gradient-to-br from-pink-500 to-rose-500 text-white';
             default:
                 return 'bg-gradient-to-br from-slate-500 to-gray-500 text-white';
         }
@@ -285,6 +317,12 @@ export default function TeacherOverview() {
                 return (
                     <>
                         Tugas baru dibuat
+                    </>
+                );
+            case 'new_exam':
+                return (
+                    <>
+                        Ujian baru <span className="text-pink-600 font-bold">{activity.examTitle}</span> dibuat
                     </>
                 );
             default:
@@ -320,6 +358,12 @@ export default function TeacherOverview() {
                 return (
                     <span className="text-[10px] bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded font-semibold">
                         Baru
+                    </span>
+                );
+            case 'new_exam':
+                return (
+                    <span className="text-[10px] bg-pink-100 text-pink-700 px-1.5 py-0.5 rounded font-semibold">
+                        Ujian
                     </span>
                 );
             default:
