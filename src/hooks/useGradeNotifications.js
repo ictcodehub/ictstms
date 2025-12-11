@@ -5,6 +5,8 @@ import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestor
 export function useGradeNotifications(currentUser) {
     const [notification, setNotification] = useState(null);
     const [notificationQueue, setNotificationQueue] = useState([]);
+    // Track when this session started to ignore old notifications
+    const [sessionStart] = useState(Date.now());
 
     useEffect(() => {
         if (!currentUser) return;
@@ -35,53 +37,50 @@ export function useGradeNotifications(currentUser) {
                             const submission = change.doc.data();
                             const taskId = submission.taskId;
 
-                            // Check if this grade is new or updated
-                            const notificationKey = `grade_notif_${currentUser.uid}_${taskId}`;
-                            const lastSeenGradedAt = localStorage.getItem(notificationKey);
-
-                            // Get current gradedAt timestamp safely
-                            // Get current gradedAt timestamp safely - use 0 as fallback to prevent infinite loop
-                            const currentGradedAt = submission.gradedAt?.toMillis ? submission.gradedAt.toMillis() :
+                            // Fix: Only show notification if the grade was given AFTER the user logged in (Real-time only)
+                            // This prevents "Catch-up" notifications on login for old grades
+                            const gradeTime = submission.gradedAt?.toMillis ? submission.gradedAt.toMillis() :
                                 (submission.gradedAt?.seconds ? submission.gradedAt.seconds * 1000 : 0);
 
-                            // Only show if grade exists AND (never shown OR gradedAt is newer than last seen)
-                            if (submission.grade !== null && submission.grade !== undefined) {
-                                if (!lastSeenGradedAt || parseInt(lastSeenGradedAt) < currentGradedAt) {
-                                    let taskTitle = tasksMap[taskId]?.title;
+                            // Check if grade is actually new (received after this session started)
+                            // We use a small buffer (5 seconds) to avoid race conditions on page load
+                            const isNewGrade = gradeTime > (sessionStart - 5000);
 
-                                    // If task title not found in initial map (new task), fetch it
-                                    if (!taskTitle) {
-                                        try {
-                                            const taskQuery = query(collection(db, 'tasks'), where('__name__', '==', taskId));
-                                            const taskDoc = await getDocs(taskQuery);
-                                            if (!taskDoc.empty) {
-                                                const taskData = taskDoc.docs[0].data();
-                                                taskTitle = taskData.title;
-                                                // Update map for future use
-                                                tasksMap[taskId] = taskData;
-                                            }
-                                        } catch (err) {
-                                            console.error('Error fetching task details:', err);
+                            if (submission.grade !== null && submission.grade !== undefined && isNewGrade) {
+                                let taskTitle = tasksMap[taskId]?.title;
+
+                                // If task title not found in initial map (new task), fetch it
+                                if (!taskTitle) {
+                                    try {
+                                        const taskQuery = query(collection(db, 'tasks'), where('__name__', '==', taskId));
+                                        const taskDoc = await getDocs(taskQuery);
+                                        if (!taskDoc.empty) {
+                                            const taskData = taskDoc.docs[0].data();
+                                            taskTitle = taskData.title;
+                                            tasksMap[taskId] = taskData;
                                         }
+                                    } catch (err) {
+                                        console.error('Error fetching task details:', err);
                                     }
+                                }
 
-                                    console.log('Notification Check:', {
-                                        taskTitle,
-                                        lastSeenGradedAt,
-                                        currentGradedAt,
-                                        shouldShow: !lastSeenGradedAt || parseInt(lastSeenGradedAt) < currentGradedAt
+                                console.log('Notification Check:', {
+                                    taskTitle,
+                                    gradeTime,
+                                    sessionStart,
+                                    isNewGrade,
+                                    grade: submission.grade
+                                });
+
+                                if (taskTitle) {
+                                    newNotifications.push({
+                                        taskId,
+                                        taskTitle: taskTitle,
+                                        grade: submission.grade,
+                                        feedback: submission.feedback || submission.teacherComment || '',
+                                        gradedAt: submission.gradedAt,
+                                        gradedAtMillis: gradeTime
                                     });
-
-                                    if (taskTitle) {
-                                        newNotifications.push({
-                                            taskId,
-                                            taskTitle: taskTitle,
-                                            grade: submission.grade,
-                                            feedback: submission.feedback || submission.teacherComment || '',
-                                            gradedAt: submission.gradedAt,
-                                            gradedAtMillis: currentGradedAt
-                                        });
-                                    }
                                 }
                             }
                         }
@@ -123,10 +122,6 @@ export function useGradeNotifications(currentUser) {
 
     const dismissNotification = () => {
         if (notification) {
-            // Mark as shown in localStorage with timestamp
-            const notificationKey = `grade_notif_${currentUser.uid}_${notification.taskId}`;
-            localStorage.setItem(notificationKey, notification.gradedAtMillis.toString());
-
             // Remove from queue and clear current
             setNotificationQueue(prev => prev.slice(1));
             setNotification(null);
