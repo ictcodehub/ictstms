@@ -140,7 +140,10 @@ export default function Tasks() {
 
 
     const handleSubmit = async (taskId) => {
-        if (!submissionText.trim()) {
+        // Check both desktop (submissionText) and mobile (comment) inputs
+        const content = submissionText.trim() || comment.trim();
+
+        if (!content) {
             showWarning('Please fill in your answer');
             return;
         }
@@ -154,7 +157,7 @@ export default function Tasks() {
                 taskId,
                 studentId: currentUser.uid,
                 studentName: userData.name,
-                content: submissionText.trim(),
+                content: content,
                 submittedAt: serverTimestamp(),
                 grade: null,
                 teacherComment: ''
@@ -162,6 +165,7 @@ export default function Tasks() {
 
             showSuccess('Task submitted successfully!');
             setSubmissionText('');
+            setComment(''); // Clear mobile input too
             setSubmitting(null);
             setExpandedTask(null);
         } catch (error) {
