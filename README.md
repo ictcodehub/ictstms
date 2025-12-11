@@ -4859,6 +4859,9 @@ All notable changes to the ICT STMS project.
 - 🔒 **Critical Security Update**: Upgraded `react` and `react-dom` to version **19.2.1** to address CVE-2025-55182 (RCE vulnerability).
 - 🔒 Updated `@types/react` and `@types/react-dom` to match the new version.
 
+#### Fixed
+- 🐛 Fixed persistent grade notification bug where the modal appeared on every login.
+
 ### [2.0.0] - 2024-12-10
 
 #### Added
