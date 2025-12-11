@@ -371,13 +371,14 @@ export default function Overview() {
                                             <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Activity Details</span>
                                         </div>
                                         <div className="flex items-center gap-8 pl-4">
+                                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Assigned</span>
                                             <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Status</span>
                                             <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[60px] text-center">Grade</span>
                                         </div>
                                     </div>
 
                                     {/* TABLE BODY - Unified List */}
-                                    <div className="space-y-0">
+                                    <div className="space-y-3">
                                         {(() => {
                                             // 1. COMBINE & SORT
                                             const allActivities = [
@@ -433,43 +434,20 @@ export default function Overview() {
                                                 // So: Pending items first (sorted by deadline/urgency). Then Completed items (sorted by recency).
 
                                                 const getSortDate = (item) => {
-                                                    if (item.type === 'task') return item.deadline ? new Date(item.deadline) : new Date(2100, 0, 1);
-                                                    return item.createdAt ? item.createdAt.toDate() : new Date(); // Exams usually have scheduled time
+                                                    // Use createdAt for both tasks and exams to show newest first
+                                                    if (item.type === 'task') {
+                                                        return item.createdAt ? item.createdAt.toDate() : new Date(0);
+                                                    }
+                                                    return item.createdAt ? item.createdAt.toDate() : new Date();
                                                 };
 
                                                 const dateA = getSortDate(a);
                                                 const dateB = getSortDate(b);
 
-                                                return dateA - dateB; // Ascending Order (Urgent first)
+                                                return dateB - dateA; // Descending Order (Newest first)
                                             });
 
-                                            // Re-sort: Tasks that are already submitted should be pushed to bottom?
-                                            // The existing 'tasks' array was already sorted by `updateTasksAndStats`.
-                                            // Let's trust that logic for tasks and just merge exams carefully.
-                                            // Since the user wants to see exams TOO, let's just prepend active exams or mix them.
-                                            // Let's keep it simple: Map everything, then sort by "Status Priority" then Date.
-
-                                            // Improved Sort:
-                                            allActivities.sort((a, b) => {
-                                                const getStatusPriority = (item) => {
-                                                    if (item.type === 'exam') return 0; // Exams always on top (High visibility)
-                                                    const sub = submissions[item.id];
-                                                    if (!sub) return 1; // Pending Task
-                                                    if (sub && (sub.grade === null || sub.grade === undefined)) return 2; // Submitted
-                                                    return 3; // Graded
-                                                };
-
-                                                const priorityA = getStatusPriority(a);
-                                                const priorityB = getStatusPriority(b);
-
-                                                if (priorityA !== priorityB) return priorityA - priorityB;
-
-                                                // Same priority? Sort by Date
-                                                // For Exams/Tasks: deadline vs deadline
-                                                // Tasks have 'deadline', Exams usually have 'createdAt' or we can add 'deadline' to exams logic if available.
-                                                // Let's fallback to title if dates equal/missing.
-                                                return 0;
-                                            });
+                                            // Items are now sorted by createdAt (newest first) only
 
                                             // 2. PAGINATE
                                             const totalPages = Math.ceil(allActivities.length / itemsPerPage);
@@ -502,7 +480,7 @@ export default function Overview() {
                                                                     animate={{ opacity: 1, x: 0 }}
                                                                     transition={{ delay: index * 0.05 }}
                                                                     onClick={() => navigate('/student/exams')}
-                                                                    className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 cursor-pointer transition-all group gap-3 rounded-xl mb-4 md:mb-0 ${cardBg}`}
+                                                                    className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 cursor-pointer transition-all group gap-3 rounded-xl ${cardBg}`}
                                                                 >
                                                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                                                         <span className="hidden md:block w-6 text-center text-sm font-bold text-slate-600">{displayIndex}</span>
@@ -522,6 +500,14 @@ export default function Overview() {
                                                                         </div>
                                                                     </div>
                                                                     <div className="flex items-center gap-3 md:gap-8 md:pl-4">
+                                                                        <div className="hidden md:block text-center min-w-[100px]">
+                                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-cyan-50 border border-cyan-100">
+                                                                                <Calendar className="h-3.5 w-3.5 text-cyan-600" />
+                                                                                <span className="text-xs font-bold text-cyan-700">
+                                                                                    {item.createdAt ? item.createdAt.toDate().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
                                                                         <div className="flex-1 md:flex-none md:text-center md:min-w-[100px]">
                                                                             {isRemedial ? (
                                                                                 <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-orange-100 border border-orange-200">
@@ -614,7 +600,7 @@ export default function Overview() {
                                                                     animate={{ opacity: 1, x: 0 }}
                                                                     transition={{ delay: index * 0.05 }}
                                                                     onClick={() => navigate('/student/tasks')}
-                                                                    className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 transition-colors cursor-pointer group ${statusColor} gap-3 rounded-xl mb-4 md:mb-0`}
+                                                                    className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 transition-colors cursor-pointer group ${statusColor} gap-3 rounded-xl`}
                                                                 >
                                                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                                                         <span className="hidden md:block text-slate-400 font-medium w-6 text-center flex-shrink-0 text-sm">{displayIndex}</span>
@@ -627,6 +613,14 @@ export default function Overview() {
                                                                         </div>
                                                                     </div>
                                                                     <div className="flex items-center gap-3 md:gap-8 md:pl-4 flex-shrink-0">
+                                                                        <div className="hidden md:block text-center min-w-[100px]">
+                                                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-cyan-50 border border-cyan-100">
+                                                                                <Calendar className="h-3.5 w-3.5 text-cyan-600" />
+                                                                                <span className="text-xs font-bold text-cyan-700">
+                                                                                    {task.createdAt ? task.createdAt.toDate().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
                                                                         <div className="flex-1 md:flex-none md:text-center md:min-w-[100px]">
                                                                             {statusDisplay}
                                                                         </div>
