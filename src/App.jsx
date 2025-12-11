@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
@@ -53,6 +53,10 @@ const RootRedirect = () => {
 };
 
 function App() {
+  useEffect(() => {
+    console.log('🚀 STMS Version 2.0.2 Loaded');
+  }, []);
+
   return (
     <AuthProvider>
       <Toaster position="top-right" reverseOrder={false} />
