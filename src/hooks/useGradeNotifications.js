@@ -40,8 +40,9 @@ export function useGradeNotifications(currentUser) {
                             const lastSeenGradedAt = localStorage.getItem(notificationKey);
 
                             // Get current gradedAt timestamp safely
+                            // Get current gradedAt timestamp safely - use 0 as fallback to prevent infinite loop
                             const currentGradedAt = submission.gradedAt?.toMillis ? submission.gradedAt.toMillis() :
-                                (submission.gradedAt?.seconds ? submission.gradedAt.seconds * 1000 : Date.now());
+                                (submission.gradedAt?.seconds ? submission.gradedAt.seconds * 1000 : 0);
 
                             // Only show if grade exists AND (never shown OR gradedAt is newer than last seen)
                             if (submission.grade !== null && submission.grade !== undefined) {
