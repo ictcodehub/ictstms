@@ -65,6 +65,13 @@ export function useGradeNotifications(currentUser) {
                                         }
                                     }
 
+                                    console.log('Notification Check:', {
+                                        taskTitle,
+                                        lastSeenGradedAt,
+                                        currentGradedAt,
+                                        shouldShow: !lastSeenGradedAt || parseInt(lastSeenGradedAt) < currentGradedAt
+                                    });
+
                                     if (taskTitle) {
                                         newNotifications.push({
                                             taskId,

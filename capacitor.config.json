@@ -1,0 +1,9 @@
+{
+  "appId": "io.web.ictcodehub",
+  "appName": "ICT Codehub",
+  "webDir": "dist",
+  "server": {
+    "url": "https://ictcodehub.web.id",
+    "cleartext": true
+  }
+}
