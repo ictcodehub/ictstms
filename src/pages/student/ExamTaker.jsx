@@ -26,6 +26,7 @@ export default function ExamTaker() {
     const [existingSession, setExistingSession] = useState(null);
     const autoSaveIntervalRef = useRef(null);
     const [showResumeModal, setShowResumeModal] = useState(false);
+    const [showQuestionNav, setShowQuestionNav] = useState(false);
 
     // Fisher-Yates shuffle utility
     const shuffleArray = useCallback((array) => {
@@ -579,17 +580,17 @@ export default function ExamTaker() {
     return (
         <div className="fixed inset-0 z-[9999] bg-slate-50 flex flex-col overflow-auto focus:outline-none select-none">
             {/* Top Bar */}
-            <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
-                <div>
-                    <h1 className="font-bold text-slate-800 text-lg">{exam.title}</h1>
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="bg-white border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+                <div className="flex-1 min-w-0">
+                    <h1 className="font-bold text-slate-800 text-base md:text-lg truncate">{exam.title}</h1>
+                    <div className="flex items-center gap-2 text-xs md:text-sm text-slate-500">
                         <span>Question {currentQuestionIndex + 1} of {randomizedQuestions.length}</span>
                         <span className="text-slate-300">•</span>
                         <span className="uppercase text-xs font-bold tracking-wider">{currentQ.type.replace('_', ' ')}</span>
                     </div>
                 </div>
 
-                <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono font-bold text-lg ${timeLeft < 300 ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-blue-50 text-blue-600'}`}>
+                <div className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl font-mono font-bold text-base md:text-lg ${timeLeft < 300 ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-blue-50 text-blue-600'}`}>
                     <Clock className="h-5 w-5" />
                     {formatTime(timeLeft)}
                 </div>
@@ -598,7 +599,7 @@ export default function ExamTaker() {
             {/* Main Layout Container */}
             <div className="flex-1 flex flex-col h-full overflow-hidden relative">
                 {/* Main Content Area */}
-                <div className="flex-1 flex items-center justify-center overflow-y-auto p-4 md:p-6 bg-slate-100/50 scroll-smooth">
+                <div className="flex-1 flex items-center justify-center overflow-y-auto p-3 md:p-6 bg-slate-100/50 scroll-smooth">
                     <div className="w-full max-w-4xl mx-auto">
                         <AnimatePresence mode="wait">
                             <motion.div
@@ -606,9 +607,9 @@ export default function ExamTaker() {
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
-                                className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 min-h-[400px] flex flex-col"
+                                className="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 p-5 md:p-8 min-h-[400px] flex flex-col"
                             >
-                                <h2 className="text-lg font-normal text-slate-800 mb-8 leading-relaxed">
+                                <h2 className="text-base md:text-lg font-normal text-slate-800 mb-6 md:mb-8 leading-relaxed">
                                     {currentQ.text}
                                 </h2>
 
@@ -754,22 +755,22 @@ export default function ExamTaker() {
                         </AnimatePresence>
 
                         {/* Navigation Bar */}
-                        <div className="mt-6 flex items-center justify-between">
+                        <div className="mt-4 md:mt-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 md:gap-0">
                             <button
                                 onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                                 disabled={currentQuestionIndex === 0}
-                                className="px-6 py-3 rounded-xl bg-white text-slate-700 font-bold shadow-sm border border-slate-200 disabled:opacity-50 hover:bg-slate-50 transition-all flex items-center gap-2"
+                                className="order-1 md:order-none px-6 py-3.5 md:py-3 rounded-xl bg-white text-slate-700 font-bold shadow-sm border border-slate-200 disabled:opacity-50 hover:bg-slate-50 transition-all flex items-center justify-center gap-2 min-h-[48px]"
                             >
                                 <ChevronLeft className="h-5 w-5" />
                                 Previous
                             </button>
 
-                            <div className="flex gap-2">
+                            <div className="order-2 md:order-none flex gap-2">
                                 {isLastInfo ? (
                                     <button
                                         onClick={handleRequestSubmit}
                                         disabled={isSubmitting}
-                                        className="px-8 py-3 rounded-xl bg-green-600 text-white font-bold shadow-lg shadow-green-200 hover:bg-green-700 transition-all flex items-center gap-2"
+                                        className="flex-1 md:flex-none px-8 py-3.5 md:py-3 rounded-xl bg-green-600 text-white font-bold shadow-lg shadow-green-200 hover:bg-green-700 transition-all flex items-center justify-center gap-2 min-h-[48px]"
                                     >
                                         <Save className="h-5 w-5" />
                                         {isSubmitting ? 'Submitting...' : 'Submit Answers'}
@@ -777,7 +778,7 @@ export default function ExamTaker() {
                                 ) : (
                                     <button
                                         onClick={() => setCurrentQuestionIndex(prev => Math.min(exam.questions.length - 1, prev + 1))}
-                                        className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-2"
+                                        className="flex-1 md:flex-none px-6 py-3.5 md:py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2 min-h-[48px]"
                                     >
                                         Next
                                         <ChevronRight className="h-5 w-5" />
@@ -788,9 +789,11 @@ export default function ExamTaker() {
                     </div>
                 </div>
 
-                {/* Floating Slide-out Sidebar - Question Navigator */}
-                <div className="fixed z-[90] top-0 bottom-0 right-0 w-[280px] translate-x-[280px] hover:translate-x-0 transition-transform duration-300 ease-out shadow-2xl group/sidebar">
 
+                {/* Question Navigator - Desktop: Sidebar, Mobile: Bottom Sheet */}
+
+                {/* Desktop Sidebar (hidden on mobile) */}
+                <div className="hidden md:block fixed z-[90] top-0 bottom-0 right-0 w-[280px] translate-x-[280px] hover:translate-x-0 transition-transform duration-300 ease-out shadow-2xl group/sidebar">
                     {/* Handle (Vertical Tab) */}
                     <div className="absolute top-1/2 -translate-y-1/2 -left-10 w-10 h-auto py-4 bg-slate-900 rounded-l-xl shadow-lg flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800 transition-colors border-y border-l border-slate-800 gap-2">
                         <span className="writing-vertical-lr text-sm text-white rotate-180 whitespace-nowrap py-2 antialiased tracking-wide" style={{ writingMode: 'vertical-rl' }}>
@@ -837,11 +840,113 @@ export default function ExamTaker() {
                                 })}
                             </div>
                         </div>
-
                     </div>
                 </div>
 
+                {/* Mobile FAB Button */}
+                <button
+                    onClick={() => setShowQuestionNav(true)}
+                    className="md:hidden fixed bottom-6 right-6 z-[100] w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-500/50 flex items-center justify-center transition-all active:scale-95"
+                    aria-label="Open Question Navigator"
+                >
+                    <LayoutGrid className="w-6 h-6" />
+                </button>
 
+                {/* Mobile Bottom Sheet */}
+                <AnimatePresence>
+                    {showQuestionNav && (
+                        <>
+                            {/* Backdrop */}
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowQuestionNav(false)}
+                                className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[200]"
+                            />
+
+                            {/* Bottom Sheet */}
+                            <motion.div
+                                initial={{ y: '100%' }}
+                                animate={{ y: 0 }}
+                                exit={{ y: '100%' }}
+                                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                                className="md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[201] max-h-[80vh] flex flex-col"
+                            >
+                                {/* Handle */}
+                                <div className="pt-3 pb-2 flex justify-center">
+                                    <div className="w-12 h-1.5 bg-slate-300 rounded-full"></div>
+                                </div>
+
+                                {/* Header */}
+                                <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg">
+                                                <LayoutGrid className="w-5 h-5 text-white" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-slate-800 font-bold text-lg">Questions</h3>
+                                                <p className="text-slate-500 text-xs">Tap to jump</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowQuestionNav(false)}
+                                            className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-colors"
+                                        >
+                                            <XCircle className="w-5 h-5 text-slate-600" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Question Grid */}
+                                <div className="flex-1 overflow-y-auto p-6">
+                                    <div className="grid grid-cols-5 gap-3">
+                                        {randomizedQuestions.map((q, idx) => {
+                                            const isAnswered = !!answers[q.id];
+                                            const isActive = currentQuestionIndex === idx;
+                                            return (
+                                                <button
+                                                    key={q.id}
+                                                    onClick={() => {
+                                                        setCurrentQuestionIndex(idx);
+                                                        setShowQuestionNav(false);
+                                                    }}
+                                                    className={`h-12 rounded-xl font-bold text-base transition-all flex items-center justify-center active:scale-95 ${isActive
+                                                        ? 'bg-blue-500 text-white shadow-md'
+                                                        : isAnswered
+                                                            ? 'bg-emerald-500 text-white'
+                                                            : 'bg-slate-100 text-slate-700 border-2 border-slate-200'
+                                                        }`}
+                                                >
+                                                    {idx + 1}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Legend */}
+                                <div className="px-6 py-4 border-t border-slate-200 bg-slate-50">
+                                    <div className="flex items-center justify-center gap-6 text-xs">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-md bg-blue-500"></div>
+                                            <span className="text-slate-600 font-medium">Current</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-md bg-emerald-500"></div>
+                                            <span className="text-slate-600 font-medium">Answered</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-md bg-slate-100 border-2 border-slate-200"></div>
+                                            <span className="text-slate-600 font-medium">Unanswered</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
 
 
             </div>
