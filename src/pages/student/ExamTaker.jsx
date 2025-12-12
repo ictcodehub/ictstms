@@ -4,7 +4,7 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, XCircle, LayoutGrid, FileText, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, XCircle, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired } from '../../utils/examSession';
 
@@ -522,8 +522,45 @@ export default function ExamTaker() {
         );
     }
 
+    // Check if exam is expired
+    const isExamExpired = () => {
+        if (!exam || !exam.deadline) return false;
+        const now = new Date();
+        const deadline = exam.deadline.toDate ? exam.deadline.toDate() : new Date(exam.deadline);
+        return now > deadline;
+    };
+
     // Start Screen (First Time)
     if (!hasStarted) {
+        // Show expired message if exam is past deadline and no existing session
+        if (isExamExpired() && !existingSession) {
+            return (
+                <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+                    <div className="bg-white max-w-lg w-full rounded-3xl shadow-xl p-8 text-center space-y-6">
+                        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto">
+                            <AlertCircle className="h-10 w-10 text-red-600" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-red-800 mb-2">Exam Time Has Expired</h1>
+                            <p className="text-slate-600">The deadline for this exam has passed. You can no longer start this exam.</p>
+                        </div>
+
+                        <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                            <p className="text-sm text-red-700">
+                                <b>Note:</b> Contact your teacher if you need a remedial opportunity.
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => navigate('/student/exams')}
+                            className="w-full py-4 bg-slate-600 hover:bg-slate-700 text-white rounded-xl font-bold shadow-lg transition-all text-lg"
+                        >
+                            Back to Exams
+                        </button>
+                    </div>
+                </div>
+            );
+        }
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
                 <div className="bg-white max-w-lg w-full rounded-3xl shadow-xl p-8 text-center space-y-6">

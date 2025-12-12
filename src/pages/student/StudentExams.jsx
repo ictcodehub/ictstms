@@ -115,7 +115,24 @@ export default function StudentExams() {
     }, [studentClassId, currentUser]);
 
 
+    const isExamExpired = (exam) => {
+        if (!exam.deadline) return false;
+        const now = new Date();
+        const deadline = exam.deadline.toDate ? exam.deadline.toDate() : new Date(exam.deadline);
+        return now > deadline;
+    };
+
     const getStatusBadge = (exam) => {
+        // Check if expired first
+        if (!exam.attempt && isExamExpired(exam)) {
+            return (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-full border border-red-200">
+                    <AlertCircle className="h-3 w-3" />
+                    Expired
+                </span>
+            );
+        }
+
         if (exam.attempt) {
             if (exam.attempt.allowRetake) {
                 return (
@@ -316,6 +333,7 @@ export default function StudentExams() {
                             return paginatedExams.map((exam, index) => {
                                 const status = getExamStatus(exam);
                                 const isCompleted = exam.attempt && !exam.attempt.allowRetake;
+                                const isExpired = isExamExpired(exam);
 
                                 return (
                                     <motion.div
@@ -395,6 +413,13 @@ export default function StudentExams() {
                                                     >
                                                         Completed
                                                     </button>
+                                                ) : isExpired && !exam.attempt ? (
+                                                    <button
+                                                        disabled
+                                                        className="px-3 py-1.5 bg-red-200 text-red-600 rounded-lg text-xs font-bold cursor-not-allowed"
+                                                    >
+                                                        Expired
+                                                    </button>
                                                 ) : (
                                                     <button
                                                         onClick={() => navigate(`/student/exams/${exam.id}`)}
@@ -425,6 +450,7 @@ export default function StudentExams() {
                             return paginatedExams.map((exam, index) => {
                                 const status = getExamStatus(exam);
                                 const isCompleted = exam.attempt && !exam.attempt.allowRetake;
+                                const isExpired = isExamExpired(exam);
 
                                 return (
                                     <motion.div
@@ -494,6 +520,14 @@ export default function StudentExams() {
                                             >
                                                 <CheckCircle2 className="h-5 w-5" />
                                                 Completed
+                                            </button>
+                                        ) : isExpired && !exam.attempt ? (
+                                            <button
+                                                disabled
+                                                className="w-full py-3 px-4 bg-red-100 text-red-600 rounded-xl text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2 mt-3 border-2 border-red-200"
+                                            >
+                                                <AlertCircle className="h-5 w-5" />
+                                                Exam Expired
                                             </button>
                                         ) : (
                                             <button
