@@ -793,39 +793,36 @@ export default function ExamTaker() {
                             </motion.div>
                         </AnimatePresence>
 
-                        {/* Floating Pagination Navigation */}
-                        <div className="fixed bottom-20 left-0 right-0 z-10 px-4">
-                            <div className="max-w-4xl mx-auto bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 py-3">
-                                <div className="flex items-center justify-center gap-2 overflow-x-auto px-4">
-                                    {randomizedQuestions.map((q, idx) => {
-                                        const isActive = currentQuestionIndex === idx;
-                                        return (
-                                            <button
-                                                key={q.id}
-                                                onClick={() => setCurrentQuestionIndex(idx)}
-                                                className="relative flex-shrink-0"
-                                            >
-                                                <span className={`text-base md:text-lg font-bold px-3 py-2 transition-colors ${isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'
-                                                    }`}>
-                                                    {idx + 1}
-                                                </span>
-                                                {isActive && (
-                                                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-full"></div>
-                                                )}
-                                            </button>
-                                        )
-                                    })}
-                                    {isLastInfo && (
-                                        <button
-                                            onClick={handleRequestSubmit}
-                                            disabled={isSubmitting}
-                                            className="ml-4 px-6 py-2 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-all flex items-center gap-2 flex-shrink-0"
-                                        >
-                                            <Save className="h-4 w-4" />
-                                            {isSubmitting ? 'Submitting...' : 'Submit'}
-                                        </button>
-                                    )}
-                                </div>
+                        {/* Navigation Bar - Fixed Bottom */}
+                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 z-10" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+                            <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+                                <button
+                                    onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                                    disabled={currentQuestionIndex === 0}
+                                    className="flex-1 px-4 py-3 rounded-xl bg-white text-slate-700 font-bold shadow-sm border-2 border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <ChevronLeft className="h-5 w-5" />
+                                    <span className="hidden sm:inline">Previous</span>
+                                </button>
+
+                                {isLastInfo ? (
+                                    <button
+                                        onClick={handleRequestSubmit}
+                                        disabled={isSubmitting}
+                                        className="flex-1 px-6 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg"
+                                    >
+                                        <Save className="h-5 w-5" />
+                                        {isSubmitting ? 'Submitting...' : 'Submit'}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => setCurrentQuestionIndex(prev => Math.min(randomizedQuestions.length - 1, prev + 1))}
+                                        className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg"
+                                    >
+                                        <span className="hidden sm:inline">Next</span>
+                                        <ChevronRight className="h-5 w-5" />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
