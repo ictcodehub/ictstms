@@ -628,7 +628,7 @@ export default function Overview() {
                                                                                     <Clock className="h-3 w-3" /> {item.duration} Minutes
                                                                                 </span>
                                                                                 <span className="hidden md:inline text-slate-400">•</span>
-                                                                                <span className="hidden md:inline flex items-center gap-1">
+                                                                                <span className="hidden md:flex items-center gap-1">
                                                                                     <ClipboardCheck className="h-3 w-3" /> {item.questions?.length || 0} Questions
                                                                                 </span>
                                                                             </div>
