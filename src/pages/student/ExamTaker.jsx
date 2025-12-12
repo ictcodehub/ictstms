@@ -756,37 +756,39 @@ export default function ExamTaker() {
                             </motion.div>
                         </AnimatePresence>
 
-                        {/* Pagination Navigation - Fixed */}
-                        <div className="mt-4 py-4 border-t border-slate-200 bg-white">
-                            <div className="flex items-center justify-center gap-2 overflow-x-auto px-4">
-                                {randomizedQuestions.map((q, idx) => {
-                                    const isActive = currentQuestionIndex === idx;
-                                    return (
+                        {/* Floating Pagination Navigation */}
+                        <div className="fixed bottom-20 left-0 right-0 z-10 px-4">
+                            <div className="max-w-4xl mx-auto bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 py-3">
+                                <div className="flex items-center justify-center gap-2 overflow-x-auto px-4">
+                                    {randomizedQuestions.map((q, idx) => {
+                                        const isActive = currentQuestionIndex === idx;
+                                        return (
+                                            <button
+                                                key={q.id}
+                                                onClick={() => setCurrentQuestionIndex(idx)}
+                                                className="relative flex-shrink-0"
+                                            >
+                                                <span className={`text-base md:text-lg font-bold px-3 py-2 transition-colors ${isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'
+                                                    }`}>
+                                                    {idx + 1}
+                                                </span>
+                                                {isActive && (
+                                                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-full"></div>
+                                                )}
+                                            </button>
+                                        )
+                                    })}
+                                    {isLastInfo && (
                                         <button
-                                            key={q.id}
-                                            onClick={() => setCurrentQuestionIndex(idx)}
-                                            className="relative flex-shrink-0"
+                                            onClick={handleRequestSubmit}
+                                            disabled={isSubmitting}
+                                            className="ml-4 px-6 py-2 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-all flex items-center gap-2 flex-shrink-0"
                                         >
-                                            <span className={`text-base md:text-lg font-bold px-3 py-2 transition-colors ${isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'
-                                                }`}>
-                                                {idx + 1}
-                                            </span>
-                                            {isActive && (
-                                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-full"></div>
-                                            )}
+                                            <Save className="h-4 w-4" />
+                                            {isSubmitting ? 'Submitting...' : 'Submit'}
                                         </button>
-                                    )
-                                })}
-                                {isLastInfo && (
-                                    <button
-                                        onClick={handleRequestSubmit}
-                                        disabled={isSubmitting}
-                                        className="ml-4 px-6 py-2 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-all flex items-center gap-2 flex-shrink-0"
-                                    >
-                                        <Save className="h-4 w-4" />
-                                        {isSubmitting ? 'Submitting...' : 'Submit'}
-                                    </button>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -846,14 +848,21 @@ export default function ExamTaker() {
                     </div>
                 </div>
 
-                {/* Mobile FAB Button */}
-                <button
+                {/* Mobile Swipe-Up Indicator */}
+                <div
+                    className="md:hidden fixed bottom-4 left-0 right-0 z-[100] flex flex-col items-center pointer-events-none"
                     onClick={() => setShowQuestionNav(true)}
-                    className="md:hidden fixed bottom-6 right-6 z-[100] w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-500/50 flex items-center justify-center transition-all active:scale-95"
-                    aria-label="Open Question Navigator"
                 >
-                    <LayoutGrid className="w-6 h-6" />
-                </button>
+                    <div className="bg-slate-800/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-xs font-medium mb-2 animate-bounce pointer-events-auto">
+                        Swipe up to see questions
+                    </div>
+                    <div className="flex flex-col items-center gap-1 pointer-events-auto" onClick={() => setShowQuestionNav(true)}>
+                        <div className="w-12 h-1 bg-slate-400 rounded-full"></div>
+                        <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                    </div>
+                </div>
 
                 {/* Mobile Bottom Sheet */}
                 <AnimatePresence>

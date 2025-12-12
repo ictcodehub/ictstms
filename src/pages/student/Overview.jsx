@@ -465,9 +465,9 @@ export default function Overview() {
                                                             const isRemedial = result && result.allowRetake;
                                                             const isCompleted = !!result && !isRemedial;
 
-                                                            let cardBg = isCompleted ? 'bg-slate-50 hover:bg-slate-100' :
-                                                                isRemedial ? 'bg-orange-50 hover:bg-orange-100' :
-                                                                    'bg-purple-50 hover:bg-purple-100';
+                                                            let cardBg = isCompleted ? 'bg-slate-100 hover:bg-slate-200' :
+                                                                isRemedial ? 'bg-orange-100 hover:bg-orange-200' :
+                                                                    'bg-purple-100 hover:bg-purple-200';
 
                                                             let iconBg = isCompleted ? 'bg-white text-emerald-600' :
                                                                 isRemedial ? 'bg-orange-100 text-orange-600' :
@@ -489,12 +489,18 @@ export default function Overview() {
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
                                                                             <h4 className={`font-bold transition-colors line-clamp-1 ${isRemedial ? 'text-slate-800 group-hover:text-orange-600' : isCompleted ? 'text-slate-700' : 'text-slate-800 group-hover:text-purple-600'}`}>{item.title}</h4>
-                                                                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                                                                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
                                                                                 <span className="flex items-center gap-1">
                                                                                     <Clock className="h-3 w-3" /> {item.duration} Minutes
                                                                                 </span>
                                                                                 <span className="flex items-center gap-1">
                                                                                     <ClipboardCheck className="h-3 w-3" /> {item.questions?.length || 0} Questions
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="md:hidden mt-1.5 text-xs text-slate-500">
+                                                                                <span className="font-medium">Assigned: </span>
+                                                                                <span>
+                                                                                    {item.createdAt ? item.createdAt.toDate().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                                                                                 </span>
                                                                             </div>
                                                                         </div>
@@ -546,11 +552,14 @@ export default function Overview() {
 
                                                             let statusColor = "";
                                                             if (submission && submission.grade !== null && submission.grade !== undefined) {
-                                                                statusColor = "bg-slate-50 hover:bg-slate-100";
+                                                                // Sudah dinilai - Abu-abu (sama seperti Tasks)
+                                                                statusColor = "bg-slate-100 hover:bg-slate-200";
                                                             } else if (submission) {
+                                                                // Menunggu dinilai - Kuning (sama seperti Tasks)
                                                                 statusColor = "bg-amber-50 hover:bg-amber-100/50";
                                                             } else {
-                                                                statusColor = isOverdue ? "bg-red-50 hover:bg-red-100" : "bg-white hover:bg-slate-50";
+                                                                // Belum dikerjakan - Merah (sama seperti Tasks)
+                                                                statusColor = isOverdue ? "bg-red-100/50 hover:bg-red-100" : "bg-red-50 hover:bg-red-100/50";
                                                             }
 
                                                             // Handle Grade Display
@@ -585,7 +594,7 @@ export default function Overview() {
                                                                     <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isOverdue ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'}`}>
                                                                         {isOverdue ? <AlertCircle className="h-3.5 w-3.5 text-red-600" /> : <Calendar className="h-3.5 w-3.5 text-blue-600" />}
                                                                         <span className={`text-xs font-bold ${isOverdue ? 'text-red-700' : 'text-blue-700'}`}>
-                                                                            {isOverdue ? 'Overdue' : dateText}
+                                                                            {isOverdue ? 'Overdue' : `Due: ${dateText}`}
                                                                         </span>
                                                                     </div>
                                                                 );
@@ -610,6 +619,12 @@ export default function Overview() {
                                                                         <div className="min-w-0 flex-1">
                                                                             <h4 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 text-[13px]" title={task.title}>{task.title}</h4>
                                                                             <p className="text-sm text-slate-500 line-clamp-1">{task.description}</p>
+                                                                            <div className="md:hidden mt-1.5 text-xs text-slate-500">
+                                                                                <span className="font-medium">Assigned: </span>
+                                                                                <span>
+                                                                                    {task.createdAt ? task.createdAt.toDate().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                                                                                </span>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                     <div className="flex items-center gap-3 md:gap-8 md:pl-4 flex-shrink-0">
