@@ -617,19 +617,26 @@ export default function ExamTaker() {
     return (
         <div className="fixed inset-0 z-[9999] bg-slate-50 flex flex-col overflow-auto focus:outline-none select-none">
             {/* Top Bar */}
-            <div className="bg-white border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
-                <div className="flex-1 min-w-0">
-                    <h1 className="font-bold text-slate-800 text-base md:text-lg truncate">{exam.title}</h1>
-                    <div className="flex items-center gap-2 text-xs md:text-sm text-slate-500">
-                        <span>Question {currentQuestionIndex + 1} of {randomizedQuestions.length}</span>
-                        <span className="text-slate-300">•</span>
-                        <span className="uppercase text-xs font-bold tracking-wider">{currentQ.type.replace('_', ' ')}</span>
-                    </div>
-                </div>
+            <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+                <button
+                    onClick={() => navigate('/student/exams')}
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                    <ChevronLeft className="h-6 w-6 text-slate-700" />
+                </button>
 
-                <div className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl font-mono font-bold text-base md:text-lg ${timeLeft < 300 ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-blue-50 text-blue-600'}`}>
-                    <Clock className="h-5 w-5" />
-                    {formatTime(timeLeft)}
+                <h1 className="font-bold text-slate-800 text-base">{exam.title}</h1>
+
+                <div className="flex items-center gap-2">
+                    <div className="px-3 py-1.5 rounded-full bg-blue-600 text-white font-bold text-sm">
+                        {formatTime(timeLeft)}
+                    </div>
+                    <button
+                        onClick={() => setShowQuestionNav(true)}
+                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                    >
+                        <LayoutGrid className="h-5 w-5 text-slate-700" />
+                    </button>
                 </div>
             </div>
 
@@ -647,7 +654,8 @@ export default function ExamTaker() {
                                 className="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 p-5 md:p-8 flex-1 flex flex-col overflow-hidden"
                             >
                                 <div className="flex-1 overflow-y-auto">
-                                    <h2 className="text-base md:text-lg font-normal text-slate-800 mb-6 md:mb-8 leading-relaxed">
+                                    <h2 className="text-base font-normal text-slate-800 mb-6 leading-relaxed">
+                                        <span className="font-bold">{currentQuestionIndex + 1})</span>
                                         {currentQ.text}
                                     </h2>
 
@@ -718,37 +726,43 @@ export default function ExamTaker() {
                                     <div className="flex-1 space-y-3">
                                         {/* Render Options based on Type */}
                                         {currentQ.type === 'single_choice' || currentQ.type === 'true_false' ? (
-                                            currentQ.options.map((opt) => (
+                                            currentQ.options.map((opt, idx) => (
                                                 <button
                                                     key={opt.id}
                                                     onClick={() => handleSingleChoice(currentQ.id, opt.id)}
-                                                    className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${answers[currentQ.id] === opt.id
-                                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                        : 'border-slate-100 hover:border-blue-200 hover:bg-slate-50 text-slate-600'
+                                                    className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${answers[currentQ.id] === opt.id
+                                                        ? 'border-green-500 bg-green-50'
+                                                        : 'border-slate-200 hover:border-slate-300 bg-white'
                                                         }`}
                                                 >
-                                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${answers[currentQ.id] === opt.id ? 'border-blue-500' : 'border-slate-300'}`}>
-                                                        {answers[currentQ.id] === opt.id && <div className="w-3 h-3 rounded-full bg-blue-500" />}
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${answers[currentQ.id] === opt.id
+                                                            ? 'bg-green-500 text-white'
+                                                            : 'bg-slate-100 text-slate-600'
+                                                        }`}>
+                                                        {String.fromCharCode(65 + idx)}
                                                     </div>
-                                                    <span className="font-medium">{opt.text}</span>
+                                                    <span className="font-medium text-slate-800">{opt.text}</span>
                                                 </button>
                                             ))
                                         ) : currentQ.type === 'multiple_choice' ? (
-                                            currentQ.options.map((opt) => {
+                                            currentQ.options.map((opt, idx) => {
                                                 const isSelected = (answers[currentQ.id] || []).includes(opt.id);
                                                 return (
                                                     <button
                                                         key={opt.id}
                                                         onClick={() => handleMultiChoice(currentQ.id, opt.id)}
-                                                        className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${isSelected
-                                                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                            : 'border-slate-100 hover:border-blue-200 hover:bg-slate-50 text-slate-600'
+                                                        className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${isSelected
+                                                                ? 'border-green-500 bg-green-50'
+                                                                : 'border-slate-200 hover:border-slate-300 bg-white'
                                                             }`}
                                                     >
-                                                        <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center shrink-0 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
-                                                            {isSelected && <CheckCircle2 className="h-4 w-4 text-white" />}
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${isSelected
+                                                                ? 'bg-green-500 text-white'
+                                                                : 'bg-slate-100 text-slate-600'
+                                                            }`}>
+                                                            {String.fromCharCode(65 + idx)}
                                                         </div>
-                                                        <span className="font-medium">{opt.text}</span>
+                                                        <span className="font-medium text-slate-800">{opt.text}</span>
                                                     </button>
                                                 );
                                             })
@@ -793,34 +807,39 @@ export default function ExamTaker() {
                             </motion.div>
                         </AnimatePresence>
 
-                        {/* Navigation Bar - Fixed Bottom */}
+                        {/* Navigation Bar - 3 Buttons */}
                         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 z-10" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-                            <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+                            <div className="max-w-4xl mx-auto flex items-center gap-3">
                                 <button
                                     onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                                     disabled={currentQuestionIndex === 0}
-                                    className="flex-1 px-4 py-3 rounded-xl bg-white text-slate-700 font-bold shadow-sm border-2 border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                                    className="flex-1 px-4 py-3 rounded-lg bg-slate-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 transition-all"
                                 >
-                                    <ChevronLeft className="h-5 w-5" />
-                                    <span className="hidden sm:inline">Previous</span>
+                                    Previous
+                                </button>
+
+                                <button
+                                    onClick={() => setCurrentQuestionIndex(prev => Math.min(randomizedQuestions.length - 1, prev + 1))}
+                                    disabled={isLastInfo}
+                                    className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-700 font-bold border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-all"
+                                >
+                                    Skip
                                 </button>
 
                                 {isLastInfo ? (
                                     <button
                                         onClick={handleRequestSubmit}
                                         disabled={isSubmitting}
-                                        className="flex-1 px-6 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg"
+                                        className="flex-1 px-4 py-3 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 transition-all"
                                     >
-                                        <Save className="h-5 w-5" />
                                         {isSubmitting ? 'Submitting...' : 'Submit'}
                                     </button>
                                 ) : (
                                     <button
                                         onClick={() => setCurrentQuestionIndex(prev => Math.min(randomizedQuestions.length - 1, prev + 1))}
-                                        className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg"
+                                        className="flex-1 px-4 py-3 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition-all"
                                     >
-                                        <span className="hidden sm:inline">Next</span>
-                                        <ChevronRight className="h-5 w-5" />
+                                        Next
                                     </button>
                                 )}
                             </div>
