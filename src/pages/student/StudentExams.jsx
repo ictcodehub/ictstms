@@ -118,45 +118,50 @@ export default function StudentExams() {
         return () => { unsubExams(); unsubResults(); };
     }, [studentClassId, currentUser]);
 
-    // Load exam sessions for all exams
+    // Load exam sessions for all exams with real-time listener
     useEffect(() => {
-        const loadExamSessions = async () => {
-            if (!currentUser || exams.length === 0) return;
+        if (!currentUser) return;
 
+        // Real-time listener for exam sessions
+        const sessionsQuery = query(
+            collection(db, 'exam_sessions'),
+            where('studentId', '==', currentUser.uid),
+            where('status', '==', 'in_progress')
+        );
+
+        const unsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
             const sessions = {};
-            for (const exam of exams) {
-                try {
-                    const session = await getExamSession(exam.id, currentUser.uid);
-                    if (session) {
-                        sessions[exam.id] = session;
-                    }
-                } catch (error) {
-                    console.error(`Error loading session for exam ${exam.id}:`, error);
-                }
-            }
+            snapshot.docs.forEach(doc => {
+                const data = doc.data();
+                sessions[data.examId] = { id: doc.id, ...data };
+            });
             setExamSessions(sessions);
-        };
+        });
 
-        loadExamSessions();
-    }, [exams, currentUser]);
+        return () => unsubscribe();
+    }, [currentUser]);
 
-    // Check for auto-submitted exams on load
+    // Check for auto-submitted exams with real-time listener
     useEffect(() => {
-        const checkAutoSubmittedExams = async () => {
-            if (!currentUser) return;
+        if (!currentUser) return;
 
+        // Real-time listener for exam_results
+        const resultsQuery = query(
+            collection(db, 'exam_results'),
+            where('studentId', '==', currentUser.uid)
+        );
+
+        const unsubscribe = onSnapshot(resultsQuery, async (resultsSnap) => {
             try {
-                const resultsQuery = query(
-                    collection(db, 'exam_results'),
-                    where('studentId', '==', currentUser.uid),
-                    where('autoSubmitted', '==', true),
-                    where('autoSubmitNotified', '==', false)
-                );
-                const resultsSnap = await getDocs(resultsQuery);
+                // Filter in code to avoid composite index requirement
+                const autoSubmittedResults = resultsSnap.docs.filter(doc => {
+                    const data = doc.data();
+                    return data.autoSubmitted === true && data.autoSubmitNotified === false;
+                });
 
-                if (!resultsSnap.empty) {
+                if (autoSubmittedResults.length > 0) {
                     // Get the first auto-submitted exam that hasn't been notified
-                    const resultDoc = resultsSnap.docs[0];
+                    const resultDoc = autoSubmittedResults[0];
                     const resultData = resultDoc.data();
 
                     // Get exam details
@@ -178,9 +183,9 @@ export default function StudentExams() {
             } catch (error) {
                 console.error('Error checking auto-submitted exams:', error);
             }
-        };
+        });
 
-        checkAutoSubmittedExams();
+        return () => unsubscribe();
     }, [currentUser]);
 
 
@@ -493,10 +498,10 @@ export default function StudentExams() {
                                                     <button
                                                         onClick={() => navigate(`/student/exams/${exam.id}`)}
                                                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${exam.attempt?.allowRetake
-                                                                ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                                                                : examSessions[exam.id]
-                                                                    ? 'bg-teal-600 hover:bg-teal-700 text-white'
-                                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                            ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                                                            : examSessions[exam.id]
+                                                                ? 'bg-teal-600 hover:bg-teal-700 text-white'
+                                                                : 'bg-blue-600 hover:bg-blue-700 text-white'
                                                             }`}
                                                     >
                                                         {exam.attempt?.allowRetake ? 'Retake' : examSessions[exam.id] ? 'Resume' : 'Start'}
@@ -604,10 +609,10 @@ export default function StudentExams() {
                                             <button
                                                 onClick={() => navigate(`/student/exams/${exam.id}`)}
                                                 className={`w-full py-3.5 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg mt-3 ${exam.attempt?.allowRetake
-                                                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-orange-200'
-                                                        : examSessions[exam.id]
-                                                            ? 'bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white shadow-teal-200'
-                                                            : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-blue-200'
+                                                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-orange-200'
+                                                    : examSessions[exam.id]
+                                                        ? 'bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white shadow-teal-200'
+                                                        : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-blue-200'
                                                     }`}
                                             >
                                                 {exam.attempt?.allowRetake ? (
