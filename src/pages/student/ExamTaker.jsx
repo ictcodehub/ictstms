@@ -4,7 +4,7 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, XCircle, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, XCircle, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired } from '../../utils/examSession';
 
@@ -782,9 +782,10 @@ export default function ExamTaker() {
                     </div>
                     <button
                         onClick={() => setShowQuestionNav(true)}
-                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                        aria-label="Open Question Navigator"
                     >
-                        <LayoutGrid className="h-5 w-5 text-slate-700" />
+                        <LayoutGrid className="h-4 w-4 text-slate-700" />
                     </button>
                 </div>
             </div>
@@ -956,21 +957,22 @@ export default function ExamTaker() {
                             </motion.div>
                         </AnimatePresence>
 
-                        {/* Navigation Bar - 3 Buttons */}
-                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 z-10" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-                            <div className="max-w-4xl mx-auto flex items-center gap-3">
+                        {/* Navigation Bar - Redesigned */}
+                        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent px-4 py-4 z-10" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+                            <div className="max-w-4xl mx-auto flex items-center gap-2">
                                 <button
                                     onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                                     disabled={currentQuestionIndex === 0}
-                                    className="flex-1 px-4 py-3 rounded-lg bg-slate-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 transition-all"
+                                    className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-slate-100 text-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-200 active:scale-95 transition-all shadow-sm border border-slate-200"
                                 >
-                                    Previous
+                                    <ChevronLeft className="h-4 w-4" />
+                                    <span className="hidden sm:inline">Previous</span>
                                 </button>
 
                                 <button
                                     onClick={() => setCurrentQuestionIndex(prev => Math.min(randomizedQuestions.length - 1, prev + 1))}
                                     disabled={isLastInfo}
-                                    className="flex-1 px-4 py-3 rounded-lg bg-white text-slate-700 font-bold border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-all"
+                                    className="flex-1 px-6 py-3.5 rounded-xl bg-white text-slate-600 font-semibold border-2 border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] transition-all shadow-sm"
                                 >
                                     Skip
                                 </button>
@@ -979,16 +981,22 @@ export default function ExamTaker() {
                                     <button
                                         onClick={handleRequestSubmit}
                                         disabled={isSubmitting}
-                                        className="flex-1 px-4 py-3 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 transition-all"
+                                        className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold hover:from-red-700 hover:to-red-800 active:scale-95 transition-all shadow-lg shadow-red-500/30 disabled:opacity-70"
                                     >
-                                        {isSubmitting ? 'Submitting...' : 'Submit'}
+                                        {isSubmitting ? 'Submitting...' : (
+                                            <>
+                                                <span>Submit</span>
+                                                <Send className="h-4 w-4" />
+                                            </>
+                                        )}
                                     </button>
                                 ) : (
                                     <button
                                         onClick={() => setCurrentQuestionIndex(prev => Math.min(randomizedQuestions.length - 1, prev + 1))}
-                                        className="flex-1 px-4 py-3 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition-all"
+                                        className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-semibold hover:from-emerald-700 hover:to-emerald-800 active:scale-95 transition-all shadow-lg shadow-emerald-500/30"
                                     >
-                                        Next
+                                        <span className="hidden sm:inline">Next</span>
+                                        <ChevronRight className="h-4 w-4" />
                                     </button>
                                 )}
                             </div>
@@ -997,68 +1005,7 @@ export default function ExamTaker() {
                 </div>
 
 
-                {/* Question Navigator - Desktop: Sidebar, Mobile: Bottom Sheet */}
-
-                {/* Desktop Sidebar (hidden on mobile) */}
-                <div className="hidden md:block fixed z-[90] top-0 bottom-0 right-0 w-[280px] translate-x-[280px] hover:translate-x-0 transition-transform duration-300 ease-out shadow-2xl group/sidebar">
-                    {/* Handle (Vertical Tab) */}
-                    <div className="absolute top-1/2 -translate-y-1/2 -left-10 w-10 h-auto py-4 bg-slate-900 rounded-l-xl shadow-lg flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800 transition-colors border-y border-l border-slate-800 gap-2">
-                        <span className="writing-vertical-lr text-sm text-white rotate-180 whitespace-nowrap py-2 antialiased tracking-wide" style={{ writingMode: 'vertical-rl' }}>
-                            Question Navigator
-                        </span>
-                        <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shadow-lg shadow-blue-500/50"></span>
-                    </div>
-
-                    {/* Main Content Panel */}
-                    <div className="h-full bg-white flex flex-col border-l border-slate-200">
-                        <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shrink-0">
-                                    <LayoutGrid className="w-6 h-6 text-white" />
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="text-slate-800 font-bold text-lg tracking-tight">
-                                        Question Navigator
-                                    </h3>
-                                    <p className="text-slate-500 text-xs mt-1">Click number to jump to question</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-5 content-start">
-                            <div className="grid grid-cols-5 gap-2">
-                                {randomizedQuestions.map((q, idx) => {
-                                    const isAnswered = !!answers[q.id];
-                                    const isActive = currentQuestionIndex === idx;
-                                    return (
-                                        <button
-                                            key={q.id}
-                                            onClick={() => setCurrentQuestionIndex(idx)}
-                                            className={`w-10 h-10 rounded-md font-semibold text-sm transition-all flex items-center justify-center ${isActive
-                                                ? 'bg-blue-500 text-white shadow-md scale-105'
-                                                : isAnswered
-                                                    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                                                    : 'bg-white text-slate-700 border border-slate-200 hover:border-blue-400 hover:text-blue-600'
-                                                }`}
-                                        >
-                                            {idx + 1}
-                                        </button>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Mobile Question Navigator Button */}
-                <button
-                    onClick={() => setShowQuestionNav(true)}
-                    className="md:hidden fixed top-20 right-4 z-[100] px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-500/50 flex items-center gap-2 transition-all active:scale-95 text-sm font-bold"
-                    aria-label="Open Question Navigator"
-                >
-                    <LayoutGrid className="w-4 h-4" />
-                    Questions
-                </button>
+                {/* Question Navigator - Unified Modal for Desktop & Mobile */}
 
                 {/* Mobile Bottom Sheet */}
                 <AnimatePresence>
