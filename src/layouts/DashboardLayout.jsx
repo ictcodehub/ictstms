@@ -41,6 +41,124 @@ export default function DashboardLayout({ children }) {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
+    // Check and auto-submit expired sessions periodically (student only)
+    useEffect(() => {
+        if (!currentUser || userRole !== 'student') return;
+
+        const checkExpiredSessions = async () => {
+            try {
+                // Get all in_progress sessions for this student
+                const sessionsQuery = query(
+                    collection(db, 'exam_sessions'),
+                    where('studentId', '==', currentUser.uid),
+                    where('status', '==', 'in_progress')
+                );
+                const sessionsSnap = await getDocs(sessionsQuery);
+
+                for (const sessionDoc of sessionsSnap.docs) {
+                    const sessionData = sessionDoc.data();
+                    const expiresAt = sessionData.expiresAt.toDate();
+                    const now = new Date();
+
+                    if (now > expiresAt) {
+                        // Get exam details
+                        const examDoc = await getDoc(doc(db, 'exams', sessionData.examId));
+                        if (!examDoc.exists()) continue;
+
+                        const examData = examDoc.data();
+
+                        // Calculate score from saved answers
+                        const savedAnswers = sessionData.answers || {};
+                        let totalScore = 0;
+                        const maxScore = examData.questions.reduce((acc, q) => acc + (q.points || 10), 0);
+
+                        if (maxScore > 0) {
+                            examData.questions.forEach(q => {
+                                const studentAnswer = savedAnswers[q.id];
+                                const qPoints = q.points || 10;
+                                const partialEnabled = q.enablePartialScoring !== false;
+
+                                if (!studentAnswer) return;
+
+                                if (q.type === 'single_choice' || q.type === 'true_false') {
+                                    const correctOpt = q.options.find(o => o.isCorrect);
+                                    if (correctOpt && correctOpt.id === studentAnswer) {
+                                        totalScore += qPoints;
+                                    }
+                                } else if (q.type === 'multiple_choice') {
+                                    const correctOptions = q.options.filter(o => o.isCorrect).map(o => o.id);
+                                    if (!partialEnabled) {
+                                        const studentSelection = Array.isArray(studentAnswer) ? studentAnswer : [];
+                                        const isExactMatch = studentSelection.length === correctOptions.length &&
+                                            studentSelection.every(id => correctOptions.includes(id));
+                                        if (isExactMatch) totalScore += qPoints;
+                                    } else {
+                                        const weightPerOption = qPoints / q.options.length;
+                                        let questionScore = 0;
+                                        q.options.forEach(opt => {
+                                            const isChecked = studentAnswer.includes(opt.id);
+                                            if (opt.isCorrect === isChecked) {
+                                                questionScore += weightPerOption;
+                                            }
+                                        });
+                                        totalScore += questionScore;
+                                    }
+                                } else if (q.type === 'matching') {
+                                    if (!partialEnabled) {
+                                        const allCorrect = q.options.every((pair, idx) => {
+                                            const studentRightVal = studentAnswer[idx];
+                                            return studentRightVal && studentRightVal.trim().toLowerCase() === pair.right.trim().toLowerCase();
+                                        });
+                                        if (allCorrect) totalScore += qPoints;
+                                    } else {
+                                        const weightPerPair = qPoints / q.options.length;
+                                        let questionScore = 0;
+                                        q.options.forEach((pair, idx) => {
+                                            const studentRightVal = studentAnswer[idx];
+                                            if (studentRightVal && studentRightVal.trim().toLowerCase() === pair.right.trim().toLowerCase()) {
+                                                questionScore += weightPerPair;
+                                            }
+                                        });
+                                        totalScore += questionScore;
+                                    }
+                                }
+                            });
+                        }
+
+                        const finalScore = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+
+                        // Complete session
+                        await updateDoc(doc(db, 'exam_sessions', sessionDoc.id), {
+                            status: 'completed',
+                            submittedAt: serverTimestamp()
+                        });
+
+                        // Create exam result
+                        await addDoc(collection(db, 'exam_results'), {
+                            examId: sessionData.examId,
+                            studentId: currentUser.uid,
+                            answers: savedAnswers,
+                            score: finalScore,
+                            submittedAt: serverTimestamp(),
+                            autoSubmitted: true,
+                            autoSubmitNotified: false
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('[Expired Sessions] Error:', error);
+            }
+        };
+
+        // Check immediately on mount
+        checkExpiredSessions();
+
+        // Then check every 5 seconds
+        const interval = setInterval(checkExpiredSessions, 5000);
+
+        return () => clearInterval(interval);
+    }, [currentUser, userRole]);
+
     // Auto-submit notification system (student only)
     useEffect(() => {
         if (!currentUser || userRole !== 'student') return;

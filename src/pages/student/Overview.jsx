@@ -341,52 +341,6 @@ export default function Overview() {
         checkExpiredSessions();
     }, [currentUser]);
 
-    // Check for auto-submitted exams with real-time listener
-    useEffect(() => {
-        if (!currentUser) return;
-
-        // Real-time listener for exam_results
-        const resultsQuery = query(
-            collection(db, 'exam_results'),
-            where('studentId', '==', currentUser.uid)
-        );
-
-        const unsubscribe = onSnapshot(resultsQuery, async (resultsSnap) => {
-            try {
-                // Filter in code to avoid composite index requirement
-                const autoSubmittedResults = resultsSnap.docs.filter(doc => {
-                    const data = doc.data();
-                    return data.autoSubmitted === true && data.autoSubmitNotified === false;
-                });
-
-                if (autoSubmittedResults.length > 0) {
-                    // Get the first auto-submitted exam that hasn't been notified
-                    const resultDoc = autoSubmittedResults[0];
-                    const resultData = resultDoc.data();
-
-                    // Get exam details
-                    const examDoc = await getDoc(doc(db, 'exams', resultData.examId));
-                    if (examDoc.exists()) {
-                        setAutoSubmittedExam({
-                            resultId: resultDoc.id,
-                            examTitle: examDoc.data().title,
-                            score: resultData.score
-                        });
-                        setShowAutoSubmitNotif(true);
-
-                        // Update flag
-                        await updateDoc(doc(db, 'exam_results', resultDoc.id), {
-                            autoSubmitNotified: true
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('[Auto-Submit Check] Error:', error);
-            }
-        });
-
-        return () => unsubscribe();
-    }, [currentUser]);
 
     // Derived totals for display
     const totalActivities = stats.totalTasks + stats.totalExams;
