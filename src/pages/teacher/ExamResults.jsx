@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, User, Calendar, CheckCircle, XCircle, RefreshCw, FileText, Search, ChevronRight, Award } from 'lucide-react';
+import { ArrowLeft, User, Calendar, CheckCircle, XCircle, RefreshCw, FileText, Search, ChevronRight, Award, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ExamResults() {
@@ -152,6 +152,40 @@ export default function ExamResults() {
         }
     };
 
+    // State for reset confirmation modal
+    const [resetModal, setResetModal] = useState(false);
+
+    const handleResetAllAttempts = async () => {
+        try {
+            // Get all results for this exam
+            const resultsQuery = query(
+                collection(db, 'exam_results'),
+                where('examId', '==', examId)
+            );
+            const resultsSnap = await getDocs(resultsQuery);
+
+            // Get all sessions for this exam
+            const sessionsQuery = query(
+                collection(db, 'exam_sessions'),
+                where('examId', '==', examId)
+            );
+            const sessionsSnap = await getDocs(sessionsQuery);
+
+            // Delete all results and sessions
+            const deletePromises = [
+                ...resultsSnap.docs.map(doc => deleteDoc(doc.ref)),
+                ...sessionsSnap.docs.map(doc => deleteDoc(doc.ref))
+            ];
+            await Promise.all(deletePromises);
+
+            toast.success(`${resultsSnap.size} attempts and ${sessionsSnap.size} sessions have been reset successfully`);
+            setResetModal(false);
+        } catch (error) {
+            console.error("Error resetting attempts:", error);
+            toast.error("Failed to reset attempts");
+        }
+    };
+
 
     // Filtered list
     const filteredStudents = students.filter(s =>
@@ -290,20 +324,31 @@ export default function ExamResults() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={() => navigate('/teacher/exams')}
-                    className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
-                >
-                    <ArrowLeft className="h-6 w-6 text-slate-500" />
-                </button>
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Hasil Ujian: {exam?.title}</h1>
-                    <p className="text-slate-500 text-sm">
-                        {exam?.questions?.length || 0} Soal • {exam?.duration} Menit • {students.length} Siswa
-                    </p>
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => navigate('/teacher/exams')}
+                        className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                    >
+                        <ArrowLeft className="h-6 w-6 text-slate-500" />
+                    </button>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-800">Hasil Ujian: {exam?.title}</h1>
+                        <p className="text-slate-500 text-sm">
+                            {exam?.questions?.length || 0} Soal • {exam?.duration} Menit • {students.length} Siswa
+                        </p>
+                    </div>
                 </div>
+
+                {/* Reset All Attempts Button */}
+                <button
+                    onClick={() => setResetModal(true)}
+                    disabled={results.length === 0}
+                    className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                    <Trash2 className="h-5 w-5" />
+                    Reset All Attempts
+                </button>
             </div>
 
             {/* Toolbar */}
@@ -404,6 +449,49 @@ export default function ExamResults() {
                     </div>
                 )}
             </div>
+
+            {/* Reset Confirmation Modal */}
+            <AnimatePresence>
+                {resetModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden"
+                        >
+                            <div className="p-6 text-center">
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Trash2 className="h-8 w-8 text-red-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-800 mb-2">Reset All Attempts?</h3>
+                                <p className="text-slate-500 text-sm mb-6">
+                                    This will <b>permanently delete all {results.length} student attempts</b> for this exam. Students will be able to take the exam again as if it's brand new.
+                                </p>
+                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6">
+                                    <p className="text-xs text-amber-800">
+                                        <b>Warning:</b> This action cannot be undone. All scores and attempt history will be lost.
+                                    </p>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setResetModal(false)}
+                                        className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleResetAllAttempts}
+                                        className="flex-1 px-4 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
+                                    >
+                                        Yes, Reset All
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

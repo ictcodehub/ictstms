@@ -127,10 +127,53 @@ export default function ExamTaker() {
                             setTimeLeft(remaining);
                             setShowResumeModal(true); // Show resume modal instead of auto-starting
                         } else {
-                            // Session expired - will auto submit
-                            setTimeUp(true);
+                            // Session expired - auto submit immediately
                             toast.error('Time is up! Submitting your exam...');
-                            // Auto submit will be handled by timer effect
+
+                            // Auto submit immediately with exam data
+                            setTimeout(async () => {
+                                try {
+                                    // Calculate score using exam data
+                                    let totalScore = 0;
+                                    const maxScore = data.questions.reduce((acc, q) => acc + (q.points || 10), 0);
+
+                                    if (maxScore > 0) {
+                                        data.questions.forEach(q => {
+                                            const studentAnswer = (session.answers || {})[q.id];
+                                            const qPoints = q.points || 10;
+
+                                            if (!studentAnswer) return;
+
+                                            if (q.type === 'single_choice' || q.type === 'true_false') {
+                                                const correctOpt = q.options.find(o => o.isCorrect);
+                                                if (correctOpt && correctOpt.id === studentAnswer) {
+                                                    totalScore += qPoints;
+                                                }
+                                            }
+                                            // Add other question types if needed
+                                        });
+                                    }
+
+                                    const finalScore = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+
+                                    await completeExamSession(session.id, session.answers || {}, finalScore);
+
+                                    await addDoc(collection(db, 'exam_results'), {
+                                        examId: data.id,
+                                        studentId: currentUser.uid,
+                                        answers: session.answers || {},
+                                        score: finalScore,
+                                        submittedAt: serverTimestamp()
+                                    });
+
+                                    toast.success("Exam submitted successfully!");
+                                    navigate('/student/exams');
+                                } catch (error) {
+                                    console.error("Error auto-submitting expired exam:", error);
+                                    toast.error("Failed to submit exam");
+                                }
+                            }, 1000);
+                            return; // Don't set exam state, just submit and redirect
                         }
                     } else {
                         // No existing session
@@ -312,8 +355,7 @@ export default function ExamTaker() {
     };
 
     // Calculation Logic (PARTIAL SCORING)
-    // Calculation Logic (PARTIAL SCORING)
-    const calculateScore = () => {
+    function calculateScore() {
         let totalScore = 0;
         const maxScore = exam.questions.reduce((acc, q) => acc + (q.points || 10), 0);
 
@@ -385,13 +427,13 @@ export default function ExamTaker() {
 
         // Return Score (0-100)
         return (totalScore / maxScore) * 100;
-    };
+    }
 
     const handleRequestSubmit = () => {
         setShowSubmitModal(true);
     };
 
-    const confirmSubmit = async () => {
+    async function confirmSubmit() {
         if (isSubmitting) return;
 
         setIsSubmitting(true);
@@ -425,7 +467,7 @@ export default function ExamTaker() {
             toast.error("Failed to submit exam");
             setIsSubmitting(false);
         }
-    };
+    }
 
     // Get current question from randomized list
     const currentQ = currentQuestionWithShuffledOptions;
@@ -602,7 +644,13 @@ export default function ExamTaker() {
                     </button>
 
                     <button
-                        onClick={() => navigate('/student/exams')}
+                        onClick={() => {
+                            // Exit fullscreen if active
+                            if (document.fullscreenElement) {
+                                document.exitFullscreen().catch(err => console.log(err));
+                            }
+                            navigate('/student/exams');
+                        }}
                         className="text-slate-400 font-medium hover:text-slate-600"
                     >
                         Cancel
@@ -619,7 +667,13 @@ export default function ExamTaker() {
             {/* Top Bar */}
             <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
                 <button
-                    onClick={() => navigate('/student/exams')}
+                    onClick={() => {
+                        // Exit fullscreen if active
+                        if (document.fullscreenElement) {
+                            document.exitFullscreen().catch(err => console.log(err));
+                        }
+                        navigate('/student/exams');
+                    }}
                     className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                 >
                     <ChevronLeft className="h-6 w-6 text-slate-700" />
@@ -736,8 +790,8 @@ export default function ExamTaker() {
                                                         }`}
                                                 >
                                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${answers[currentQ.id] === opt.id
-                                                            ? 'bg-green-500 text-white'
-                                                            : 'bg-slate-100 text-slate-600'
+                                                        ? 'bg-green-500 text-white'
+                                                        : 'bg-slate-100 text-slate-600'
                                                         }`}>
                                                         {String.fromCharCode(65 + idx)}
                                                     </div>
@@ -752,13 +806,13 @@ export default function ExamTaker() {
                                                         key={opt.id}
                                                         onClick={() => handleMultiChoice(currentQ.id, opt.id)}
                                                         className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${isSelected
-                                                                ? 'border-green-500 bg-green-50'
-                                                                : 'border-slate-200 hover:border-slate-300 bg-white'
+                                                            ? 'border-green-500 bg-green-50'
+                                                            : 'border-slate-200 hover:border-slate-300 bg-white'
                                                             }`}
                                                     >
                                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${isSelected
-                                                                ? 'bg-green-500 text-white'
-                                                                : 'bg-slate-100 text-slate-600'
+                                                            ? 'bg-green-500 text-white'
+                                                            : 'bg-slate-100 text-slate-600'
                                                             }`}>
                                                             {String.fromCharCode(65 + idx)}
                                                         </div>
