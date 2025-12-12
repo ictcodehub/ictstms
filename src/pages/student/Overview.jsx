@@ -21,6 +21,7 @@ export default function Overview() {
     });
     const [tasks, setTasks] = useState([]);
     const [exams, setExams] = useState([]);
+    const [examSessions, setExamSessions] = useState({}); // Track active exam sessions
     const [submissions, setSubmissions] = useState({});
     const [loading, setLoading] = useState(true);
     const [userClass, setUserClass] = useState(null);
@@ -106,6 +107,21 @@ export default function Overview() {
                 unsubscribeExamResults = onSnapshot(examResultsQuery, (snap) => {
                     currentExamResults = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     updateExamStats(currentExams, currentExamResults);
+                });
+
+                // Setup real-time listener for exam sessions
+                const sessionsQuery = query(
+                    collection(db, 'exam_sessions'),
+                    where('studentId', '==', currentUser.uid),
+                    where('status', '==', 'in_progress')
+                );
+                const unsubscribeSessions = onSnapshot(sessionsQuery, (snapshot) => {
+                    const sessions = {};
+                    snapshot.docs.forEach(doc => {
+                        const data = doc.data();
+                        sessions[data.examId] = { id: doc.id, ...data };
+                    });
+                    setExamSessions(sessions);
                 });
 
                 // Setup real-time listener for submissions
@@ -577,16 +593,19 @@ export default function Overview() {
                                                         if (item.type === 'exam') {
                                                             // EXAM CARD
                                                             const result = item.userResult;
+                                                            const isInProgress = !!examSessions[item.id]; // Check if exam has active session
                                                             const isRemedial = result && result.allowRetake;
                                                             const isCompleted = !!result && !isRemedial;
 
                                                             let cardBg = isCompleted ? 'bg-slate-100 hover:bg-slate-200' :
                                                                 isRemedial ? 'bg-orange-100 hover:bg-orange-200' :
-                                                                    'bg-purple-100 hover:bg-purple-200';
+                                                                    isInProgress ? 'bg-yellow-100 hover:bg-yellow-200' :
+                                                                        'bg-purple-100 hover:bg-purple-200';
 
                                                             let iconBg = isCompleted ? 'bg-white text-emerald-600' :
                                                                 isRemedial ? 'bg-orange-100 text-orange-600' :
-                                                                    'bg-purple-100 text-purple-600';
+                                                                    isInProgress ? 'bg-yellow-100 text-yellow-600' :
+                                                                        'bg-purple-100 text-purple-600';
 
                                                             return (
                                                                 <motion.div
@@ -603,12 +622,13 @@ export default function Overview() {
                                                                             <ClipboardCheck className="h-5 w-5" />
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
-                                                                            <h4 className={`font-bold transition-colors line-clamp-1 ${isRemedial ? 'text-slate-800 group-hover:text-orange-600' : isCompleted ? 'text-slate-700' : 'text-slate-800 group-hover:text-purple-600'}`}>{item.title}</h4>
+                                                                            <h4 className={`font-bold transition-colors line-clamp-1 ${isRemedial ? 'text-slate-800 group-hover:text-orange-600' : isInProgress ? 'text-slate-800 group-hover:text-yellow-600' : isCompleted ? 'text-slate-700' : 'text-slate-800 group-hover:text-purple-600'}`}>{item.title}</h4>
                                                                             <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
                                                                                 <span className="flex items-center gap-1">
                                                                                     <Clock className="h-3 w-3" /> {item.duration} Minutes
                                                                                 </span>
-                                                                                <span className="flex items-center gap-1">
+                                                                                <span className="hidden md:inline text-slate-400">•</span>
+                                                                                <span className="hidden md:inline flex items-center gap-1">
                                                                                     <ClipboardCheck className="h-3 w-3" /> {item.questions?.length || 0} Questions
                                                                                 </span>
                                                                             </div>
@@ -630,7 +650,12 @@ export default function Overview() {
                                                                             </div>
                                                                         </div>
                                                                         <div className="flex-1 md:flex-none md:text-center md:min-w-[100px]">
-                                                                            {isRemedial ? (
+                                                                            {isInProgress ? (
+                                                                                <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-yellow-100 border border-yellow-200">
+                                                                                    <Clock className="h-3.5 w-3.5 text-yellow-600 animate-pulse" />
+                                                                                    <span className="text-xs font-bold text-yellow-700">In Progress</span>
+                                                                                </div>
+                                                                            ) : isRemedial ? (
                                                                                 <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-orange-100 border border-orange-200">
                                                                                     <AlertCircle className="h-3.5 w-3.5 text-orange-600" />
                                                                                     <span className="text-xs font-bold text-orange-700">Remedial</span>

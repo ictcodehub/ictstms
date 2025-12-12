@@ -159,6 +159,16 @@ export default function StudentExams() {
             );
         }
 
+        // Check if exam is in progress (has active session)
+        if (examSessions[exam.id]) {
+            return (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-yellow-50 text-yellow-700 text-xs font-bold rounded-full border border-yellow-200">
+                    <Clock className="h-3 w-3 animate-pulse" />
+                    In Progress
+                </span>
+            );
+        }
+
         if (exam.attempt) {
             if (exam.attempt.allowRetake) {
                 return (
@@ -178,7 +188,7 @@ export default function StudentExams() {
         return (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-200">
                 <Clock className="h-3 w-3" />
-                Not Started
+                Available
             </span>
         );
     };
