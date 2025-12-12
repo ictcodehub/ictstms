@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
-import { motion } from 'framer-motion';
-import { BookOpen, CheckCircle, Clock, AlertCircle, Calendar, TrendingUp, ChevronRight, Hourglass, Send, ClipboardCheck, PlayCircle, ClipboardList, ChevronLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BookOpen, CheckCircle, Clock, AlertCircle, Calendar, TrendingUp, ChevronRight, Hourglass, Send, ClipboardCheck, PlayCircle, ClipboardList, ChevronLeft, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Pagination from '../../components/Pagination';
 
@@ -26,6 +26,8 @@ export default function Overview() {
     const [userClass, setUserClass] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(window.innerWidth < 768 ? 5 : 10);
+    const [showAutoSubmitNotif, setShowAutoSubmitNotif] = useState(false);
+    const [autoSubmittedExam, setAutoSubmittedExam] = useState(null);
 
     // Responsive itemsPerPage
     useEffect(() => {
@@ -225,6 +227,165 @@ export default function Overview() {
             if (unsubscribeExams) unsubscribeExams();
             if (unsubscribeExamResults) unsubscribeExamResults();
         };
+    }, [currentUser]);
+
+    // Check and auto-submit expired sessions on load
+    useEffect(() => {
+        const checkExpiredSessions = async () => {
+            if (!currentUser) return;
+
+            try {
+                // Get all in_progress sessions for this student
+                const sessionsQuery = query(
+                    collection(db, 'exam_sessions'),
+                    where('studentId', '==', currentUser.uid),
+                    where('status', '==', 'in_progress')
+                );
+                const sessionsSnap = await getDocs(sessionsQuery);
+
+                for (const sessionDoc of sessionsSnap.docs) {
+                    const sessionData = sessionDoc.data();
+                    const expiresAt = sessionData.expiresAt.toDate();
+                    const now = new Date();
+
+                    if (now > expiresAt) {
+                        // Get exam details
+                        const examDoc = await getDoc(doc(db, 'exams', sessionData.examId));
+                        if (!examDoc.exists()) continue;
+
+                        const examData = examDoc.data();
+
+                        // Calculate score from saved answers
+                        const savedAnswers = sessionData.answers || {};
+                        let totalScore = 0;
+                        const maxScore = examData.questions.reduce((acc, q) => acc + (q.points || 10), 0);
+
+                        if (maxScore > 0) {
+                            examData.questions.forEach(q => {
+                                const studentAnswer = savedAnswers[q.id];
+                                const qPoints = q.points || 10;
+                                const partialEnabled = q.enablePartialScoring !== false;
+
+                                if (!studentAnswer) return;
+
+                                if (q.type === 'single_choice' || q.type === 'true_false') {
+                                    const correctOpt = q.options.find(o => o.isCorrect);
+                                    if (correctOpt && correctOpt.id === studentAnswer) {
+                                        totalScore += qPoints;
+                                    }
+                                } else if (q.type === 'multiple_choice') {
+                                    const correctOptions = q.options.filter(o => o.isCorrect).map(o => o.id);
+                                    if (!partialEnabled) {
+                                        const studentSelection = Array.isArray(studentAnswer) ? studentAnswer : [];
+                                        const isExactMatch = studentSelection.length === correctOptions.length &&
+                                            studentSelection.every(id => correctOptions.includes(id));
+                                        if (isExactMatch) totalScore += qPoints;
+                                    } else {
+                                        const weightPerOption = qPoints / q.options.length;
+                                        let questionScore = 0;
+                                        q.options.forEach(opt => {
+                                            const isChecked = studentAnswer.includes(opt.id);
+                                            if (opt.isCorrect === isChecked) {
+                                                questionScore += weightPerOption;
+                                            }
+                                        });
+                                        totalScore += questionScore;
+                                    }
+                                } else if (q.type === 'matching') {
+                                    if (!partialEnabled) {
+                                        const allCorrect = q.options.every((pair, idx) => {
+                                            const studentRightVal = studentAnswer[idx];
+                                            return studentRightVal && studentRightVal.trim().toLowerCase() === pair.right.trim().toLowerCase();
+                                        });
+                                        if (allCorrect) totalScore += qPoints;
+                                    } else {
+                                        const weightPerPair = qPoints / q.options.length;
+                                        let questionScore = 0;
+                                        q.options.forEach((pair, idx) => {
+                                            const studentRightVal = studentAnswer[idx];
+                                            if (studentRightVal && studentRightVal.trim().toLowerCase() === pair.right.trim().toLowerCase()) {
+                                                questionScore += weightPerPair;
+                                            }
+                                        });
+                                        totalScore += questionScore;
+                                    }
+                                }
+                            });
+                        }
+
+                        const finalScore = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+
+                        // Complete session
+                        await updateDoc(doc(db, 'exam_sessions', sessionDoc.id), {
+                            status: 'completed',
+                            submittedAt: serverTimestamp()
+                        });
+
+                        // Create exam result
+                        await addDoc(collection(db, 'exam_results'), {
+                            examId: sessionData.examId,
+                            studentId: currentUser.uid,
+                            answers: savedAnswers,
+                            score: finalScore,
+                            submittedAt: serverTimestamp(),
+                            autoSubmitted: true,
+                            autoSubmitNotified: false
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('[Expired Sessions] Error:', error);
+            }
+        };
+
+        checkExpiredSessions();
+    }, [currentUser]);
+
+    // Check for auto-submitted exams with real-time listener
+    useEffect(() => {
+        if (!currentUser) return;
+
+        // Real-time listener for exam_results
+        const resultsQuery = query(
+            collection(db, 'exam_results'),
+            where('studentId', '==', currentUser.uid)
+        );
+
+        const unsubscribe = onSnapshot(resultsQuery, async (resultsSnap) => {
+            try {
+                // Filter in code to avoid composite index requirement
+                const autoSubmittedResults = resultsSnap.docs.filter(doc => {
+                    const data = doc.data();
+                    return data.autoSubmitted === true && data.autoSubmitNotified === false;
+                });
+
+                if (autoSubmittedResults.length > 0) {
+                    // Get the first auto-submitted exam that hasn't been notified
+                    const resultDoc = autoSubmittedResults[0];
+                    const resultData = resultDoc.data();
+
+                    // Get exam details
+                    const examDoc = await getDoc(doc(db, 'exams', resultData.examId));
+                    if (examDoc.exists()) {
+                        setAutoSubmittedExam({
+                            resultId: resultDoc.id,
+                            examTitle: examDoc.data().title,
+                            score: resultData.score
+                        });
+                        setShowAutoSubmitNotif(true);
+
+                        // Update flag
+                        await updateDoc(doc(db, 'exam_results', resultDoc.id), {
+                            autoSubmitNotified: true
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('[Auto-Submit Check] Error:', error);
+            }
+        });
+
+        return () => unsubscribe();
     }, [currentUser]);
 
     // Derived totals for display
@@ -682,6 +843,86 @@ export default function Overview() {
                     </div>
                 </>
             )}
+
+            {/* Auto-Submit Notification Modal */}
+            <AnimatePresence>
+                {showAutoSubmitNotif && autoSubmittedExam && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 50 }}
+                            transition={{ type: "spring", duration: 0.5 }}
+                            className="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-2xl p-10 max-w-lg w-full border-2 border-blue-100"
+                        >
+                            <div className="text-center">
+                                {/* Animated Icon */}
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                    className="relative mx-auto mb-6"
+                                >
+                                    <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                                        <Clock className="h-12 w-12 text-white" />
+                                    </div>
+                                    {/* Pulse effect */}
+                                    <div className="absolute inset-0 w-24 h-24 bg-blue-400 rounded-full animate-ping opacity-20 mx-auto"></div>
+                                </motion.div>
+
+                                {/* Title */}
+                                <motion.h2
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-4"
+                                >
+                                    Ujian Telah Disubmit Otomatis
+                                </motion.h2>
+
+                                {/* Message */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.4 }}
+                                    className="mb-8"
+                                >
+                                    <p className="text-slate-600 text-lg leading-relaxed mb-4">
+                                        Waktu ujian <strong className="text-slate-800">{autoSubmittedExam.examTitle}</strong> telah habis dan sistem telah otomatis men-submit jawaban Anda.
+                                    </p>
+                                    <div className="mt-4 bg-blue-50 border-2 border-blue-200 rounded-2xl p-4">
+                                        <p className="text-blue-700 font-semibold flex items-center justify-center gap-2">
+                                            <CheckCircle className="h-5 w-5" />
+                                            Semua jawaban Anda telah tersimpan
+                                        </p>
+                                    </div>
+                                    {autoSubmittedExam.score !== undefined && (
+                                        <div className="mt-4 bg-gradient-to-r from-emerald-50 to-cyan-50 border-2 border-emerald-200 rounded-2xl p-4">
+                                            <p className="text-emerald-700 font-bold flex items-center justify-center gap-2 text-lg">
+                                                <Trophy className="h-6 w-6" />
+                                                Skor Anda: {Math.round(autoSubmittedExam.score)}
+                                            </p>
+                                        </div>
+                                    )}
+                                </motion.div>
+
+                                {/* Button */}
+                                <motion.button
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.5 }}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setShowAutoSubmitNotif(false)}
+                                    className="w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-lg font-bold rounded-2xl hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
+                                >
+                                    Mengerti
+                                </motion.button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

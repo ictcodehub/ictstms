@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../lib/firebase';
-import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, XCircle, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle } from 'lucide-react';
@@ -24,9 +24,22 @@ export default function ExamTaker() {
     const [showSubmitModal, setShowSubmitModal] = useState(false);
     const [sessionId, setSessionId] = useState(null);
     const [existingSession, setExistingSession] = useState(null);
+    const [expiresAt, setExpiresAt] = useState(null); // Store expiration timestamp for timer
     const autoSaveIntervalRef = useRef(null);
     const [showResumeModal, setShowResumeModal] = useState(false);
     const [showQuestionNav, setShowQuestionNav] = useState(false);
+    const [showAutoSubmitNotif, setShowAutoSubmitNotif] = useState(false);
+
+    // Helper function to exit fullscreen
+    const exitFullscreen = () => {
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(err => console.log('Exit fullscreen error:', err));
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    };
 
     // Fisher-Yates shuffle utility
     const shuffleArray = useCallback((array) => {
@@ -125,16 +138,48 @@ export default function ExamTaker() {
                             setSessionId(session.id);
                             setAnswers(session.answers || {});
                             setTimeLeft(remaining);
+                            setExpiresAt(session.expiresAt); // Set expiration for timer
                             setShowResumeModal(true); // Show resume modal instead of auto-starting
                         } else {
-                            // Session expired - will auto submit
-                            setTimeUp(true);
-                            toast.error('Time is up! Submitting your exam...');
-                            // Auto submit will be handled by timer effect
+                            // Session expired - load answers first, then auto submit
+                            setExistingSession(session);
+                            setSessionId(session.id);
+                            setAnswers(session.answers || {}); // CRITICAL: Load saved answers before auto-submit
+                            setExpiresAt(session.expiresAt); // Set expiration for timer
+                            setTimeUp(true); // This will trigger auto-submit with loaded answers
                         }
                     } else {
-                        // No existing session
-                        setTimeLeft(data.duration * 60); // Convert mins to seconds
+                        // No existing session - check if exam was already auto-submitted
+                        const resultsQuery = query(
+                            collection(db, 'exam_results'),
+                            where('examId', '==', examId),
+                            where('studentId', '==', currentUser.uid)
+                        );
+                        const resultsSnap = await getDocs(resultsQuery);
+
+                        if (!resultsSnap.empty) {
+                            // Exam already submitted - check if it was auto-submitted and not yet notified
+                            const latestResult = resultsSnap.docs[0];
+                            const resultData = latestResult.data();
+
+                            if (resultData.autoSubmitted && !resultData.autoSubmitNotified) {
+                                // Show notification modal
+                                setShowAutoSubmitNotif(true);
+
+                                // Update flag to prevent showing again
+                                await updateDoc(doc(db, 'exam_results', latestResult.id), {
+                                    autoSubmitNotified: true
+                                });
+                            }
+
+                            // Redirect to exams list after a short delay
+                            setTimeout(() => {
+                                navigate('/student/exams');
+                            }, showAutoSubmitNotif ? 3000 : 1000);
+                        } else {
+                            // No existing session and no results - fresh start
+                            setTimeLeft(data.duration * 60); // Convert mins to seconds
+                        }
                     }
                 } else {
                     toast.error("Exam not found");
@@ -170,23 +215,112 @@ export default function ExamTaker() {
         return () => clearTimeout(timer);
     }, []);
 
-    // Timer Logic - Only run if started
+    // Update timer in Resume Modal (real-time)
+    useEffect(() => {
+        if (showResumeModal && expiresAt) {
+            const updateTimer = () => {
+                const remaining = calculateRemainingTime(expiresAt);
+                setTimeLeft(remaining);
+            };
+
+            // Update immediately
+            updateTimer();
+
+            // Then update every second
+            const interval = setInterval(updateTimer, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [showResumeModal, expiresAt]);
+
+    // Timer Logic - Real-time calculation from server timestamp
     useEffect(() => {
         if (!hasStarted) return;
-        if (!timeLeft || timeLeft <= 0) {
-            if (timeLeft === 0 && !timeUp) {
-                setTimeUp(true);
-                confirmSubmit();
+        if (!expiresAt) return;
+
+        // Calculate initial time
+        const remaining = calculateRemainingTime(expiresAt);
+        setTimeLeft(remaining);
+
+        if (remaining <= 0) {
+            if (!timeUp) {
+                // Load saved answers before auto-submit
+                const loadAndSubmit = async () => {
+                    if (sessionId) {
+                        const sessionDoc = await getDoc(doc(db, 'exam_sessions', sessionId));
+                        if (sessionDoc.exists()) {
+                            const sessionData = sessionDoc.data();
+                            const loadedAnswers = sessionData.answers || {};
+                            // Pass answers directly to confirmSubmit
+                            setTimeUp(true);
+                            confirmSubmit(true, loadedAnswers);
+                        } else {
+                            setTimeUp(true);
+                            confirmSubmit(true);
+                        }
+                    } else {
+                        setTimeUp(true);
+                        confirmSubmit(true);
+                    }
+                };
+                loadAndSubmit();
             }
             return;
         }
 
+        // Update timer every second based on server time
         const timer = setInterval(() => {
-            setTimeLeft(prev => prev - 1);
+            const newRemaining = calculateRemainingTime(expiresAt);
+            setTimeLeft(newRemaining);
+
+            if (newRemaining <= 0 && !timeUp) {
+                // Load saved answers before auto-submit
+                const loadAndSubmit = async () => {
+                    if (sessionId) {
+                        const sessionDoc = await getDoc(doc(db, 'exam_sessions', sessionId));
+                        if (sessionDoc.exists()) {
+                            const sessionData = sessionDoc.data();
+                            const loadedAnswers = sessionData.answers || {};
+                            // Pass answers directly to confirmSubmit
+                            setTimeUp(true);
+                            confirmSubmit(true, loadedAnswers);
+                            clearInterval(timer);
+                        } else {
+                            setTimeUp(true);
+                            confirmSubmit(true);
+                            clearInterval(timer);
+                        }
+                    } else {
+                        setTimeUp(true);
+                        confirmSubmit(true);
+                        clearInterval(timer);
+                    }
+                };
+                loadAndSubmit();
+            }
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [timeLeft, timeUp, hasStarted]);
+    }, [hasStarted, expiresAt, timeUp, sessionId]);
+
+    // Auto-submit if session expired on load
+    useEffect(() => {
+        if (timeUp && !hasStarted && sessionId) {
+            const autoSubmit = async () => {
+                toast.error('Session expired! Auto-submitting your exam...');
+                await confirmSubmit(true); // Auto-submit when session expired
+            };
+            // Small delay to ensure state is settled and toast is visible
+            const timer = setTimeout(autoSubmit, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [timeUp, hasStarted, sessionId]);
+
+    // Cleanup: Exit fullscreen when component unmounts
+    useEffect(() => {
+        return () => {
+            exitFullscreen();
+        };
+    }, []);
 
     // Auto-save answers every 10 seconds
     useEffect(() => {
@@ -261,6 +395,12 @@ export default function ExamTaker() {
                     answerOrders
                 );
                 setSessionId(newSessionId);
+
+                // Calculate and set expiresAt for timer
+                const now = new Date();
+                const expirationTime = new Date(now.getTime() + exam.duration * 60 * 1000);
+                setExpiresAt({ toDate: () => expirationTime }); // Match Firestore Timestamp format
+
                 toast.success('Exam session started!');
             }
 
@@ -313,14 +453,15 @@ export default function ExamTaker() {
 
     // Calculation Logic (PARTIAL SCORING)
     // Calculation Logic (PARTIAL SCORING)
-    const calculateScore = () => {
+    const calculateScore = (answersToUse = null) => {
+        const finalAnswers = answersToUse || answers;
         let totalScore = 0;
         const maxScore = exam.questions.reduce((acc, q) => acc + (q.points || 10), 0);
 
         if (maxScore === 0) return 0; // Prevent division by zero
 
         exam.questions.forEach(q => {
-            const studentAnswer = answers[q.id];
+            const studentAnswer = finalAnswers[q.id];
             const qPoints = q.points || 10; // Default 10 if not set
             const partialEnabled = q.enablePartialScoring !== false; // Default true
 
@@ -391,26 +532,31 @@ export default function ExamTaker() {
         setShowSubmitModal(true);
     };
 
-    const confirmSubmit = async () => {
+    const confirmSubmit = async (isAutoSubmit = false, answersToSubmit = null) => {
         if (isSubmitting) return;
 
         setIsSubmitting(true);
         setShowSubmitModal(false);
 
+        // Use provided answers or current state
+        const finalAnswers = answersToSubmit || answers;
+
         try {
-            const finalScore = calculateScore();
+            const finalScore = calculateScore(finalAnswers);
 
             // Complete exam session
             if (sessionId) {
-                await completeExamSession(sessionId, answers, finalScore);
+                await completeExamSession(sessionId, finalAnswers, finalScore);
             }
 
             await addDoc(collection(db, 'exam_results'), {
                 examId: exam.id,
                 studentId: currentUser.uid,
-                answers,
+                answers: finalAnswers,
                 score: finalScore,
-                submittedAt: serverTimestamp()
+                submittedAt: serverTimestamp(),
+                autoSubmitted: isAutoSubmit,
+                autoSubmitNotified: false
             });
 
             // Exit fullscreen if active
@@ -511,7 +657,10 @@ export default function ExamTaker() {
                             Continue Exam
                         </button>
                         <button
-                            onClick={() => navigate('/student/exams')}
+                            onClick={() => {
+                                exitFullscreen();
+                                navigate('/student/exams');
+                            }}
                             className="px-6 py-4 border-2 border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition-all"
                         >
                             Exit
@@ -736,8 +885,8 @@ export default function ExamTaker() {
                                                         }`}
                                                 >
                                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${answers[currentQ.id] === opt.id
-                                                            ? 'bg-green-500 text-white'
-                                                            : 'bg-slate-100 text-slate-600'
+                                                        ? 'bg-green-500 text-white'
+                                                        : 'bg-slate-100 text-slate-600'
                                                         }`}>
                                                         {String.fromCharCode(65 + idx)}
                                                     </div>
@@ -752,13 +901,13 @@ export default function ExamTaker() {
                                                         key={opt.id}
                                                         onClick={() => handleMultiChoice(currentQ.id, opt.id)}
                                                         className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${isSelected
-                                                                ? 'border-green-500 bg-green-50'
-                                                                : 'border-slate-200 hover:border-slate-300 bg-white'
+                                                            ? 'border-green-500 bg-green-50'
+                                                            : 'border-slate-200 hover:border-slate-300 bg-white'
                                                             }`}
                                                     >
                                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${isSelected
-                                                                ? 'bg-green-500 text-white'
-                                                                : 'bg-slate-100 text-slate-600'
+                                                            ? 'bg-green-500 text-white'
+                                                            : 'bg-slate-100 text-slate-600'
                                                             }`}>
                                                             {String.fromCharCode(65 + idx)}
                                                         </div>
@@ -1045,6 +1194,81 @@ export default function ExamTaker() {
                     </div>
                 )
             }
+
+            {/* Auto-Submit Notification Modal */}
+            <AnimatePresence>
+                {showAutoSubmitNotif && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 50 }}
+                            transition={{ type: "spring", duration: 0.5 }}
+                            className="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-2xl p-10 max-w-lg w-full border-2 border-blue-100"
+                        >
+                            <div className="text-center">
+                                {/* Animated Icon */}
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                    className="relative mx-auto mb-6"
+                                >
+                                    <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                                        <Clock className="h-12 w-12 text-white" />
+                                    </div>
+                                    {/* Pulse effect */}
+                                    <div className="absolute inset-0 w-24 h-24 bg-blue-400 rounded-full animate-ping opacity-20 mx-auto"></div>
+                                </motion.div>
+
+                                {/* Title */}
+                                <motion.h2
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-4"
+                                >
+                                    Ujian Telah Disubmit Otomatis
+                                </motion.h2>
+
+                                {/* Message */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.4 }}
+                                    className="mb-8"
+                                >
+                                    <p className="text-slate-600 text-lg leading-relaxed">
+                                        Waktu ujian Anda telah habis dan sistem telah otomatis men-submit jawaban Anda.
+                                    </p>
+                                    <div className="mt-4 bg-blue-50 border-2 border-blue-200 rounded-2xl p-4">
+                                        <p className="text-blue-700 font-semibold flex items-center justify-center gap-2">
+                                            <CheckCircle2 className="h-5 w-5" />
+                                            Semua jawaban Anda telah tersimpan
+                                        </p>
+                                    </div>
+                                </motion.div>
+
+                                {/* Button */}
+                                <motion.button
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.5 }}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => {
+                                        setShowAutoSubmitNotif(false);
+                                        navigate('/student/exams');
+                                    }}
+                                    className="w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-lg font-bold rounded-2xl hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
+                                >
+                                    Kembali ke Daftar Ujian
+                                </motion.button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div >
     );
 }

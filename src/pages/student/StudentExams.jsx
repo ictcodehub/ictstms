@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { motion } from 'framer-motion';
+import { collection, query, where, getDocs, doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { ClipboardCheck, Clock, CheckCircle2, AlertCircle, ArrowRight, Search, Filter, ChevronDown, Trophy, Calendar, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
+import { getExamSession } from '../../utils/examSession';
 
 export default function StudentExams() {
     const { currentUser } = useAuth();
@@ -19,6 +20,9 @@ export default function StudentExams() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(window.innerWidth < 768 ? 5 : 10);
+    const [showAutoSubmitNotif, setShowAutoSubmitNotif] = useState(false);
+    const [autoSubmittedExam, setAutoSubmittedExam] = useState(null);
+    const [examSessions, setExamSessions] = useState({}); // Store sessions by examId
 
     // Responsive itemsPerPage
     useEffect(() => {
@@ -113,6 +117,71 @@ export default function StudentExams() {
 
         return () => { unsubExams(); unsubResults(); };
     }, [studentClassId, currentUser]);
+
+    // Load exam sessions for all exams
+    useEffect(() => {
+        const loadExamSessions = async () => {
+            if (!currentUser || exams.length === 0) return;
+
+            const sessions = {};
+            for (const exam of exams) {
+                try {
+                    const session = await getExamSession(exam.id, currentUser.uid);
+                    if (session) {
+                        sessions[exam.id] = session;
+                    }
+                } catch (error) {
+                    console.error(`Error loading session for exam ${exam.id}:`, error);
+                }
+            }
+            setExamSessions(sessions);
+        };
+
+        loadExamSessions();
+    }, [exams, currentUser]);
+
+    // Check for auto-submitted exams on load
+    useEffect(() => {
+        const checkAutoSubmittedExams = async () => {
+            if (!currentUser) return;
+
+            try {
+                const resultsQuery = query(
+                    collection(db, 'exam_results'),
+                    where('studentId', '==', currentUser.uid),
+                    where('autoSubmitted', '==', true),
+                    where('autoSubmitNotified', '==', false)
+                );
+                const resultsSnap = await getDocs(resultsQuery);
+
+                if (!resultsSnap.empty) {
+                    // Get the first auto-submitted exam that hasn't been notified
+                    const resultDoc = resultsSnap.docs[0];
+                    const resultData = resultDoc.data();
+
+                    // Get exam details
+                    const examDoc = await getDoc(doc(db, 'exams', resultData.examId));
+                    if (examDoc.exists()) {
+                        setAutoSubmittedExam({
+                            resultId: resultDoc.id,
+                            examTitle: examDoc.data().title,
+                            score: resultData.score
+                        });
+                        setShowAutoSubmitNotif(true);
+
+                        // Update flag
+                        await updateDoc(doc(db, 'exam_results', resultDoc.id), {
+                            autoSubmitNotified: true
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking auto-submitted exams:', error);
+            }
+        };
+
+        checkAutoSubmittedExams();
+    }, [currentUser]);
 
 
     const isExamExpired = (exam) => {
@@ -423,12 +492,14 @@ export default function StudentExams() {
                                                 ) : (
                                                     <button
                                                         onClick={() => navigate(`/student/exams/${exam.id}`)}
-                                                        className={`px-3 py-1.5 ${exam.attempt?.allowRetake
-                                                            ? 'bg-orange-600 hover:bg-orange-700'
-                                                            : 'bg-blue-600 hover:bg-blue-700'
-                                                            } text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5`}
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${exam.attempt?.allowRetake
+                                                                ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                                                                : examSessions[exam.id]
+                                                                    ? 'bg-teal-600 hover:bg-teal-700 text-white'
+                                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                            }`}
                                                     >
-                                                        {exam.attempt?.allowRetake ? 'Retake' : 'Start'}
+                                                        {exam.attempt?.allowRetake ? 'Retake' : examSessions[exam.id] ? 'Resume' : 'Start'}
                                                         <ArrowRight className="h-3.5 w-3.5" />
                                                     </button>
                                                 )}
@@ -533,14 +604,21 @@ export default function StudentExams() {
                                             <button
                                                 onClick={() => navigate(`/student/exams/${exam.id}`)}
                                                 className={`w-full py-3.5 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg mt-3 ${exam.attempt?.allowRetake
-                                                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-orange-200'
-                                                    : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-blue-200'
+                                                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-orange-200'
+                                                        : examSessions[exam.id]
+                                                            ? 'bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white shadow-teal-200'
+                                                            : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-blue-200'
                                                     }`}
                                             >
                                                 {exam.attempt?.allowRetake ? (
                                                     <>
                                                         <ArrowRight className="h-5 w-5" />
                                                         Retake Exam
+                                                    </>
+                                                ) : examSessions[exam.id] ? (
+                                                    <>
+                                                        <ArrowRight className="h-5 w-5" />
+                                                        Resume Exam
                                                     </>
                                                 ) : (
                                                     <>
@@ -573,6 +651,86 @@ export default function StudentExams() {
                     })()}
                 </div>
             )}
+
+            {/* Auto-Submit Notification Modal */}
+            <AnimatePresence>
+                {showAutoSubmitNotif && autoSubmittedExam && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 50 }}
+                            transition={{ type: "spring", duration: 0.5 }}
+                            className="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-2xl p-10 max-w-lg w-full border-2 border-blue-100"
+                        >
+                            <div className="text-center">
+                                {/* Animated Icon */}
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                    className="relative mx-auto mb-6"
+                                >
+                                    <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                                        <Clock className="h-12 w-12 text-white" />
+                                    </div>
+                                    {/* Pulse effect */}
+                                    <div className="absolute inset-0 w-24 h-24 bg-blue-400 rounded-full animate-ping opacity-20 mx-auto"></div>
+                                </motion.div>
+
+                                {/* Title */}
+                                <motion.h2
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-4"
+                                >
+                                    Ujian Telah Disubmit Otomatis
+                                </motion.h2>
+
+                                {/* Message */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.4 }}
+                                    className="mb-8"
+                                >
+                                    <p className="text-slate-600 text-lg leading-relaxed mb-4">
+                                        Waktu ujian <strong className="text-slate-800">{autoSubmittedExam.examTitle}</strong> telah habis dan sistem telah otomatis men-submit jawaban Anda.
+                                    </p>
+                                    <div className="mt-4 bg-blue-50 border-2 border-blue-200 rounded-2xl p-4">
+                                        <p className="text-blue-700 font-semibold flex items-center justify-center gap-2">
+                                            <CheckCircle2 className="h-5 w-5" />
+                                            Semua jawaban Anda telah tersimpan
+                                        </p>
+                                    </div>
+                                    {autoSubmittedExam.score !== undefined && (
+                                        <div className="mt-4 bg-gradient-to-r from-emerald-50 to-cyan-50 border-2 border-emerald-200 rounded-2xl p-4">
+                                            <p className="text-emerald-700 font-bold flex items-center justify-center gap-2 text-lg">
+                                                <Trophy className="h-6 w-6" />
+                                                Skor Anda: {Math.round(autoSubmittedExam.score)}
+                                            </p>
+                                        </div>
+                                    )}
+                                </motion.div>
+
+                                {/* Button */}
+                                <motion.button
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.5 }}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setShowAutoSubmitNotif(false)}
+                                    className="w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-lg font-bold rounded-2xl hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
+                                >
+                                    Mengerti
+                                </motion.button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
