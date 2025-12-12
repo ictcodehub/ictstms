@@ -617,7 +617,7 @@ export default function ExamTaker() {
     return (
         <div className="fixed inset-0 z-[9999] bg-slate-50 flex flex-col overflow-auto focus:outline-none select-none">
             {/* Top Bar */}
-            <div className="bg-white border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+            <div className="bg-white border-b border-slate-200 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
                 <div className="flex-1 min-w-0">
                     <h1 className="font-bold text-slate-800 text-base md:text-lg truncate">{exam.title}</h1>
                     <div className="flex items-center gap-2 text-xs md:text-sm text-slate-500">
@@ -885,21 +885,15 @@ export default function ExamTaker() {
                     </div>
                 </div>
 
-                {/* Mobile Swipe-Up Indicator */}
-                <div
-                    className="md:hidden fixed bottom-4 left-0 right-0 z-[100] flex flex-col items-center pointer-events-none"
+                {/* Mobile Question Navigator Button */}
+                <button
                     onClick={() => setShowQuestionNav(true)}
+                    className="md:hidden fixed top-20 right-4 z-[100] px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-500/50 flex items-center gap-2 transition-all active:scale-95 text-sm font-bold"
+                    aria-label="Open Question Navigator"
                 >
-                    <div className="bg-slate-800/90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-xs font-medium mb-2 animate-bounce pointer-events-auto">
-                        Swipe up to see questions
-                    </div>
-                    <div className="flex flex-col items-center gap-1 pointer-events-auto" onClick={() => setShowQuestionNav(true)}>
-                        <div className="w-12 h-1 bg-slate-400 rounded-full"></div>
-                        <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                        </svg>
-                    </div>
-                </div>
+                    <LayoutGrid className="w-4 h-4" />
+                    Questions
+                </button>
 
                 {/* Mobile Bottom Sheet */}
                 <AnimatePresence>
