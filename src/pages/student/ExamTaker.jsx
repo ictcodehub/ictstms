@@ -782,10 +782,10 @@ export default function ExamTaker() {
                     </div>
                     <button
                         onClick={() => setShowQuestionNav(true)}
-                        className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                         aria-label="Open Question Navigator"
                     >
-                        <LayoutGrid className="h-4 w-4 text-slate-700" />
+                        <LayoutGrid className="h-5 w-5 text-slate-700" />
                     </button>
                 </div>
             </div>
@@ -1005,9 +1005,76 @@ export default function ExamTaker() {
                 </div>
 
 
-                {/* Question Navigator - Unified Modal for Desktop & Mobile */}
+                {/* Question Navigator - Desktop: Sidebar, Mobile: Bottom Sheet */}
 
-                {/* Question Navigator Modal - Works on All Devices */}
+                {/* Desktop Sidebar */}
+                <AnimatePresence>
+                    {showQuestionNav && (
+                        <>
+                            {/* Desktop Sidebar */}
+                            <motion.div
+                                initial={{ x: '100%' }}
+                                animate={{ x: 0 }}
+                                exit={{ x: '100%' }}
+                                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                                className="hidden md:block fixed z-[90] top-0 bottom-0 right-0 w-[280px] shadow-2xl"
+                            >
+                                {/* Main Content Panel */}
+                                <div className="h-full bg-white flex flex-col border-l border-slate-200">
+                                    <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shrink-0">
+                                                    <LayoutGrid className="w-6 h-6 text-white" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h3 className="text-slate-800 font-bold text-lg tracking-tight">
+                                                        Question Navigator
+                                                    </h3>
+                                                    <p className="text-slate-500 text-xs mt-1">Click number to jump</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setShowQuestionNav(false)}
+                                                className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-colors"
+                                            >
+                                                <XCircle className="w-5 h-5 text-slate-600" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto p-5 content-start">
+                                        <div className="grid grid-cols-5 gap-2">
+                                            {randomizedQuestions.map((q, idx) => {
+                                                const isAnswered = !!answers[q.id];
+                                                const isActive = currentQuestionIndex === idx;
+                                                return (
+                                                    <button
+                                                        key={q.id}
+                                                        onClick={() => {
+                                                            setCurrentQuestionIndex(idx);
+                                                            setShowQuestionNav(false);
+                                                        }}
+                                                        className={`w-10 h-10 rounded-md font-semibold text-sm transition-all flex items-center justify-center ${isActive
+                                                            ? 'bg-blue-500 text-white shadow-md scale-105'
+                                                            : isAnswered
+                                                                ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                                                : 'bg-white text-slate-700 border border-slate-200 hover:border-blue-400 hover:text-blue-600'
+                                                            }`}
+                                                    >
+                                                        {idx + 1}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
+
+                {/* Mobile Bottom Sheet */}
                 <AnimatePresence>
                     {showQuestionNav && (
                         <>
@@ -1017,16 +1084,16 @@ export default function ExamTaker() {
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 onClick={() => setShowQuestionNav(false)}
-                                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200]"
+                                className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[200]"
                             />
 
-                            {/* Modal - Bottom Sheet on Mobile, Centered on Desktop */}
+                            {/* Bottom Sheet - Mobile Only */}
                             <motion.div
-                                initial={{ y: '100%', opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: '100%', opacity: 0 }}
+                                initial={{ y: '100%' }}
+                                animate={{ y: 0 }}
+                                exit={{ y: '100%' }}
                                 transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                                className="fixed bottom-0 md:bottom-auto md:top-1/2 md:-translate-y-1/2 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:max-w-2xl bg-white md:rounded-3xl rounded-t-3xl shadow-2xl z-[201] max-h-[80vh] md:max-h-[70vh] flex flex-col"
+                                className="md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[201] max-h-[80vh] flex flex-col"
                             >
                                 {/* Handle */}
                                 <div className="pt-3 pb-2 flex justify-center">
