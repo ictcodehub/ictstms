@@ -1007,7 +1007,7 @@ export default function ExamTaker() {
 
                 {/* Question Navigator - Unified Modal for Desktop & Mobile */}
 
-                {/* Mobile Bottom Sheet */}
+                {/* Question Navigator Modal - Works on All Devices */}
                 <AnimatePresence>
                     {showQuestionNav && (
                         <>
@@ -1017,16 +1017,16 @@ export default function ExamTaker() {
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 onClick={() => setShowQuestionNav(false)}
-                                className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[200]"
+                                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200]"
                             />
 
-                            {/* Bottom Sheet */}
+                            {/* Modal - Bottom Sheet on Mobile, Centered on Desktop */}
                             <motion.div
-                                initial={{ y: '100%' }}
-                                animate={{ y: 0 }}
-                                exit={{ y: '100%' }}
+                                initial={{ y: '100%', opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: '100%', opacity: 0 }}
                                 transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                                className="md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[201] max-h-[80vh] flex flex-col"
+                                className="fixed bottom-0 md:bottom-auto md:top-1/2 md:-translate-y-1/2 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:max-w-2xl bg-white md:rounded-3xl rounded-t-3xl shadow-2xl z-[201] max-h-[80vh] md:max-h-[70vh] flex flex-col"
                             >
                                 {/* Handle */}
                                 <div className="pt-3 pb-2 flex justify-center">
