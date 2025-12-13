@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, onSnapshot, increment } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LinkifiedText } from '../../utils/linkify';
@@ -174,8 +174,10 @@ export default function Tasks() {
         }
     };
 
-    const handleUpdate = async (taskId, submissionId) => {
-        if (!submissionText.trim()) {
+    const handleUpdate = async (taskId, submissionId, specificContent = null) => {
+        const contentToSave = specificContent !== null ? specificContent : submissionText;
+
+        if (!contentToSave.trim()) {
             showWarning('Please fill in your answer');
             return;
         }
@@ -184,8 +186,9 @@ export default function Tasks() {
         try {
             const submissionRef = doc(db, 'submissions', submissionId);
             await updateDoc(submissionRef, {
-                content: submissionText.trim(),
+                content: contentToSave.trim(),
                 revisedAt: serverTimestamp(),
+                revisionCount: increment(1),
                 // We update submittedAt to current time to reflect the "latest" submission time for deadline checks
                 submittedAt: serverTimestamp()
             });
@@ -648,6 +651,7 @@ export default function Tasks() {
                                                                                         Last revised: {submission.revisedAt.toDate().toLocaleDateString('en-US', {
                                                                                             day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                                                                                         })}
+                                                                                        {submission.revisionCount > 0 && ` • Revised ${submission.revisionCount} time${submission.revisionCount > 1 ? 's' : ''}`}
                                                                                     </p>
                                                                                 </div>
                                                                             )}
@@ -732,6 +736,7 @@ export default function Tasks() {
                                 setComment={setComment}
                                 toggleExpand={toggleExpand}
                                 handleSubmit={handleSubmit}
+                                handleUpdate={handleUpdate}
                                 setCurrentPage={setCurrentPage}
                             />
                         </div>
