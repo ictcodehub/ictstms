@@ -18,8 +18,11 @@ import {
     File,
     Video,
     Link,
-    Paperclip
+    Paperclip,
+    FileDown,
+    Upload
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -46,6 +49,11 @@ export default function ExamEditor() {
     const [activeQuestionId, setActiveQuestionId] = useState(null);
     const [showLinkModal, setShowLinkModal] = useState(false);
     const [linkModalData, setLinkModalData] = useState({ questionId: null, url: '', name: '' });
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [showDeleteSingleConfirmation, setShowDeleteSingleConfirmation] = useState(false);
+    const [questionToDelete, setQuestionToDelete] = useState(null);
+    const [showImportSuccess, setShowImportSuccess] = useState(false);
+    const [importSummary, setImportSummary] = useState(0);
 
     // Load initial data
     useEffect(() => {
@@ -155,10 +163,29 @@ export default function ExamEditor() {
     };
 
     const deleteQuestion = (qId) => {
-        if (window.confirm("Delete this question?")) {
-            setQuestions(questions.filter(q => q.id !== qId));
-            if (activeQuestionId === qId) setActiveQuestionId(null);
-        }
+        setQuestionToDelete(qId);
+        setShowDeleteSingleConfirmation(true);
+    };
+
+    const confirmDeleteSingle = () => {
+        if (!questionToDelete) return;
+        setQuestions(questions.filter(q => q.id !== questionToDelete));
+        if (activeQuestionId === questionToDelete) setActiveQuestionId(null);
+        setShowDeleteSingleConfirmation(false);
+        setQuestionToDelete(null);
+        toast.success("Soal dihapus");
+    };
+
+    const deleteAllQuestions = () => {
+        if (questions.length === 0) return;
+        setShowDeleteConfirmation(true);
+    };
+
+    const confirmDeleteAll = () => {
+        setQuestions([]);
+        setActiveQuestionId(null);
+        setShowDeleteConfirmation(false);
+        toast.success("Semua soal dihapus");
     };
 
     const duplicateQuestion = (question) => {
@@ -325,6 +352,140 @@ export default function ExamEditor() {
         }
 
         updateQuestion(qId, updates);
+    };
+
+    // --- Excel Import/Export Logic ---
+    const downloadTemplate = () => {
+        const wb = XLSX.utils.book_new();
+        const headers = ['Pertanyaan', 'Tipe', 'Poin', 'Opsi_A', 'Opsi_B', 'Opsi_C', 'Opsi_D', 'Opsi_E', 'Jawaban_Benar'];
+        const exampleData = [
+            ['Ibu kota Indonesia adalah...', 'single_choice', 10, 'Jakarta', 'Bandung', 'Surabaya', 'Medan', '', 'A'],
+            ['Manakah yang termasuk buah?', 'multiple_choice', 10, 'Apel', 'Kucing', 'Jeruk', 'Batu', '', 'A,C'],
+            ['Bumi itu bulat', 'true_false', 10, '', '', '', '', '', 'Benar'],
+            ['Jodohkan hewan dan kakinya', 'matching', 10, 'Ayam || 2 Kaki', 'Kucing || 4 Kaki', 'Ular || Tidak punya kaki', '', '', ''],
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleData]);
+
+        // Add comments/help as a second sheet
+        const helpHeaders = ['Tipe Soal', 'Kode Tipe', 'Format Opsi', 'Format Jawaban'];
+        const helpData = [
+            ['Pilihan Ganda', 'single_choice', 'Isi Opsi A-E', 'Huruf opsi benar (misal: A)'],
+            ['Pilihan Jamak', 'multiple_choice', 'Isi Opsi A-E', 'Huruf opsi benar dipisah koma (misal: A,C)'],
+            ['Benar Salah', 'true_false', 'Kosongkan Opsi', 'Tulis "Benar" atau "Salah"'],
+            ['Menjodohkan', 'matching', 'Format: "Kiri || Kanan"', 'Kosongkan Jawaban'],
+        ];
+        const wsHelp = XLSX.utils.aoa_to_sheet([helpHeaders, ...helpData]);
+
+        XLSX.utils.book_append_sheet(wb, ws, "Template Soal");
+        XLSX.utils.book_append_sheet(wb, wsHelp, "Panduan");
+
+        XLSX.writeFile(wb, "Template_Soal_ICT_Codehub.xlsx");
+        toast.success("Template berhasil didownload");
+    };
+
+    const handleExcelImport = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const bstr = evt.target.result;
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsName = wb.SheetNames[0];
+                const ws = wb.Sheets[wsName];
+                const data = XLSX.utils.sheet_to_json(ws);
+
+                if (data.length === 0) {
+                    toast.error("File Excel kosong atau format salah");
+                    return;
+                }
+
+                const newQuestions = [];
+
+                data.forEach((row, idx) => {
+                    const qTypeRaw = (row['Tipe'] || 'single_choice').toLowerCase().trim();
+                    let qType = 'single_choice';
+                    if (qTypeRaw.includes('multiple') || qTypeRaw.includes('jamak')) qType = 'multiple_choice';
+                    if (qTypeRaw.includes('true') || qTypeRaw.includes('fals') || qTypeRaw.includes('benar')) qType = 'true_false';
+                    if (qTypeRaw.includes('match') || qTypeRaw.includes('jodoh')) qType = 'matching';
+
+                    const points = parseInt(row['Poin']) || 10;
+                    const text = row['Pertanyaan'] || `Soal Tanpa Teks #${idx + 1}`;
+                    const answerRaw = String(row['Jawaban_Benar'] || '').toUpperCase().trim();
+
+                    const newQ = {
+                        id: crypto.randomUUID(),
+                        type: qType,
+                        text,
+                        points,
+                        attachments: [],
+                        enablePartialScoring: true,
+                        options: []
+                    };
+
+                    if (qType === 'matching') {
+                        // Matching Parser: Split 'A || B'
+                        const rawOptions = [row['Opsi_A'], row['Opsi_B'], row['Opsi_C'], row['Opsi_D'], row['Opsi_E']];
+                        newQ.options = rawOptions.filter(o => o && String(o).includes('||')).map(o => {
+                            const [left, right] = String(o).split('||').map(s => s.trim());
+                            return { id: crypto.randomUUID(), left, right };
+                        });
+                        // Fallback if empty
+                        if (newQ.options.length === 0) {
+                            newQ.options = [{ id: crypto.randomUUID(), left: '', right: '' }];
+                        }
+                    } else if (qType === 'true_false') {
+                        // TF Parser
+                        const isTrue = answerRaw.includes('BENAR') || answerRaw === 'A' || answerRaw === 'TRUE';
+                        newQ.options = [
+                            { id: 'true', text: 'Benar', isCorrect: isTrue },
+                            { id: 'false', text: 'Salah', isCorrect: !isTrue }
+                        ];
+                    } else {
+                        // Single/Multiple Parser
+                        const rawOptions = [row['Opsi_A'], row['Opsi_B'], row['Opsi_C'], row['Opsi_D'], row['Opsi_E']];
+                        // Map A,B,C,D,E to indices 0,1,2,3,4
+                        const correctIndices = [];
+                        if (qType === 'multiple_choice') {
+                            if (answerRaw.includes('A')) correctIndices.push(0);
+                            if (answerRaw.includes('B')) correctIndices.push(1);
+                            if (answerRaw.includes('C')) correctIndices.push(2);
+                            if (answerRaw.includes('D')) correctIndices.push(3);
+                            if (answerRaw.includes('E')) correctIndices.push(4);
+                        } else {
+                            if (answerRaw === 'A') correctIndices.push(0);
+                            if (answerRaw === 'B') correctIndices.push(1);
+                            if (answerRaw === 'C') correctIndices.push(2);
+                            if (answerRaw === 'D') correctIndices.push(3);
+                            if (answerRaw === 'E') correctIndices.push(4);
+                        }
+
+                        newQ.options = rawOptions.map((optText, i) => {
+                            if (!optText) return null; // Skip empty cols
+                            return {
+                                id: crypto.randomUUID(),
+                                text: String(optText),
+                                isCorrect: correctIndices.includes(i)
+                            };
+                        }).filter(o => o !== null);
+                    }
+
+                    newQuestions.push(newQ);
+                });
+
+                setQuestions(prev => [...prev, ...newQuestions]);
+                setImportSummary(newQuestions.length);
+                setShowImportSuccess(true);
+                e.target.value = null; // Reset input
+
+            } catch (error) {
+                console.error("Excel Parse Error:", error);
+                toast.error("Gagal membaca file Excel. Pastikan format sesuai template.");
+            }
+        };
+        reader.readAsBinaryString(file);
     };
 
     const handleSubmit = async (e) => {
@@ -505,6 +666,33 @@ export default function ExamEditor() {
 
                 {/* Center/Right: Question Editor */}
                 <div className="lg:col-span-2 space-y-6">
+                    {/* Import/Export Tools */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={downloadTemplate}
+                            className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-sm font-bold border border-green-200 transition-colors"
+                        >
+                            <FileDown className="h-4 w-4" /> Template Excel
+                        </button>
+                        <label className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-bold border border-blue-200 transition-colors cursor-pointer">
+                            <Upload className="h-4 w-4" /> Import Excel
+                            <input
+                                type="file"
+                                accept=".xlsx, .xls"
+                                className="hidden"
+                                onChange={handleExcelImport}
+                            />
+                        </label>
+                        {questions.length > 0 && (
+                            <button
+                                onClick={deleteAllQuestions}
+                                className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg text-sm font-bold border border-red-200 transition-colors ml-auto"
+                            >
+                                <Trash2 className="h-4 w-4" /> Hapus Semua
+                            </button>
+                        )}
+                    </div>
+
                     {/* Question List Visualizer */}
                     <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-wrap gap-2">
                         {questions.map((q, idx) => (
@@ -890,6 +1078,134 @@ export default function ExamEditor() {
                             </div>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {showDeleteConfirmation && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                        >
+                            <div className="p-6 text-center space-y-4">
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                                    <Trash2 className="h-8 w-8 text-red-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-800">Hapus Semua Soal?</h3>
+                                    <p className="text-slate-500 mt-2">
+                                        Apakah Anda yakin ingin menghapus <b>{questions.length} soal</b>? <br />
+                                        Tindakan ini tidak dapat dibatalkan.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex border-t border-slate-100 bg-slate-50 p-4 gap-3">
+                                <button
+                                    onClick={() => setShowDeleteConfirmation(false)}
+                                    className="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    onClick={confirmDeleteAll}
+                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
+                                >
+                                    Ya, Hapus Semua
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            {/* Delete Single Question Confirmation Modal */}
+            <AnimatePresence>
+                {showDeleteSingleConfirmation && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                        >
+                            <div className="p-6 text-center space-y-4">
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                                    <Trash2 className="h-8 w-8 text-red-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-800">Hapus Soal Ini?</h3>
+                                    <p className="text-slate-500 mt-2">
+                                        Tindakan ini tidak dapat dibatalkan. Soal akan dihapus dari daftar.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex border-t border-slate-100 bg-slate-50 p-4 gap-3">
+                                <button
+                                    onClick={() => setShowDeleteSingleConfirmation(false)}
+                                    className="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    onClick={confirmDeleteSingle}
+                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
+                                >
+                                    Hapus Soal
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Import Success Modal */}
+            <AnimatePresence>
+                {showImportSuccess && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+                        >
+                            <div className="p-6 text-center space-y-4">
+                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-800">Import Berhasil!</h3>
+                                    <p className="text-slate-500 mt-2">
+                                        Berhasil menambahkan <b className="text-green-600">{importSummary} soal baru</b> ke dalam editor ujian.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex border-t border-slate-100 bg-slate-50 p-4">
+                                <button
+                                    onClick={() => setShowImportSuccess(false)}
+                                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+                                >
+                                    Oke, Lanjutkan
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>
