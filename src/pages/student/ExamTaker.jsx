@@ -162,11 +162,21 @@ export default function ExamTaker() {
                         const resultsSnap = await getDocs(resultsQuery);
 
                         if (!resultsSnap.empty) {
-                            // Exam already submitted - check if it was auto-submitted and not yet notified
-                            const latestResult = resultsSnap.docs[0];
-                            const resultData = latestResult.data();
+                            // Sort results by submittedAt descending to get the latest
+                            const sortedResults = resultsSnap.docs
+                                .map(d => ({ id: d.id, ...d.data() }))
+                                .sort((a, b) => (b.submittedAt?.toMillis() || 0) - (a.submittedAt?.toMillis() || 0));
 
-                            if (resultData.autoSubmitted && !resultData.autoSubmitNotified) {
+                            const latestResult = sortedResults[0];
+
+                            // If retake is allowed, allow starting new exam
+                            if (latestResult.allowRetake) {
+                                setTimeLeft(data.duration * 60);
+                                return;
+                            }
+
+                            // Exam already submitted and NO retake allowed
+                            if (latestResult.autoSubmitted && !latestResult.autoSubmitNotified) {
                                 // Show notification modal
                                 setShowAutoSubmitNotif(true);
 
