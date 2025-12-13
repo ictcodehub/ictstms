@@ -258,7 +258,7 @@ export default function StudentExams() {
             )}
 
             {/* Search and Filter */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
                     <input
