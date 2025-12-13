@@ -27,12 +27,12 @@ export default function Login() {
             setLoading(true);
             await login(email, password, rememberMe);
             toast.success('Login berhasil!');
+            // Don't set loading to false - keep loading screen active during navigation
             navigate('/');
         } catch (err) {
             toast.error('Login gagal. Periksa email dan password Anda.');
             console.error(err);
-        } finally {
-            setLoading(false);
+            setLoading(false); // Only disable loading on error
         }
     };
 
@@ -164,6 +164,25 @@ export default function Login() {
                     </div>
                 </div>
             </PullToRefresh>
+
+            {/* Full-Screen Loading Overlay - Shown during login and navigation */}
+            {loading && (
+                <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white">
+                    <div className="mb-6 relative">
+                        {/* Glow effect */}
+                        <div className="absolute inset-0 bg-blue-400/30 blur-2xl rounded-full scale-150 animate-pulse"></div>
+                        <img src="/favicon.png" alt="ICT Codehub" className="w-28 h-28 rounded-2xl shadow-2xl relative z-10" />
+                    </div>
+                    <div className="text-center relative z-10">
+                        <h1 className="text-3xl font-bold text-slate-800 tracking-tight mb-1">ICT Codehub</h1>
+                        <p className="text-sm text-slate-500 font-medium">Logging in...</p>
+                    </div>
+                    {/* Loading Indicator */}
+                    <div className="mt-8">
+                        <div className="w-8 h-8 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
