@@ -491,10 +491,10 @@ export default function Overview() {
                                                                     isInProgress ? 'bg-yellow-100 hover:bg-yellow-200 md:bg-yellow-50/70 md:hover:bg-yellow-50' :
                                                                         'bg-purple-100 hover:bg-purple-200 md:bg-purple-50/70 md:hover:bg-purple-50';
 
-                                                            let iconBg = isCompleted ? 'bg-white text-emerald-600' :
-                                                                isRemedial ? 'bg-orange-100 text-orange-600' :
-                                                                    isInProgress ? 'bg-yellow-100 text-yellow-600' :
-                                                                        'bg-purple-100 text-purple-600';
+                                                            let iconBg = isCompleted ? 'bg-white border-emerald-100 text-emerald-600' :
+                                                                isRemedial ? 'bg-white border-orange-100 text-orange-600' :
+                                                                    isInProgress ? 'bg-white border-yellow-100 text-yellow-600' :
+                                                                        'bg-white border-purple-100 text-purple-600';
 
                                                             return (
                                                                 <motion.div
@@ -507,7 +507,7 @@ export default function Overview() {
                                                                 >
                                                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                                                         <span className="hidden md:block w-6 text-center text-xs font-bold text-slate-600">{displayIndex}</span>
-                                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${iconBg}`}>
+                                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border-2 ${iconBg}`}>
                                                                             <ClipboardCheck className="h-5 w-5" />
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
@@ -611,7 +611,9 @@ export default function Overview() {
                                                                     statusDisplay = (
                                                                         <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isEarly ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
                                                                             {isEarly ? <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> : <AlertCircle className="h-3.5 w-3.5 text-red-600" />}
-                                                                            <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>Completed</span>
+                                                                            <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>
+                                                                                {isEarly ? 'Completed' : 'Done Late'}
+                                                                            </span>
                                                                         </div>
                                                                     );
                                                                 } else {
@@ -636,6 +638,10 @@ export default function Overview() {
                                                                 statusDisplay = <span className="text-xs text-slate-400">-</span>;
                                                             }
 
+                                                            const isLateSubmission = submission && submission.submittedAt && deadlineDate
+                                                                ? submission.submittedAt.toDate() > deadlineDate
+                                                                : false;
+
                                                             return (
                                                                 <motion.div
                                                                     key={task.id}
@@ -647,11 +653,16 @@ export default function Overview() {
                                                                 >
                                                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                                                         <span className="hidden md:block text-slate-400 font-medium w-6 text-center flex-shrink-0 text-xs">{displayIndex}</span>
-                                                                        <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center text-blue-600 flex-shrink-0 shadow-sm">
+                                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border-2 bg-white ${(isOverdue && !submission) || isLateSubmission ? 'border-red-100 text-red-600' :
+                                                                            'border-blue-100 text-blue-600'
+                                                                            }`}>
                                                                             <BookOpen className="h-5 w-5" />
                                                                         </div>
                                                                         <div className="min-w-0 flex-1">
-                                                                            <h4 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 text-sm mb-1" title={task.title}>{task.title}</h4>
+                                                                            <h4 className={`font-bold text-slate-800 transition-colors line-clamp-2 text-sm mb-1 ${(isOverdue && !submission) || isLateSubmission ? 'group-hover:text-red-600' :
+                                                                                    submission ? 'group-hover:text-slate-900' :
+                                                                                        'group-hover:text-blue-700'
+                                                                                }`} title={task.title}>{task.title}</h4>
                                                                             <p className="text-xs text-slate-500 line-clamp-1">{task.description}</p>
                                                                             <div className="md:hidden mt-1.5 text-xs text-slate-500">
                                                                                 <span className="font-medium">Assigned: </span>

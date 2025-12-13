@@ -450,7 +450,9 @@ export default function Tasks() {
                                             statusDisplay = (
                                                 <div className={`flex w-full items-center gap-2 px-3 py-2 rounded-lg border ${isEarly ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
                                                     {isEarly ? <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> : <AlertCircle className="h-3.5 w-3.5 text-red-600" />}
-                                                    <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>Completed</span>
+                                                    <span className={`text-xs font-bold ${isEarly ? 'text-emerald-700' : 'text-red-700'}`}>
+                                                        {isEarly ? 'Completed' : 'Done Late'}
+                                                    </span>
                                                 </div>
                                             );
                                             infoDisplay = (
@@ -514,6 +516,11 @@ export default function Tasks() {
                                         infoDisplay = <span className="text-xs text-slate-400">-</span>;
                                     }
 
+                                    // Determine late submission
+                                    const isLateSubmission = submission && submission.submittedAt && deadlineDate
+                                        ? submission.submittedAt.toDate() > deadlineDate
+                                        : false;
+
                                     return (
                                         <div key={task.id} className="group">
                                             <div
@@ -523,11 +530,16 @@ export default function Tasks() {
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                                     <span className="text-slate-400 font-medium w-6 text-center flex-shrink-0 text-xs">{index + 1}</span>
 
-                                                    <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center text-blue-600 flex-shrink-0 shadow-sm">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border-2 bg-white ${(isOverdue && !submission) || isLateSubmission ? 'border-red-100 text-red-600' :
+                                                        'border-blue-100 text-blue-600'
+                                                        }`}>
                                                         <BookOpen className="h-5 w-5" />
                                                     </div>
                                                     <div className="min-w-0 flex-1">
-                                                        <h4 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 text-sm mb-1" title={task.title}>{task.title}</h4>
+                                                        <h4 className={`font-bold text-slate-800 transition-colors line-clamp-2 text-sm mb-1 ${(isOverdue && !submission) || isLateSubmission ? 'group-hover:text-red-600' :
+                                                                submission ? 'group-hover:text-slate-900' :
+                                                                    'group-hover:text-blue-700'
+                                                            }`} title={task.title}>{task.title}</h4>
                                                         <p className="text-xs text-slate-500 line-clamp-1">{task.description}</p>
                                                     </div>
                                                 </div>

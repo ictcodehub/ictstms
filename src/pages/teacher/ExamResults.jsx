@@ -394,6 +394,176 @@ export default function ExamResults() {
                 )}
             </AnimatePresence>
 
+
+        </div>
+    );
+
+    return (
+        <>
+            {selectedStudent ? (
+                <StudentDetailView student={selectedStudent} onClose={() => setSelectedStudentId(null)} />
+            ) : (
+                <div className="space-y-6">
+                    {/* Header */}
+                    <div className="flex items-center gap-4 justify-between">
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => navigate('/teacher/exams')}
+                                className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                            >
+                                <ArrowLeft className="h-6 w-6 text-slate-500" />
+                            </button>
+                            <div>
+                                <h1 className="text-2xl font-bold text-slate-800">Hasil Ujian: {exam?.title}</h1>
+                                <p className="text-slate-500 text-sm">
+                                    {exam?.questions?.length || 0} Soal • {exam?.duration} Menit • {students.length} Siswa
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Reset All Button */}
+                        {students.some(s => s.attempts && s.attempts.length > 0) && (
+                            <button
+                                onClick={handleResetAll}
+                                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors border border-red-200"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                                Reset Semua Kelas
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Toolbar */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 justify-between items-center">
+                        <div className="relative w-full md:w-96">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Cari siswa..."
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 focus:bg-white transition-all"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="flex gap-3 w-full md:w-auto">
+                            {/* Class Filter Dropdown */}
+                            <select
+                                value={selectedClassId}
+                                onChange={(e) => setSelectedClassId(e.target.value)}
+                                className="px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white transition-all font-medium text-slate-700"
+                            >
+                                <option value="all">Semua Kelas</option>
+                                {uniqueClasses.map(cls => (
+                                    <option key={cls.id} value={cls.id}>{cls.name}</option>
+                                ))}
+                            </select>
+
+                            {/* Reset Per Class Button - Only show when a class is selected */}
+                            {selectedClassId !== 'all' && filteredStudents.some(s => s.attempts && s.attempts.length > 0) && (
+                                <button
+                                    onClick={() => {
+                                        const selectedClass = uniqueClasses.find(c => c.id === selectedClassId);
+                                        handleResetClass(
+                                            selectedClassId,
+                                            selectedClass?.name || selectedClassId,
+                                            filteredStudents
+                                        );
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 font-bold rounded-xl hover:bg-orange-100 transition-colors border border-orange-200 whitespace-nowrap"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Reset Kelas Ini
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Students List */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        {filteredStudents.length === 0 ? (
+                            <div className="text-center py-16">
+                                <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Search className="h-8 w-8 text-slate-400" />
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-700">Tidak ada siswa ditemukan</h3>
+                            </div>
+                        ) : (
+                            <div className="cursor-default">
+                                <table className="w-full">
+                                    <thead className="bg-slate-50 border-b border-slate-100">
+                                        <tr>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa</th>
+                                            <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Attempt</th>
+                                            <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Status Terakhir</th>
+                                            <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Nilai Terbaik</th>
+                                            <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {filteredStudents.map((student) => (
+                                            <tr
+                                                key={student.id}
+                                                onClick={() => setSelectedStudentId(student.id)}
+                                                className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
+                                            >
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm uppercase">
+                                                            {student.name[0]}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors">{student.name}</p>
+                                                            <p className="text-xs text-slate-500">{student.email}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold">
+                                                        {student.attempts.length}x
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    {student.status === 'completed' && (
+                                                        <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100">
+                                                            <CheckCircle className="h-3 w-3" /> Selesai
+                                                        </span>
+                                                    )}
+                                                    {student.status === 'remedial' && (
+                                                        <span className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full border border-orange-100">
+                                                            <RefreshCw className="h-3 w-3" /> Remedial
+                                                        </span>
+                                                    )}
+                                                    {student.status === 'pending' && (
+                                                        <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-full border border-slate-200">
+                                                            Belum Mengerjakan
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    {student.bestScore !== undefined && student.attempts.length > 0 ? (
+                                                        <span className={`font-bold ${student.bestScore >= 70 ? 'text-green-600' : 'text-slate-600'}`}>
+                                                            {Math.round(student.bestScore)}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-slate-300">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <button className="p-2 bg-white rounded-lg border border-slate-200 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm group-hover:border-blue-300">
+                                                        <ChevronRight className="h-4 w-4" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Reset Confirmation Modal */}
             <AnimatePresence>
                 {resetModal.isOpen && (
@@ -442,172 +612,6 @@ export default function ExamResults() {
                     </div>
                 )}
             </AnimatePresence>
-        </div>
-    );
-
-    if (selectedStudent) {
-        return <StudentDetailView student={selectedStudent} onClose={() => setSelectedStudentId(null)} />;
-    }
-
-    return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center gap-4 justify-between">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate('/teacher/exams')}
-                        className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
-                    >
-                        <ArrowLeft className="h-6 w-6 text-slate-500" />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-800">Hasil Ujian: {exam?.title}</h1>
-                        <p className="text-slate-500 text-sm">
-                            {exam?.questions?.length || 0} Soal • {exam?.duration} Menit • {students.length} Siswa
-                        </p>
-                    </div>
-                </div>
-
-                {/* Reset All Button */}
-                {students.some(s => s.attempts && s.attempts.length > 0) && (
-                    <button
-                        onClick={handleResetAll}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors border border-red-200"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        Reset Semua Kelas
-                    </button>
-                )}
-            </div>
-
-            {/* Toolbar */}
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 justify-between items-center">
-                <div className="relative w-full md:w-96">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder="Cari siswa..."
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 focus:bg-white transition-all"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-
-                <div className="flex gap-3 w-full md:w-auto">
-                    {/* Class Filter Dropdown */}
-                    <select
-                        value={selectedClassId}
-                        onChange={(e) => setSelectedClassId(e.target.value)}
-                        className="px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white transition-all font-medium text-slate-700"
-                    >
-                        <option value="all">Semua Kelas</option>
-                        {uniqueClasses.map(cls => (
-                            <option key={cls.id} value={cls.id}>{cls.name}</option>
-                        ))}
-                    </select>
-
-                    {/* Reset Per Class Button - Only show when a class is selected */}
-                    {selectedClassId !== 'all' && filteredStudents.some(s => s.attempts && s.attempts.length > 0) && (
-                        <button
-                            onClick={() => {
-                                const selectedClass = uniqueClasses.find(c => c.id === selectedClassId);
-                                handleResetClass(
-                                    selectedClassId,
-                                    selectedClass?.name || selectedClassId,
-                                    filteredStudents
-                                );
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 font-bold rounded-xl hover:bg-orange-100 transition-colors border border-orange-200 whitespace-nowrap"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                            Reset Kelas Ini
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Students List */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                {filteredStudents.length === 0 ? (
-                    <div className="text-center py-16">
-                        <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Search className="h-8 w-8 text-slate-400" />
-                        </div>
-                        <h3 className="text-lg font-bold text-slate-700">Tidak ada siswa ditemukan</h3>
-                    </div>
-                ) : (
-                    <div className="cursor-default">
-                        <table className="w-full">
-                            <thead className="bg-slate-50 border-b border-slate-100">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Siswa</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Attempt</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Status Terakhir</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Nilai Terbaik</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {filteredStudents.map((student) => (
-                                    <tr
-                                        key={student.id}
-                                        onClick={() => setSelectedStudentId(student.id)}
-                                        className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
-                                    >
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm uppercase">
-                                                    {student.name[0]}
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors">{student.name}</p>
-                                                    <p className="text-xs text-slate-500">{student.email}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold">
-                                                {student.attempts.length}x
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            {student.status === 'completed' && (
-                                                <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100">
-                                                    <CheckCircle className="h-3 w-3" /> Selesai
-                                                </span>
-                                            )}
-                                            {student.status === 'remedial' && (
-                                                <span className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full border border-orange-100">
-                                                    <RefreshCw className="h-3 w-3" /> Remedial
-                                                </span>
-                                            )}
-                                            {student.status === 'pending' && (
-                                                <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-full border border-slate-200">
-                                                    Belum Mengerjakan
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            {student.bestScore !== undefined && student.attempts.length > 0 ? (
-                                                <span className={`font-bold ${student.bestScore >= 70 ? 'text-green-600' : 'text-slate-600'}`}>
-                                                    {Math.round(student.bestScore)}
-                                                </span>
-                                            ) : (
-                                                <span className="text-slate-300">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <button className="p-2 bg-white rounded-lg border border-slate-200 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm group-hover:border-blue-300">
-                                                <ChevronRight className="h-4 w-4" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-        </div>
+        </>
     );
 }

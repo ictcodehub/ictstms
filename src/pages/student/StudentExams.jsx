@@ -4,7 +4,7 @@ import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { ClipboardCheck, Clock, CheckCircle2, AlertCircle, ArrowRight, Search, Filter, ChevronDown, Trophy, Calendar, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
+import { ClipboardCheck, Clock, CheckCircle2, AlertCircle, ArrowRight, Search, Filter, ChevronDown, Trophy, Calendar, ChevronLeft, ChevronRight, ClipboardList, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
 import { getExamSession } from '../../utils/examSession';
@@ -390,9 +390,10 @@ export default function StudentExams() {
                                             </span>
 
                                             {/* Icon */}
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${isCompleted ? 'bg-emerald-100 text-emerald-600' :
-                                                exam.attempt?.allowRetake ? 'bg-orange-100 text-orange-600' :
-                                                    'bg-purple-100 text-purple-600'
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm transition-colors border-2 ${isCompleted ? 'bg-white border-emerald-100 text-emerald-600' :
+                                                examSessions[exam.id] ? 'bg-white border-yellow-100 text-yellow-600' :
+                                                    exam.attempt?.allowRetake ? 'bg-white border-orange-100 text-orange-600' :
+                                                        'bg-white border-purple-100 text-purple-600'
                                                 }`}>
                                                 <ClipboardCheck className="h-5 w-5" />
                                             </div>
@@ -452,10 +453,19 @@ export default function StudentExams() {
                                             <div className="min-w-[100px] flex justify-center">
                                                 {isCompleted ? (
                                                     <button
-                                                        disabled
-                                                        className="px-3 py-1.5 bg-slate-200 text-slate-500 rounded-lg text-xs font-bold cursor-not-allowed"
+                                                        onClick={() => {
+                                                            if (exam.showResultToStudents) {
+                                                                navigate(`/student/exams/${exam.id}/review`);
+                                                            }
+                                                        }}
+                                                        disabled={!exam.showResultToStudents}
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${exam.showResultToStudents
+                                                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer'
+                                                            : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                                                            }`}
                                                     >
-                                                        Completed
+                                                        {exam.showResultToStudents ? 'Review' : 'Completed'}
+                                                        {exam.showResultToStudents && <ExternalLink className="h-3 w-3" />}
                                                     </button>
                                                 ) : isExpired && !exam.attempt ? (
                                                     <button
@@ -569,11 +579,28 @@ export default function StudentExams() {
                                         {/* Action Button - Full Width & Prominent */}
                                         {isCompleted ? (
                                             <button
-                                                disabled
-                                                className="w-full py-3 px-4 bg-slate-200 text-slate-500 rounded-xl text-xs font-bold cursor-not-allowed flex items-center justify-center gap-2 mt-3"
+                                                onClick={() => {
+                                                    if (exam.showResultToStudents) {
+                                                        navigate(`/student/exams/${exam.id}/review`);
+                                                    }
+                                                }}
+                                                disabled={!exam.showResultToStudents}
+                                                className={`w-full py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 mt-3 ${exam.showResultToStudents
+                                                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer border border-blue-200'
+                                                    : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                                                    }`}
                                             >
-                                                <CheckCircle2 className="h-5 w-5" />
-                                                Completed
+                                                {exam.showResultToStudents ? (
+                                                    <>
+                                                        <ExternalLink className="h-5 w-5" />
+                                                        View Review
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <CheckCircle2 className="h-5 w-5" />
+                                                        Completed
+                                                    </>
+                                                )}
                                             </button>
                                         ) : isExpired && !exam.attempt ? (
                                             <button

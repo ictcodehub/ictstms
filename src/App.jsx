@@ -9,6 +9,7 @@ const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/Dashboard'));
 const StudentDashboard = lazy(() => import('./pages/student/Dashboard'));
+const ExamReview = lazy(() => import('./pages/student/ExamReview'));
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
@@ -78,6 +79,11 @@ function App() {
             <Route path="/student/*" element={
               <ProtectedRoute role="student">
                 <StudentDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/student/exams/:id/review" element={
+              <ProtectedRoute role="student">
+                <ExamReview />
               </ProtectedRoute>
             } />
 

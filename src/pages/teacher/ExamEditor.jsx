@@ -42,7 +42,8 @@ export default function ExamEditor() {
         assignedClasses: [],
         status: 'draft',
         randomizeQuestions: false,
-        randomizeAnswers: false
+        randomizeAnswers: false,
+        showResultToStudents: false
     });
 
     const [questions, setQuestions] = useState([]);
@@ -61,7 +62,10 @@ export default function ExamEditor() {
             try {
                 const q = query(collection(db, 'classes'), where('createdBy', '==', currentUser.uid));
                 const snapshot = await getDocs(q);
-                setClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                const loadedClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Sort classes naturally (6A, 6B, 9A, 9B, etc.)
+                loadedClasses.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+                setClasses(loadedClasses);
             } catch (error) {
                 console.error("Error loading classes:", error);
             }
@@ -81,7 +85,8 @@ export default function ExamEditor() {
                         assignedClasses: data.assignedClasses || [],
                         status: data.status,
                         randomizeQuestions: data.randomizeQuestions || false,
-                        randomizeAnswers: data.randomizeAnswers || false
+                        randomizeAnswers: data.randomizeAnswers || false,
+                        showResultToStudents: data.showResultToStudents || false
                     });
                     setQuestions(data.questions || []);
                     if (data.questions && data.questions.length > 0) {
@@ -637,6 +642,22 @@ export default function ExamEditor() {
                                     className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                                 />
                             </label>
+
+                            <div className="pt-4 border-t border-slate-200">
+                                <h4 className="text-sm font-semibold text-slate-700 mb-2">Review Settings</h4>
+                                <label className="flex items-center justify-between p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <div>
+                                        <span className="text-sm font-medium text-slate-700">Show Results to Students</span>
+                                        <p className="text-xs text-slate-500 mt-0.5">Allow students to see correct answers after submission</p>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={examData.showResultToStudents}
+                                        onChange={(e) => setExamData({ ...examData, showResultToStudents: e.target.checked })}
+                                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </label>
+                            </div>
                         </div>
                     </div>
 
