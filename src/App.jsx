@@ -56,8 +56,6 @@ const RootRedirect = () => {
   return <Navigate to={userRole === 'teacher' ? '/teacher' : '/student'} />;
 };
 
-import { SplashScreen } from '@capacitor/splash-screen';
-
 function App() {
   const [showSplash, setShowSplash] = useState(true);
 
