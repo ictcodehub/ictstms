@@ -486,10 +486,10 @@ export default function Overview() {
                                                             const isRemedial = result && result.allowRetake;
                                                             const isCompleted = !!result && !isRemedial;
 
-                                                            let cardBg = isCompleted ? 'bg-slate-100 hover:bg-slate-200 md:bg-white md:hover:bg-blue-50/30' :
-                                                                isRemedial ? 'bg-orange-100 hover:bg-orange-200 md:bg-white md:hover:bg-blue-50/30' :
-                                                                    isInProgress ? 'bg-yellow-100 hover:bg-yellow-200 md:bg-white md:hover:bg-blue-50/30' :
-                                                                        'bg-purple-100 hover:bg-purple-200 md:bg-white md:hover:bg-blue-50/30';
+                                                            let cardBg = isCompleted ? 'bg-slate-100 hover:bg-slate-200 md:bg-white md:hover:bg-slate-50' :
+                                                                isRemedial ? 'bg-orange-100 hover:bg-orange-200 md:bg-orange-50/70 md:hover:bg-orange-50' :
+                                                                    isInProgress ? 'bg-yellow-100 hover:bg-yellow-200 md:bg-yellow-50/70 md:hover:bg-yellow-50' :
+                                                                        'bg-purple-100 hover:bg-purple-200 md:bg-purple-50/70 md:hover:bg-purple-50';
 
                                                             let iconBg = isCompleted ? 'bg-white text-emerald-600' :
                                                                 isRemedial ? 'bg-orange-100 text-orange-600' :
@@ -586,14 +586,14 @@ export default function Overview() {
 
                                                             let statusColor = "";
                                                             if (submission && submission.grade !== null && submission.grade !== undefined) {
-                                                                // Sudah dinilai - Abu-abu (sama seperti Tasks)
-                                                                statusColor = "bg-slate-100 hover:bg-slate-200 md:bg-white md:hover:bg-blue-50/30";
+                                                                // Sudah dinilai - Abu-abu -> Desktop: White
+                                                                statusColor = "bg-slate-100 hover:bg-slate-200 md:bg-white md:hover:bg-slate-50";
                                                             } else if (submission) {
-                                                                // Menunggu dinilai - Kuning (sama seperti Tasks)
-                                                                statusColor = "bg-amber-50 hover:bg-amber-100/50 md:bg-white md:hover:bg-blue-50/30";
+                                                                // Menunggu dinilai - Kuning -> Desktop: White (Submitted = Done)
+                                                                statusColor = "bg-amber-50 hover:bg-amber-100/50 md:bg-white md:hover:bg-slate-50";
                                                             } else {
-                                                                // Belum dikerjakan - Merah (sama seperti Tasks)
-                                                                statusColor = isOverdue ? "bg-red-100/50 hover:bg-red-100 md:bg-white md:hover:bg-blue-50/30" : "bg-red-50 hover:bg-red-100/50 md:bg-white md:hover:bg-blue-50/30";
+                                                                // Belum dikerjakan - Merah -> Desktop: Faint Red/Blue
+                                                                statusColor = isOverdue ? "bg-red-100/50 hover:bg-red-100 md:bg-red-50/70 md:hover:bg-red-50" : "bg-red-50 hover:bg-red-100/50 md:bg-blue-50/70 md:hover:bg-blue-50";
                                                             }
 
                                                             // Handle Grade Display

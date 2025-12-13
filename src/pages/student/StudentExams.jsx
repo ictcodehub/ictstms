@@ -376,9 +376,10 @@ export default function StudentExams() {
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: index * 0.03 }}
-                                        className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 transition-colors gap-3 md:gap-0 rounded-xl mb-4 md:rounded-none md:mb-0 ${isCompleted ? 'bg-emerald-50/30 md:hover:bg-emerald-50/50' :
-                                            exam.attempt?.allowRetake ? 'bg-orange-50/30 md:hover:bg-orange-50/50' :
-                                                'bg-white md:hover:bg-slate-50'
+                                        className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 transition-colors gap-3 md:gap-0 rounded-xl mb-4 md:rounded-none md:mb-0 ${isCompleted ? 'bg-emerald-50/70 md:bg-white md:hover:bg-slate-50' :
+                                            examSessions[exam.id] ? 'bg-yellow-50/70 hover:bg-yellow-50' :
+                                                exam.attempt?.allowRetake ? 'bg-orange-50/70 hover:bg-orange-50' :
+                                                    'bg-purple-50/70 hover:bg-purple-50'
                                             }`}
                                     >
                                         {/* Left Section: Number + Icon + Details */}

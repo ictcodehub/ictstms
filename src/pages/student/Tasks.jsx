@@ -386,15 +386,18 @@ export default function Tasks() {
                                     const isSubmitting = submitting === task.id;
 
                                     // Row background color based on status
-                                    let statusColor = "bg-white hover:bg-slate-50";
+                                    let statusColor = "bg-blue-50/70 hover:bg-blue-50"; // Default: Pending (Faint Blue)
                                     const isGraded = submission && submission.grade !== null && submission.grade !== undefined;
 
                                     if (isGraded) {
+                                        // Graded -> White (Default)
                                         statusColor = "bg-white hover:bg-slate-50";
                                     } else if (submission) {
-                                        statusColor = "bg-amber-50 hover:bg-amber-100/50";
+                                        // Submitted -> White (Default, considered done by user)
+                                        statusColor = "bg-white hover:bg-slate-50";
                                     } else {
-                                        statusColor = isOverdue ? "bg-red-100/50 hover:bg-red-100" : "bg-red-50 hover:bg-red-100/50";
+                                        // Not Submitted
+                                        statusColor = isOverdue ? "bg-red-50/70 hover:bg-red-50" : "bg-blue-50/70 hover:bg-blue-50";
                                     }
 
                                     // Grade display

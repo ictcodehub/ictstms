@@ -261,7 +261,7 @@ export default function DashboardLayout({ children }) {
                     <div className="mb-6">
                         <div className="flex items-center gap-3 mb-3">
                             {/* Firebase Icon */}
-                            <img src="/favicon.png" alt="Logo" className="w-12 h-12 rounded-lg" />
+                            <img src="/favicon.png" alt="Logo" className="w-10 h-10 rounded-lg" />
                             <div className="flex-1">
                                 <h1 className="text-lg font-bold text-slate-800 leading-tight">
                                     ICT Codehub
@@ -306,11 +306,11 @@ export default function DashboardLayout({ children }) {
 
                 {/* Credits Section */}
                 <div className="px-3 py-2 border-t border-slate-100">
-                    <div className="text-center space-y-0.5">
+                    <div className="text-center space-y-1">
                         <p className="text-xs text-slate-400 font-light leading-tight flex items-center justify-center gap-1">
                             Made with <Flame className="h-3 w-3 text-orange-500 fill-orange-500 animate-pulse" /> by <span className="font-normal text-slate-500">Mr. Tio</span>
                         </p>
-                        <p className="text-[10px] text-slate-400 font-light leading-tight">
+                        <p className="text-[9px] text-slate-400 font-light leading-tight whitespace-nowrap">
                             Powered by Google Antigravity & Firebase
                         </p>
                     </div>
