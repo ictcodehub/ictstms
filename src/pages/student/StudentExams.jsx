@@ -346,15 +346,15 @@ export default function StudentExams() {
                     {/* TABLE HEADER - Desktop Only */}
                     <div className="hidden md:flex items-center justify-between py-4 px-6 bg-slate-50 border-b border-slate-200">
                         <div className="flex items-center gap-3 flex-1">
-                            <span className="w-6 text-center text-[13px] font-bold text-slate-500 uppercase tracking-wider">No</span>
+                            <span className="w-6 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">No</span>
                             <div className="w-10"></div>
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Exam Details</span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exam Details</span>
                         </div>
                         <div className="flex items-center gap-8 pl-4">
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Duration</span>
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[120px] text-center">Status</span>
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[60px] text-center">Score</span>
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Action</span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Duration</span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[120px] text-center">Status</span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[60px] text-center">Score</span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Action</span>
                         </div>
                     </div>
 
@@ -384,7 +384,7 @@ export default function StudentExams() {
                                         {/* Left Section: Number + Icon + Details */}
                                         <div className="flex items-center gap-3 flex-1 min-w-0">
                                             {/* Number */}
-                                            <span className="w-6 text-center text-sm font-bold text-slate-400">
+                                            <span className="w-6 text-center text-xs font-bold text-slate-400">
                                                 {startIndex + index + 1}
                                             </span>
 
@@ -398,10 +398,10 @@ export default function StudentExams() {
 
                                             {/* Details */}
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="text-base font-bold text-slate-800 mb-0.5 line-clamp-1">
+                                                <h3 className="text-sm font-bold text-slate-800 mb-1 line-clamp-1">
                                                     {exam.title}
                                                 </h3>
-                                                <p className="text-sm text-slate-500 line-clamp-1">
+                                                <p className="text-xs text-slate-500 line-clamp-1">
                                                     {exam.description || `${exam.questions?.length || 0} Questions`}
                                                 </p>
                                             </div>
@@ -411,7 +411,7 @@ export default function StudentExams() {
                                         <div className="flex items-center gap-8 pl-4">
                                             {/* Duration */}
                                             <div className="min-w-[100px] flex justify-center">
-                                                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600">
+                                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
                                                     <Clock className="h-4 w-4" />
                                                     {exam.duration} min
                                                 </span>
@@ -425,13 +425,21 @@ export default function StudentExams() {
                                             {/* Score */}
                                             <div className="min-w-[60px] flex justify-center">
                                                 {exam.attempt && !exam.attempt.allowRetake ? (
-                                                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-sm font-bold text-emerald-700 gap-1">
-                                                        <Trophy className="h-4 w-4" />
+                                                    <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-bold border ${Math.round(exam.attempt.score) >= 90 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                        Math.round(exam.attempt.score) >= 80 ? 'bg-teal-50 text-teal-600 border-teal-100' :
+                                                            Math.round(exam.attempt.score) >= 70 ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                                                Math.round(exam.attempt.score) >= 60 ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                                    'bg-red-50 text-red-600 border-red-100'
+                                                        }`}>
                                                         {Math.round(exam.attempt.score)}
                                                     </span>
                                                 ) : exam.attempt?.allowRetake ? (
-                                                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-100 text-sm font-bold text-orange-700 gap-1">
-                                                        <Trophy className="h-3.5 w-3.5" />
+                                                    <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-bold border ${Math.round(exam.attempt.score) >= 90 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                        Math.round(exam.attempt.score) >= 80 ? 'bg-teal-50 text-teal-600 border-teal-100' :
+                                                            Math.round(exam.attempt.score) >= 70 ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                                                Math.round(exam.attempt.score) >= 60 ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                                    'bg-red-50 text-red-600 border-red-100'
+                                                        }`}>
                                                         {Math.round(exam.attempt.score)}
                                                     </span>
                                                 ) : (
@@ -510,7 +518,7 @@ export default function StudentExams() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-start justify-between gap-2 mb-2">
-                                                    <h3 className="text-base font-bold text-slate-800 line-clamp-1 flex-1">
+                                                    <h3 className="text-sm font-bold text-slate-800 line-clamp-1 flex-1">
                                                         {exam.title}
                                                     </h3>
                                                     {/* Status Badge */}
@@ -536,14 +544,22 @@ export default function StudentExams() {
                                         {exam.attempt && (
                                             <div className="mb-3">
                                                 {exam.attempt && !exam.attempt.allowRetake ? (
-                                                    <div className="w-full py-3 px-4 bg-emerald-100 border-2 border-emerald-200 rounded-xl flex items-center justify-center gap-2">
-                                                        <Trophy className="h-5 w-5 text-emerald-600" />
-                                                        <span className="text-sm font-bold text-emerald-700">Score: {Math.round(exam.attempt.score)}</span>
+                                                    <div className={`w-full py-3 px-4 border-2 rounded-xl flex items-center justify-center gap-2 ${Math.round(exam.attempt.score) >= 90 ? 'bg-emerald-100 border-emerald-200 text-emerald-700' :
+                                                        Math.round(exam.attempt.score) >= 80 ? 'bg-teal-100 border-teal-200 text-teal-700' :
+                                                            Math.round(exam.attempt.score) >= 70 ? 'bg-blue-100 border-blue-200 text-blue-700' :
+                                                                Math.round(exam.attempt.score) >= 60 ? 'bg-amber-100 border-amber-200 text-amber-700' :
+                                                                    'bg-red-100 border-red-200 text-red-700'
+                                                        }`}>
+                                                        <span className="text-sm font-bold">Score: {Math.round(exam.attempt.score)}</span>
                                                     </div>
                                                 ) : exam.attempt?.allowRetake && (
-                                                    <div className="w-full py-3 px-4 bg-orange-100 border-2 border-orange-200 rounded-xl flex items-center justify-center gap-2">
-                                                        <Trophy className="h-5 w-5 text-orange-600" />
-                                                        <span className="text-sm font-bold text-orange-700">Previous Score: {Math.round(exam.attempt.score)}</span>
+                                                    <div className={`w-full py-3 px-4 border-2 rounded-xl flex items-center justify-center gap-2 ${Math.round(exam.attempt.score) >= 90 ? 'bg-emerald-100 border-emerald-200 text-emerald-700' :
+                                                        Math.round(exam.attempt.score) >= 80 ? 'bg-teal-100 border-teal-200 text-teal-700' :
+                                                            Math.round(exam.attempt.score) >= 70 ? 'bg-blue-100 border-blue-200 text-blue-700' :
+                                                                Math.round(exam.attempt.score) >= 60 ? 'bg-amber-100 border-amber-200 text-amber-700' :
+                                                                    'bg-red-100 border-red-200 text-red-700'
+                                                        }`}>
+                                                        <span className="text-sm font-bold">Previous Score: {Math.round(exam.attempt.score)}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -553,7 +569,7 @@ export default function StudentExams() {
                                         {isCompleted ? (
                                             <button
                                                 disabled
-                                                className="w-full py-3 px-4 bg-slate-200 text-slate-500 rounded-xl text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2 mt-3"
+                                                className="w-full py-3 px-4 bg-slate-200 text-slate-500 rounded-xl text-xs font-bold cursor-not-allowed flex items-center justify-center gap-2 mt-3"
                                             >
                                                 <CheckCircle2 className="h-5 w-5" />
                                                 Completed
@@ -561,7 +577,7 @@ export default function StudentExams() {
                                         ) : isExpired && !exam.attempt ? (
                                             <button
                                                 disabled
-                                                className="w-full py-3 px-4 bg-red-100 text-red-600 rounded-xl text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2 mt-3 border-2 border-red-200"
+                                                className="w-full py-3 px-4 bg-red-100 text-red-600 rounded-xl text-xs font-bold cursor-not-allowed flex items-center justify-center gap-2 mt-3 border-2 border-red-200"
                                             >
                                                 <AlertCircle className="h-5 w-5" />
                                                 Exam Expired
@@ -569,7 +585,7 @@ export default function StudentExams() {
                                         ) : (
                                             <button
                                                 onClick={() => navigate(`/student/exams/${exam.id}`)}
-                                                className={`w-full py-3.5 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg mt-3 ${exam.attempt?.allowRetake
+                                                className={`w-full py-3.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg mt-3 ${exam.attempt?.allowRetake
                                                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-orange-200'
                                                     : examSessions[exam.id]
                                                         ? 'bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white shadow-teal-200'

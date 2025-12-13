@@ -284,7 +284,6 @@ export default function Grades() {
                                                             grade.grade >= 60 ? 'bg-amber-50 text-amber-700 border-amber-100' :
                                                                 'bg-red-50 text-red-700 border-red-100'
                                                     }`}>
-                                                    <Award className="h-4 w-4" />
                                                     <span className="text-sm font-bold">Grade: {grade.grade}</span>
                                                 </div>
 
@@ -349,38 +348,38 @@ export default function Grades() {
                                     <table className="w-full">
                                         <thead className="bg-slate-50/50 border-b border-slate-100">
                                             <tr>
-                                                <th className="px-6 py-4 text-left text-sm font-bold text-slate-500 uppercase tracking-wider w-16">
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">
                                                     No
                                                 </th>
-                                                <th className="px-6 py-4 text-left text-sm font-bold text-slate-500 uppercase tracking-wider">
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
                                                     Task
                                                 </th>
-                                                <th className="px-6 py-4 text-left text-sm font-bold text-slate-500 uppercase tracking-wider">
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
                                                     Submitted At
                                                 </th>
-                                                <th className="px-6 py-4 text-center text-sm font-bold text-slate-500 uppercase tracking-wider">
+                                                <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
                                                     Grade
                                                 </th>
-                                                <th className="px-6 py-4 text-left text-sm font-bold text-slate-500 uppercase tracking-wider">
+                                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
                                                     Feedback
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100" style={{ minHeight: '650px' }}>
+                                        <tbody className="" style={{ minHeight: '650px' }}>
                                             {(() => {
                                                 const startIndex = (currentPage - 1) * itemsPerPage;
                                                 const endIndex = startIndex + itemsPerPage;
                                                 const paginatedGrades = grades.slice(startIndex, endIndex);
 
-                                                return paginatedGrades.map((grade, index) => (
+                                                const rows = paginatedGrades.map((grade, index) => (
                                                     <motion.tr
                                                         key={`desktop-grade-${index}`}
                                                         initial={{ opacity: 0 }}
                                                         animate={{ opacity: 1 }}
                                                         transition={{ delay: index * 0.03 }}
-                                                        className="hover:bg-blue-50/30 transition-colors"
+                                                        className="hover:bg-blue-50/30 transition-colors border-b border-slate-100"
                                                     >
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-500">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-slate-500">
                                                             {startIndex + index + 1}
                                                         </td>
                                                         <td className="px-6 py-4 max-w-[300px]">
@@ -388,7 +387,7 @@ export default function Grades() {
                                                                 {grade.taskTitle}
                                                             </div>
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
                                                             {grade.submittedAt?.toDate().toLocaleDateString('en-US', {
                                                                 weekday: 'short',
                                                                 year: 'numeric',
@@ -399,7 +398,7 @@ export default function Grades() {
                                                             })}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                            <span className={`px-4 py-1.5 inline-flex text-[13px] leading-5 font-bold rounded-xl ${grade.grade >= 90 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                            <span className={`px-3 py-1.5 inline-flex text-sm leading-5 font-bold rounded-lg ${grade.grade >= 90 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
                                                                 grade.grade >= 80 ? 'bg-teal-50 text-teal-600 border border-teal-100' :
                                                                     grade.grade >= 70 ? 'bg-blue-50 text-blue-600 border border-blue-100' :
                                                                         grade.grade >= 60 ? 'bg-amber-50 text-amber-600 border border-amber-100' :
@@ -410,7 +409,7 @@ export default function Grades() {
                                                         </td>
                                                         <td className="px-6 py-4 max-w-[300px]">
                                                             {grade.feedback ? (
-                                                                <div className="text-sm text-slate-600 italic bg-slate-50 p-3 rounded-xl border border-slate-100 line-clamp-2" title={grade.feedback}>
+                                                                <div className="text-xs text-slate-600 italic bg-slate-50 p-3 rounded-xl border border-slate-100 line-clamp-2" title={grade.feedback}>
                                                                     "{grade.feedback}"
                                                                 </div>
                                                             ) : (
@@ -419,6 +418,25 @@ export default function Grades() {
                                                         </td>
                                                     </motion.tr>
                                                 ));
+
+                                                // Pad with empty rows to reach 10 items (Desktop standard)
+                                                // itemsPerPage should be 10 on desktop, but we enforce the target of 10 to be safe.
+                                                const emptyRowsCount = 10 - rows.length;
+                                                if (emptyRowsCount > 0) {
+                                                    for (let i = 0; i < emptyRowsCount; i++) {
+                                                        rows.push(
+                                                            <tr key={`empty-${i}`} style={{ height: '81px' }} className="border-none">
+                                                                <td className="px-6 py-4"></td>
+                                                                <td className="px-6 py-4"></td>
+                                                                <td className="px-6 py-4"></td>
+                                                                <td className="px-6 py-4"></td>
+                                                                <td className="px-6 py-4"></td>
+                                                            </tr>
+                                                        );
+                                                    }
+                                                }
+
+                                                return rows;
                                             })()}
                                         </tbody>
                                     </table>

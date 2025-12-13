@@ -359,14 +359,14 @@ export default function Tasks() {
                         {/* TABLE HEADER - Desktop Only */}
                         <div className="hidden md:flex items-center justify-between py-4 px-6 bg-slate-50 border-b border-slate-200">
                             <div className="flex items-center gap-3 flex-1">
-                                <span className="w-6 text-center text-[13px] font-bold text-slate-500 uppercase tracking-wider">No</span>
+                                <span className="w-6 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">No</span>
                                 <div className="w-10"></div>
-                                <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Task Details</span>
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Task Details</span>
                             </div>
                             <div className="flex items-center gap-8 pl-4">
-                                <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Status</span>
-                                <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[120px] text-center">Info</span>
-                                <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[60px] text-center">Grade</span>
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Status</span>
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[120px] text-center">Info</span>
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[60px] text-center">Grade</span>
                                 <span className="w-5"></span> {/* Space for expand icon */}
                             </div>
                         </div>
@@ -518,14 +518,14 @@ export default function Tasks() {
                                                 className={`flex items-center justify-between py-4 px-6 cursor-pointer transition-all ${statusColor}`}
                                             >
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                    <span className="text-slate-400 font-medium w-6 text-center flex-shrink-0 text-sm">{index + 1}</span>
+                                                    <span className="text-slate-400 font-medium w-6 text-center flex-shrink-0 text-xs">{index + 1}</span>
 
                                                     <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center text-blue-600 flex-shrink-0 shadow-sm">
                                                         <BookOpen className="h-5 w-5" />
                                                     </div>
                                                     <div className="min-w-0 flex-1">
-                                                        <h4 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 text-[13px]" title={task.title}>{task.title}</h4>
-                                                        <p className="text-sm text-slate-500 line-clamp-1">{task.description}</p>
+                                                        <h4 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 text-sm mb-1" title={task.title}>{task.title}</h4>
+                                                        <p className="text-xs text-slate-500 line-clamp-1">{task.description}</p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-8 pl-4 flex-shrink-0">
@@ -537,9 +537,14 @@ export default function Tasks() {
                                                     </div>
                                                     <div className="text-center min-w-[60px]">
                                                         {gradeValue === "-" ? (
-                                                            <span className="text-slate-400 text-sm font-bold">{gradeValue}</span>
+                                                            <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-sm font-bold text-slate-400">–</span>
                                                         ) : isGraded ? (
-                                                            <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-sm font-bold text-emerald-700">
+                                                            <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg border text-sm font-bold ${gradeValue >= 90 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                                gradeValue >= 80 ? 'bg-teal-50 text-teal-600 border-teal-100' :
+                                                                    gradeValue >= 70 ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                                                        gradeValue >= 60 ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                                            'bg-red-50 text-red-600 border-red-100'
+                                                                }`}>
                                                                 {gradeValue}
                                                             </span>
                                                         ) : (

@@ -82,8 +82,8 @@ export default function TasksMobile({
                                 className="p-4 cursor-pointer active:bg-slate-50/50 transition-colors"
                             >
                                 {/* Title & Status */}
-                                <div className="flex items-start justify-between gap-3 mb-3">
-                                    <h3 className="text-base font-bold text-slate-800 flex-1 leading-snug">
+                                <div className="flex items-start justify-between gap-3 mb-2">
+                                    <h3 className="text-sm font-bold text-slate-800 flex-1 leading-snug">
                                         {task.title}
                                     </h3>
                                     {statusBadge}
@@ -91,7 +91,7 @@ export default function TasksMobile({
 
                                 {/* Description - Clamped preview */}
                                 {task.description && (
-                                    <p className="text-sm text-slate-600 mb-3 line-clamp-2">
+                                    <p className="text-xs text-slate-600 mb-3 line-clamp-2">
                                         {task.description}
                                     </p>
                                 )}
@@ -239,7 +239,12 @@ export default function TasksMobile({
                                                     <div className="mt-3 pt-3 border-t border-emerald-200">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs font-semibold text-slate-700">Grade:</span>
-                                                            <span className="text-base font-bold text-emerald-600">
+                                                            <span className={`text-base font-bold ${submission.grade >= 90 ? 'text-emerald-600' :
+                                                                    submission.grade >= 80 ? 'text-teal-600' :
+                                                                        submission.grade >= 70 ? 'text-blue-600' :
+                                                                            submission.grade >= 60 ? 'text-amber-600' :
+                                                                                'text-red-600'
+                                                                }`}>
                                                                 {submission.grade}
                                                             </span>
                                                         </div>

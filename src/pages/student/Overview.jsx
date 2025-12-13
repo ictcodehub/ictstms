@@ -386,19 +386,19 @@ export default function Overview() {
                                     {/* TABLE HEADER - Hidden on mobile */}
                                     <div className="hidden md:flex items-center justify-between py-4 px-6 bg-slate-50 rounded-t-xl border-b border-slate-200">
                                         <div className="flex items-center gap-3 flex-1">
-                                            <span className="w-6 text-center text-[13px] font-bold text-slate-500 uppercase tracking-wider">No</span>
+                                            <span className="w-6 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">No</span>
                                             <div className="w-10"></div>
-                                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Activity Details</span>
+                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Activity Details</span>
                                         </div>
                                         <div className="flex items-center gap-8 pl-4">
-                                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Assigned</span>
-                                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Status</span>
-                                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[60px] text-center">Grade</span>
+                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Assigned</span>
+                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Status</span>
+                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[60px] text-center">Grade</span>
                                         </div>
                                     </div>
 
                                     {/* TABLE BODY - Unified List */}
-                                    <div className="space-y-3">
+                                    <div className="space-y-3 md:space-y-0">
                                         {(() => {
                                             // 1. COMBINE & SORT
                                             const allActivities = [
@@ -486,10 +486,10 @@ export default function Overview() {
                                                             const isRemedial = result && result.allowRetake;
                                                             const isCompleted = !!result && !isRemedial;
 
-                                                            let cardBg = isCompleted ? 'bg-slate-100 hover:bg-slate-200' :
-                                                                isRemedial ? 'bg-orange-100 hover:bg-orange-200' :
-                                                                    isInProgress ? 'bg-yellow-100 hover:bg-yellow-200' :
-                                                                        'bg-purple-100 hover:bg-purple-200';
+                                                            let cardBg = isCompleted ? 'bg-slate-100 hover:bg-slate-200 md:bg-white md:hover:bg-blue-50/30' :
+                                                                isRemedial ? 'bg-orange-100 hover:bg-orange-200 md:bg-white md:hover:bg-blue-50/30' :
+                                                                    isInProgress ? 'bg-yellow-100 hover:bg-yellow-200 md:bg-white md:hover:bg-blue-50/30' :
+                                                                        'bg-purple-100 hover:bg-purple-200 md:bg-white md:hover:bg-blue-50/30';
 
                                                             let iconBg = isCompleted ? 'bg-white text-emerald-600' :
                                                                 isRemedial ? 'bg-orange-100 text-orange-600' :
@@ -503,15 +503,15 @@ export default function Overview() {
                                                                     animate={{ opacity: 1, x: 0 }}
                                                                     transition={{ delay: index * 0.05 }}
                                                                     onClick={() => navigate('/student/exams')}
-                                                                    className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 cursor-pointer transition-all group gap-3 rounded-xl ${cardBg}`}
+                                                                    className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 cursor-pointer transition-all group gap-3 rounded-xl md:rounded-none md:border-b md:border-slate-100 ${cardBg}`}
                                                                 >
                                                                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                                        <span className="hidden md:block w-6 text-center text-sm font-bold text-slate-600">{displayIndex}</span>
+                                                                        <span className="hidden md:block w-6 text-center text-xs font-bold text-slate-600">{displayIndex}</span>
                                                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${iconBg}`}>
                                                                             <ClipboardCheck className="h-5 w-5" />
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
-                                                                            <h4 className={`font-bold transition-colors line-clamp-1 ${isRemedial ? 'text-slate-800 group-hover:text-orange-600' : isInProgress ? 'text-slate-800 group-hover:text-yellow-600' : isCompleted ? 'text-slate-700' : 'text-slate-800 group-hover:text-purple-600'}`}>{item.title}</h4>
+                                                                            <h4 className={`text-sm font-bold transition-colors line-clamp-1 mb-1 ${isRemedial ? 'text-slate-800 group-hover:text-orange-600' : isInProgress ? 'text-slate-800 group-hover:text-yellow-600' : isCompleted ? 'text-slate-700' : 'text-slate-800 group-hover:text-purple-600'}`}>{item.title}</h4>
                                                                             <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
                                                                                 <span className="flex items-center gap-1">
                                                                                     <Clock className="h-3 w-3" /> {item.duration} Minutes
@@ -563,7 +563,12 @@ export default function Overview() {
                                                                         </div>
                                                                         <div className="text-center min-w-[60px]">
                                                                             {isCompleted || isRemedial ? (
-                                                                                <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg border text-sm font-bold ${isRemedial ? 'bg-orange-50 border-orange-100 text-orange-700' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+                                                                                <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg border text-sm font-bold ${(result.score !== undefined ? result.score : 0) >= 90 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                                                    (result.score !== undefined ? result.score : 0) >= 80 ? 'bg-teal-50 text-teal-600 border-teal-100' :
+                                                                                        (result.score !== undefined ? result.score : 0) >= 70 ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                                                                            (result.score !== undefined ? result.score : 0) >= 60 ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                                                                'bg-red-50 text-red-600 border-red-100'
+                                                                                    }`}>
                                                                                     {result.score !== undefined ? result.score : '-'}
                                                                                 </span>
                                                                             ) : (
@@ -582,13 +587,13 @@ export default function Overview() {
                                                             let statusColor = "";
                                                             if (submission && submission.grade !== null && submission.grade !== undefined) {
                                                                 // Sudah dinilai - Abu-abu (sama seperti Tasks)
-                                                                statusColor = "bg-slate-100 hover:bg-slate-200";
+                                                                statusColor = "bg-slate-100 hover:bg-slate-200 md:bg-white md:hover:bg-blue-50/30";
                                                             } else if (submission) {
                                                                 // Menunggu dinilai - Kuning (sama seperti Tasks)
-                                                                statusColor = "bg-amber-50 hover:bg-amber-100/50";
+                                                                statusColor = "bg-amber-50 hover:bg-amber-100/50 md:bg-white md:hover:bg-blue-50/30";
                                                             } else {
                                                                 // Belum dikerjakan - Merah (sama seperti Tasks)
-                                                                statusColor = isOverdue ? "bg-red-100/50 hover:bg-red-100" : "bg-red-50 hover:bg-red-100/50";
+                                                                statusColor = isOverdue ? "bg-red-100/50 hover:bg-red-100 md:bg-white md:hover:bg-blue-50/30" : "bg-red-50 hover:bg-red-100/50 md:bg-white md:hover:bg-blue-50/30";
                                                             }
 
                                                             // Handle Grade Display
@@ -638,16 +643,16 @@ export default function Overview() {
                                                                     animate={{ opacity: 1, x: 0 }}
                                                                     transition={{ delay: index * 0.05 }}
                                                                     onClick={() => navigate('/student/tasks')}
-                                                                    className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 transition-colors cursor-pointer group ${statusColor} gap-3 rounded-xl`}
+                                                                    className={`flex flex-col md:flex-row md:items-center md:justify-between py-4 px-4 md:px-6 transition-colors cursor-pointer group ${statusColor} gap-3 rounded-xl md:rounded-none md:border-b md:border-slate-100`}
                                                                 >
                                                                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                                        <span className="hidden md:block text-slate-400 font-medium w-6 text-center flex-shrink-0 text-sm">{displayIndex}</span>
+                                                                        <span className="hidden md:block text-slate-400 font-medium w-6 text-center flex-shrink-0 text-xs">{displayIndex}</span>
                                                                         <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center text-blue-600 flex-shrink-0 shadow-sm">
                                                                             <BookOpen className="h-5 w-5" />
                                                                         </div>
                                                                         <div className="min-w-0 flex-1">
-                                                                            <h4 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 text-[13px]" title={task.title}>{task.title}</h4>
-                                                                            <p className="text-sm text-slate-500 line-clamp-1">{task.description}</p>
+                                                                            <h4 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2 text-sm mb-1" title={task.title}>{task.title}</h4>
+                                                                            <p className="text-xs text-slate-500 line-clamp-1">{task.description}</p>
                                                                             <div className="md:hidden mt-1.5 text-xs text-slate-500">
                                                                                 <span className="font-medium">Assigned: </span>
                                                                                 <span>
@@ -672,7 +677,12 @@ export default function Overview() {
                                                                             {gradeValue === "-" ? (
                                                                                 <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-sm font-bold text-slate-400">–</span>
                                                                             ) : (
-                                                                                <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg border text-sm font-bold ${isGraded ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
+                                                                                <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg border text-sm font-bold ${gradeValue >= 90 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                                                    gradeValue >= 80 ? 'bg-teal-50 text-teal-600 border-teal-100' :
+                                                                                        gradeValue >= 70 ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                                                                            gradeValue >= 60 ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                                                                'bg-red-50 text-red-600 border-red-100'
+                                                                                    }`}>
                                                                                     {gradeValue}
                                                                                 </span>
                                                                             )}
