@@ -53,8 +53,59 @@ export function AuthProvider({ children }) {
     }, []);
 
     const logout = () => {
+        localStorage.removeItem('lastActivity');
         return signOut(auth);
     };
+
+    // Session Timeout Logic (15 Minutes)
+    useEffect(() => {
+        if (!currentUser) return;
+
+        const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+
+        const checkSession = () => {
+            const lastActivity = localStorage.getItem('lastActivity');
+            if (lastActivity) {
+                const timeSinceLastActivity = Date.now() - parseInt(lastActivity);
+                if (timeSinceLastActivity > SESSION_TIMEOUT) {
+                    logout();
+                    // Optional: alert or toast here, but logout usually redirects immediately
+                }
+            } else {
+                localStorage.setItem('lastActivity', Date.now().toString());
+            }
+        };
+
+        // Initial check and Interval check
+        checkSession();
+        const intervalId = setInterval(checkSession, 60 * 1000); // Check every minute
+
+        // Activity Listener
+        const handleActivity = () => {
+            const now = Date.now();
+            const lastSaved = parseInt(localStorage.getItem('lastActivity') || '0');
+
+            // Only update storage if more than 1 minute has passed to avoid performance hit
+            if (now - lastSaved > 60 * 1000) {
+                localStorage.setItem('lastActivity', now.toString());
+            }
+        };
+
+        window.addEventListener('mousemove', handleActivity);
+        window.addEventListener('keydown', handleActivity);
+        window.addEventListener('click', handleActivity);
+        window.addEventListener('scroll', handleActivity);
+        window.addEventListener('touchstart', handleActivity);
+
+        return () => {
+            clearInterval(intervalId);
+            window.removeEventListener('mousemove', handleActivity);
+            window.removeEventListener('keydown', handleActivity);
+            window.removeEventListener('click', handleActivity);
+            window.removeEventListener('scroll', handleActivity);
+            window.removeEventListener('touchstart', handleActivity);
+        };
+    }, [currentUser]);
 
     const login = async (email, password, rememberMe = false) => {
         await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
