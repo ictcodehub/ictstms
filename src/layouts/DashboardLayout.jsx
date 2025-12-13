@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ProfileDropdown from '../components/ProfileDropdown';
+import PullToRefresh from '../components/PullToRefresh';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -342,8 +343,12 @@ export default function DashboardLayout({ children }) {
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-                    {children || <Outlet />}
+                <main className="flex-1 overflow-hidden relative">
+                    <PullToRefresh onRefresh={() => window.location.reload()}>
+                        <div className="p-4 sm:p-6 min-h-full">
+                            {children || <Outlet />}
+                        </div>
+                    </PullToRefresh>
                 </main>
             </div>
 
