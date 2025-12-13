@@ -899,6 +899,19 @@ export default function ExamTaker() {
                                 exit={{ opacity: 0, x: -20 }}
                                 className="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 p-5 md:p-8 flex-1 flex flex-col overflow-hidden mb-4"
                             >
+                                {/* Top Question Info (All Devices) */}
+                                <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                        {currentQ.type === 'single_choice' ? 'Single Choice' :
+                                            currentQ.type === 'multiple_choice' ? 'Multiple Choice' :
+                                                currentQ.type === 'matching' ? 'Matching' :
+                                                    currentQ.type === 'true_false' ? 'True/False' : 'Question'}
+                                    </span>
+                                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                                        Question {currentQuestionIndex + 1}/{randomizedQuestions.length}
+                                    </span>
+                                </div>
+
                                 <div className="flex-1 overflow-y-auto">
                                     <h2 className="text-base font-normal text-slate-800 mb-6 leading-relaxed">
                                         <span className="font-bold">{currentQuestionIndex + 1}).</span> {currentQ.text}
@@ -1064,18 +1077,7 @@ export default function ExamTaker() {
                                     Back
                                 </button>
 
-                                {/* Center: Question Type & Progress */}
-                                <div className="flex-1 flex flex-col items-center gap-1">
-                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                                        {currentQ.type === 'single_choice' ? 'Single Choice' :
-                                            currentQ.type === 'multiple_choice' ? 'Multiple Choice' :
-                                                currentQ.type === 'matching' ? 'Matching' :
-                                                    currentQ.type === 'true_false' ? 'True/False' : 'Question'}
-                                    </span>
-                                    <span className="text-sm font-bold text-slate-700">
-                                        Question {currentQuestionIndex + 1}/{randomizedQuestions.length}
-                                    </span>
-                                </div>
+
 
                                 {isLastInfo ? (
                                     <button
@@ -1182,7 +1184,7 @@ export default function ExamTaker() {
                         >
                             {/* Header */}
                             <div className="p-5 border-b border-slate-200">
-                                <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center justify-between mb-1">
                                     <h3 className="text-xl font-bold text-slate-800">Question Navigator</h3>
                                     <button
                                         onClick={() => setShowQuestionNav(false)}
@@ -1191,32 +1193,17 @@ export default function ExamTaker() {
                                         <XCircle className="h-5 w-5 text-slate-500" />
                                     </button>
                                 </div>
+                                <p className="text-xs text-slate-400 mb-3 italic">
+                                    Click a number to jump to a specific question
+                                </p>
                                 <p className="text-sm text-slate-500">
                                     {Object.keys(answers).length} of {randomizedQuestions.length} answered
                                 </p>
                             </div>
 
-                            {/* Legend - Horizontal */}
-                            <div className="px-5 py-3 bg-slate-50 border-b border-slate-200">
-                                <div className="flex items-center justify-between text-xs pr-3">
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-2 h-2 rounded-full bg-slate-300"></div>
-                                        <span className="text-slate-600">Unanswered</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-                                        <span className="text-slate-600">Current</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                        <span className="text-slate-600">Answered</span>
-                                    </div>
-                                </div>
-                            </div>
-
                             {/* Question Grid */}
                             <div className="flex-1 overflow-y-auto p-5">
-                                <div className="grid grid-cols-5 gap-2">
+                                <div className="grid grid-cols-5 gap-x-2 gap-y-4">
                                     {randomizedQuestions.map((q, idx) => {
                                         const isAnswered = !!answers[q.id];
                                         const isCurrent = idx === currentQuestionIndex;
@@ -1241,6 +1228,24 @@ export default function ExamTaker() {
                                             </button>
                                         );
                                     })}
+                                </div>
+                            </div>
+
+                            {/* Legend - Bottom Fixed */}
+                            <div className="px-5 py-4 bg-slate-50 border-t border-slate-200 pb-safe">
+                                <div className="flex items-center justify-between text-xs pr-3">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                                        <span className="text-slate-600">Unanswered</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                                        <span className="text-slate-600">Current</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                        <span className="text-slate-600">Answered</span>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>

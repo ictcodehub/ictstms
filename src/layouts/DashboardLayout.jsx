@@ -256,7 +256,10 @@ export default function DashboardLayout({ children }) {
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                 className={`fixed left-0 top-0 h-full bg-white border-r border-blue-100 text-slate-600 w-64 shadow-2xl flex flex-col z-50`}
             >
-                <div className="p-6 flex-1 overflow-y-auto">
+                <div
+                    className="px-6 pb-6 flex-1 overflow-y-auto"
+                    style={{ paddingTop: 'calc(1.5rem + env(safe-area-inset-top))' }}
+                >
                     {/* App Branding */}
                     <div className="mb-6">
                         <div className="flex items-center gap-3 mb-3">
@@ -323,7 +326,10 @@ export default function DashboardLayout({ children }) {
                     }`}
             >
                 {/* Header */}
-                <header className="bg-white/80 backdrop-blur-md border-b border-blue-100 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-30 flex-shrink-0">
+                <header
+                    className="bg-white/80 backdrop-blur-md border-b border-blue-100 px-4 sm:px-6 pb-4 flex items-center justify-between sticky top-0 z-30 flex-shrink-0 transition-all"
+                    style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top))' }}
+                >
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
                         className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-slate-600"

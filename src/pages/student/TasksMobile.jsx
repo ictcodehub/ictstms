@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Upload, Download } from 'lucide-react';
+import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Upload, Download, XCircle } from 'lucide-react';
 
 export default function TasksMobile({
     tasks,
@@ -9,10 +9,7 @@ export default function TasksMobile({
     expandedTask,
     submitting,
     comment,
-    file,
-    fileInputRef,
     setComment,
-    setFile,
     toggleExpand,
     handleSubmit,
     setCurrentPage
@@ -240,10 +237,10 @@ export default function TasksMobile({
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs font-semibold text-slate-700">Grade:</span>
                                                             <span className={`text-base font-bold ${submission.grade >= 90 ? 'text-emerald-600' :
-                                                                    submission.grade >= 80 ? 'text-teal-600' :
-                                                                        submission.grade >= 70 ? 'text-blue-600' :
-                                                                            submission.grade >= 60 ? 'text-amber-600' :
-                                                                                'text-red-600'
+                                                                submission.grade >= 80 ? 'text-teal-600' :
+                                                                    submission.grade >= 70 ? 'text-blue-600' :
+                                                                        submission.grade >= 60 ? 'text-amber-600' :
+                                                                            'text-red-600'
                                                                 }`}>
                                                                 {submission.grade}
                                                             </span>
@@ -277,13 +274,43 @@ export default function TasksMobile({
                                                         disabled={isSubmitting}
                                                     />
 
-                                                    <input
-                                                        type="file"
-                                                        ref={fileInputRef}
-                                                        onChange={(e) => setFile(e.target.files[0])}
-                                                        className="hidden"
-                                                        disabled={isSubmitting}
-                                                    />
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => fileInputRef.current?.click()}
+                                                            disabled={isSubmitting}
+                                                            className="flex-1 py-2.5 px-4 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                                        >
+                                                            <Upload className="h-4 w-4 text-slate-500" />
+                                                            {file ? 'Change File' : 'Attach File'}
+                                                        </button>
+                                                        <input
+                                                            type="file"
+                                                            ref={fileInputRef}
+                                                            onChange={(e) => setFile(e.target.files[0])}
+                                                            className="hidden"
+                                                            disabled={isSubmitting}
+                                                        />
+                                                    </div>
+
+                                                    {file && (
+                                                        <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                                <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                                                                <span className="text-sm text-blue-700 truncate">{file.name}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setFile(null);
+                                                                    if (fileInputRef.current) fileInputRef.current.value = '';
+                                                                }}
+                                                                disabled={isSubmitting}
+                                                                className="p-1 hover:bg-blue-100 rounded-full text-blue-400 hover:text-blue-600 transition-colors"
+                                                            >
+                                                                <XCircle className="h-4 w-4" />
+                                                            </button>
+                                                        </div>
+                                                    )}
 
                                                     <button
                                                         onClick={() => handleSubmit(task.id)}

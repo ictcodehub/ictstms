@@ -38,8 +38,7 @@ export default function Tasks() {
 
     // Mobile submission states
     const [comment, setComment] = useState('');
-    const [file, setFile] = useState(null);
-    const fileInputRef = useRef(null);
+
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     useEffect(() => {
@@ -537,8 +536,8 @@ export default function Tasks() {
                                                     </div>
                                                     <div className="min-w-0 flex-1">
                                                         <h4 className={`font-bold text-slate-800 transition-colors line-clamp-2 text-sm mb-1 ${(isOverdue && !submission) || isLateSubmission ? 'group-hover:text-red-600' :
-                                                                submission ? 'group-hover:text-slate-900' :
-                                                                    'group-hover:text-blue-700'
+                                                            submission ? 'group-hover:text-slate-900' :
+                                                                'group-hover:text-blue-700'
                                                             }`} title={task.title}>{task.title}</h4>
                                                         <p className="text-xs text-slate-500 line-clamp-1">{task.description}</p>
                                                     </div>
@@ -640,6 +639,8 @@ export default function Tasks() {
                                                                                 <LinkifiedText text={submission.content} />
                                                                             </p>
 
+
+
                                                                             {submission.revisedAt && (
                                                                                 <div className="pl-7 mb-2">
                                                                                     <p className="text-xs text-slate-400 italic flex items-center gap-1">
@@ -728,10 +729,7 @@ export default function Tasks() {
                                 expandedTask={expandedTask}
                                 submitting={submitting}
                                 comment={comment}
-                                file={file}
-                                fileInputRef={fileInputRef}
                                 setComment={setComment}
-                                setFile={setFile}
                                 toggleExpand={toggleExpand}
                                 handleSubmit={handleSubmit}
                                 setCurrentPage={setCurrentPage}
