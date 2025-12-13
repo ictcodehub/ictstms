@@ -12,7 +12,8 @@ import {
     Flame,
     ClipboardCheck,
     Trophy,
-    CheckCircle2
+    CheckCircle2,
+    Clock
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -343,61 +344,62 @@ export default function DashboardLayout({ children }) {
             {/* Auto-Submit Notification Modal (Student Only) */}
             <AnimatePresence>
                 {showAutoSubmitNotif && autoSubmittedExam && userRole === 'student' && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
-                        onClick={() => setShowAutoSubmitNotif(false)}
-                    >
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <div className="absolute inset-0 bg-slate-50/50 backdrop-blur-md" />
+
                         <motion.div
                             initial={{ scale: 0.9, y: 20 }}
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.9, y: 20 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-2xl max-w-md w-full p-8 border-2 border-blue-200"
+                            className="relative bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl shadow-2xl p-10 max-w-lg w-full"
                         >
                             <div className="text-center space-y-6">
                                 <motion.div
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
-                                    transition={{ delay: 0.2, type: "spring" }}
-                                    className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg"
+                                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                    className="relative mx-auto"
                                 >
-                                    <Trophy className="h-10 w-10 text-white" />
+                                    <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                                        <Clock className="h-12 w-12 text-white" />
+                                    </div>
+                                    {/* Pulse effect */}
+                                    <div className="absolute inset-0 w-24 h-24 bg-blue-400 rounded-full animate-ping opacity-20 mx-auto"></div>
                                 </motion.div>
 
                                 <div>
-                                    <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                                        Ujian Telah Disubmit Otomatis
+                                    <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-4">
+                                        Exam Auto-Submitted
                                     </h3>
-                                    <p className="text-slate-600 text-sm">
-                                        Waktu ujian <span className="font-semibold">{autoSubmittedExam.examTitle}</span> telah habis dan sistem telah otomatis men-submit jawaban Anda.
+                                    <p className="text-slate-600 text-lg leading-relaxed">
+                                        Time for exam <span className="font-bold text-slate-800">{autoSubmittedExam.examTitle}</span> has expired and the system has automatically submitted your answers.
                                     </p>
                                 </div>
 
-                                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-blue-200 shadow-inner">
-                                    <div className="flex items-center justify-center gap-3 mb-2">
-                                        <CheckCircle2 className="h-6 w-6 text-green-600" />
-                                        <p className="text-sm text-slate-600 font-medium">Semua jawaban Anda telah tersimpan</p>
+                                <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4">
+                                    <div className="flex items-center justify-center gap-2 mb-2">
+                                        <CheckCircle2 className="h-5 w-5 text-blue-700" />
+                                        <p className="text-blue-700 font-semibold">All answers have been saved</p>
                                     </div>
-                                    <div className="text-center mt-4">
-                                        <p className="text-sm text-slate-500 mb-1">Skor Anda:</p>
-                                        <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                                            {Math.round(autoSubmittedExam.score)}
+                                    <div className="mt-3 bg-gradient-to-r from-emerald-50 to-cyan-50 border border-emerald-200 rounded-xl p-3">
+                                        <p className="text-emerald-700 font-bold flex items-center justify-center gap-2 text-lg">
+                                            <Trophy className="h-5 w-5" />
+                                            Your Score: {Math.round(autoSubmittedExam.score)}
                                         </p>
                                     </div>
                                 </div>
 
                                 <button
                                     onClick={() => setShowAutoSubmitNotif(false)}
-                                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                                    className="w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-lg font-bold rounded-2xl hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl group"
                                 >
-                                    Mengerti
+                                    I Understand
                                 </button>
                             </div>
                         </motion.div>
-                    </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>

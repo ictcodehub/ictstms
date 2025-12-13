@@ -20,8 +20,7 @@ export default function StudentExams() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(window.innerWidth < 768 ? 5 : 10);
-    const [showAutoSubmitNotif, setShowAutoSubmitNotif] = useState(false);
-    const [autoSubmittedExam, setAutoSubmittedExam] = useState(null);
+
     const [examSessions, setExamSessions] = useState({}); // Store sessions by examId
 
     // Responsive itemsPerPage
@@ -619,85 +618,7 @@ export default function StudentExams() {
                 </div>
             )}
 
-            {/* Auto-Submit Notification Modal */}
-            <AnimatePresence>
-                {showAutoSubmitNotif && autoSubmittedExam && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.8, y: 50 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.8, y: 50 }}
-                            transition={{ type: "spring", duration: 0.5 }}
-                            className="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-2xl p-10 max-w-lg w-full border-2 border-blue-100"
-                        >
-                            <div className="text-center">
-                                {/* Animated Icon */}
-                                <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                                    className="relative mx-auto mb-6"
-                                >
-                                    <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                                        <Clock className="h-12 w-12 text-white" />
-                                    </div>
-                                    {/* Pulse effect */}
-                                    <div className="absolute inset-0 w-24 h-24 bg-blue-400 rounded-full animate-ping opacity-20 mx-auto"></div>
-                                </motion.div>
 
-                                {/* Title */}
-                                <motion.h2
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.3 }}
-                                    className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-4"
-                                >
-                                    Ujian Telah Disubmit Otomatis
-                                </motion.h2>
-
-                                {/* Message */}
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.4 }}
-                                    className="mb-8"
-                                >
-                                    <p className="text-slate-600 text-lg leading-relaxed mb-4">
-                                        Waktu ujian <strong className="text-slate-800">{autoSubmittedExam.examTitle}</strong> telah habis dan sistem telah otomatis men-submit jawaban Anda.
-                                    </p>
-                                    <div className="mt-4 bg-blue-50 border-2 border-blue-200 rounded-2xl p-4">
-                                        <p className="text-blue-700 font-semibold flex items-center justify-center gap-2">
-                                            <CheckCircle2 className="h-5 w-5" />
-                                            Semua jawaban Anda telah tersimpan
-                                        </p>
-                                    </div>
-                                    {autoSubmittedExam.score !== undefined && (
-                                        <div className="mt-4 bg-gradient-to-r from-emerald-50 to-cyan-50 border-2 border-emerald-200 rounded-2xl p-4">
-                                            <p className="text-emerald-700 font-bold flex items-center justify-center gap-2 text-lg">
-                                                <Trophy className="h-6 w-6" />
-                                                Skor Anda: {Math.round(autoSubmittedExam.score)}
-                                            </p>
-                                        </div>
-                                    )}
-                                </motion.div>
-
-                                {/* Button */}
-                                <motion.button
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.5 }}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => setShowAutoSubmitNotif(false)}
-                                    className="w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-lg font-bold rounded-2xl hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
-                                >
-                                    Mengerti
-                                </motion.button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
         </div>
     );
 }

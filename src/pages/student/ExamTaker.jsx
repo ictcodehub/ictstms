@@ -623,11 +623,9 @@ export default function ExamTaker() {
                 });
                 setShowResultModal(true);
             } else {
-                // Auto-submit: navigate immediately
-                toast.success("Exam submitted successfully!");
-                setTimeout(() => {
-                    navigate('/student/exams');
-                }, 500);
+                // Auto-submit: Show notification modal instead of immediate navigation
+                console.log('Auto-submit successful, showing notification');
+                setShowAutoSubmitNotif(true);
             }
         } catch (error) {
             console.error("Error submitting exam:", error);
@@ -1097,8 +1095,11 @@ export default function ExamTaker() {
             {/* Custom Modal for Submission */}
             {
                 showSubmitModal && (
-                    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full animate-in fade-in zoom-in duration-200">
+                    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <div className="absolute inset-0 bg-slate-50/50 backdrop-blur-md" />
+
+                        <div className="relative bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl shadow-2xl p-8 max-w-md w-full animate-in fade-in zoom-in duration-200">
                             <div className="text-center">
                                 <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <Save className="h-8 w-8" />
@@ -1240,13 +1241,21 @@ export default function ExamTaker() {
             {/* Warning Modal - Unanswered Questions */}
             <AnimatePresence>
                 {showWarningModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-50/50 backdrop-blur-md"
+                        />
+
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8, y: 50 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.8, y: 50 }}
                             transition={{ type: "spring", duration: 0.5 }}
-                            className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full"
+                            className="relative bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl shadow-2xl p-8 max-w-md w-full"
                         >
                             <div className="text-center">
                                 {/* Warning Icon */}
@@ -1302,13 +1311,16 @@ export default function ExamTaker() {
             {/* Auto-Submit Notification Modal */}
             <AnimatePresence>
                 {showAutoSubmitNotif && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <div className="absolute inset-0 bg-slate-50/50 backdrop-blur-md" />
+
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8, y: 50 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.8, y: 50 }}
                             transition={{ type: "spring", duration: 0.5 }}
-                            className="bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-2xl p-10 max-w-lg w-full border-2 border-blue-100"
+                            className="relative bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl shadow-2xl p-10 max-w-lg w-full"
                         >
                             <div className="text-center">
                                 {/* Animated Icon */}
@@ -1332,7 +1344,7 @@ export default function ExamTaker() {
                                     transition={{ delay: 0.3 }}
                                     className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-4"
                                 >
-                                    Ujian Telah Disubmit Otomatis
+                                    Exam Auto-Submitted
                                 </motion.h2>
 
                                 {/* Message */}
@@ -1343,12 +1355,12 @@ export default function ExamTaker() {
                                     className="mb-8"
                                 >
                                     <p className="text-slate-600 text-lg leading-relaxed">
-                                        Waktu ujian Anda telah habis dan sistem telah otomatis men-submit jawaban Anda.
+                                        Your time has expired. The system has automatically submitted your answers.
                                     </p>
                                     <div className="mt-4 bg-blue-50 border-2 border-blue-200 rounded-2xl p-4">
                                         <p className="text-blue-700 font-semibold flex items-center justify-center gap-2">
                                             <CheckCircle2 className="h-5 w-5" />
-                                            Semua jawaban Anda telah tersimpan
+                                            All answers have been saved
                                         </p>
                                     </div>
                                 </motion.div>
@@ -1366,7 +1378,7 @@ export default function ExamTaker() {
                                     }}
                                     className="w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-lg font-bold rounded-2xl hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
                                 >
-                                    Kembali ke Daftar Ujian
+                                    Back to Exams
                                 </motion.button>
                             </div>
                         </motion.div>
