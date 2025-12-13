@@ -4,7 +4,7 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, XCircle, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle, Send } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle, Send, LogOut, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired } from '../../utils/examSession';
 
@@ -22,6 +22,10 @@ export default function ExamTaker() {
     const [timeUp, setTimeUp] = useState(false);
     const [hasStarted, setHasStarted] = useState(false);
     const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [showWarningModal, setShowWarningModal] = useState(false);
+    const [remainingQuestionsCount, setRemainingQuestionsCount] = useState(0);
+    const [showResultModal, setShowResultModal] = useState(false);
+    const [examResult, setExamResult] = useState(null);
     const [sessionId, setSessionId] = useState(null);
     const [existingSession, setExistingSession] = useState(null);
     const [expiresAt, setExpiresAt] = useState(null); // Store expiration timestamp for timer
@@ -529,6 +533,17 @@ export default function ExamTaker() {
     };
 
     const handleRequestSubmit = () => {
+        // Check if all questions are answered
+        const answeredCount = Object.keys(answers).length;
+        const totalQuestions = randomizedQuestions.length;
+
+        if (answeredCount < totalQuestions) {
+            const remaining = totalQuestions - answeredCount;
+            setRemainingQuestionsCount(remaining);
+            setShowWarningModal(true);
+            return;
+        }
+
         setShowSubmitModal(true);
     };
 
@@ -564,8 +579,22 @@ export default function ExamTaker() {
                 document.exitFullscreen().catch(err => console.log(err));
             }
 
-            toast.success("Exam submitted successfully!");
-            navigate('/student/exams');
+            // Show result modal instead of immediate navigation (unless auto-submitted)
+            if (!isAutoSubmit) {
+                setExamResult({
+                    score: finalScore,
+                    totalQuestions: randomizedQuestions.length,
+                    answeredQuestions: Object.keys(finalAnswers).length,
+                    examTitle: exam.title
+                });
+                setShowResultModal(true);
+            } else {
+                // Auto-submit: navigate immediately
+                toast.success("Exam submitted successfully!");
+                setTimeout(() => {
+                    navigate('/student/exams');
+                }, 500);
+            }
         } catch (error) {
             console.error("Error submitting exam:", error);
             toast.error("Failed to submit exam");
@@ -767,25 +796,44 @@ export default function ExamTaker() {
         <div className="fixed inset-0 z-[9999] bg-slate-50 flex flex-col overflow-auto focus:outline-none select-none">
             {/* Top Bar */}
             <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
-                <button
-                    onClick={() => navigate('/student/exams')}
-                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                >
-                    <ChevronLeft className="h-6 w-6 text-slate-700" />
-                </button>
+                {/* Left: Timer */}
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white">
+                    <Clock className="h-5 w-5" />
+                    <span className="text-sm font-normal">Time Left: <span className="font-bold tabular-nums">{formatTime(timeLeft)}</span></span>
+                </div>
 
-                <h1 className="font-bold text-slate-800 text-base">{exam.title}</h1>
-
+                {/* Center: Question Type/Status */}
                 <div className="flex items-center gap-2">
-                    <div className="px-3 py-1.5 rounded-full bg-blue-600 text-white font-bold text-sm">
-                        {formatTime(timeLeft)}
-                    </div>
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                        {currentQ.type === 'single_choice' ? 'Single Choice' :
+                            currentQ.type === 'multiple_choice' ? 'Multiple Choice' :
+                                currentQ.type === 'matching' ? 'Matching' :
+                                    currentQ.type === 'true_false' ? 'True/False' : 'Question'}
+                    </span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-xs font-bold text-slate-700">
+                        Question {currentQuestionIndex + 1}/{randomizedQuestions.length}
+                    </span>
+                </div>
+
+                {/* Right: Exit */}
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => {
+                            exitFullscreen();
+                            navigate('/student/exams');
+                        }}
+                        className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                        aria-label="Exit Exam"
+                    >
+                        <LogOut className="h-6 w-6 text-red-600" />
+                    </button>
                     <button
                         onClick={() => setShowQuestionNav(true)}
-                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                        aria-label="Open Question Navigator"
+                        className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                        aria-label="Question Navigator"
                     >
-                        <LayoutGrid className="h-5 w-5 text-slate-700" />
+                        <LayoutGrid className="h-6 w-6 text-slate-700" />
                     </button>
                 </div>
             </div>
@@ -795,18 +843,25 @@ export default function ExamTaker() {
                 {/* Main Content Area - Fixed Height */}
                 <div className="flex-1 flex flex-col p-3 md:p-6 bg-slate-100/50 overflow-hidden">
                     <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col overflow-hidden">
+                        {/* Exam Title */}
+                        <div className="mb-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-l-4 border-blue-500 rounded-xl p-4 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
+                                <FileText className="h-5 w-5 text-white" />
+                            </div>
+                            <h1 className="text-lg md:text-xl font-bold text-slate-800 truncate">{exam.title}</h1>
+                        </div>
+
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={currentQ.id}
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
-                                className="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 p-5 md:p-8 flex-1 flex flex-col overflow-hidden"
+                                className="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 p-5 md:p-8 flex-1 flex flex-col overflow-hidden mb-4"
                             >
                                 <div className="flex-1 overflow-y-auto">
                                     <h2 className="text-base font-normal text-slate-800 mb-6 leading-relaxed">
-                                        <span className="font-bold">{currentQuestionIndex + 1})</span>
-                                        {currentQ.text}
+                                        <span className="font-bold">{currentQuestionIndex + 1}).</span> {currentQ.text}
                                     </h2>
 
                                     {/* Attachments Section */}
@@ -957,203 +1012,42 @@ export default function ExamTaker() {
                             </motion.div>
                         </AnimatePresence>
 
-                        {/* Navigation Bar - Redesigned */}
-                        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent px-4 py-4 z-10" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-                            <div className="max-w-4xl mx-auto flex items-center gap-2">
+                        {/* Navigation Buttons - Floating */}
+                        <div className="px-4 py-4 pb-safe">
+                            <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
                                 <button
                                     onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                                     disabled={currentQuestionIndex === 0}
-                                    className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-slate-100 text-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-200 active:scale-95 transition-all shadow-sm border border-slate-200"
+                                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white border-2 border-slate-200 text-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors shadow-sm"
                                 >
                                     <ChevronLeft className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Previous</span>
-                                </button>
-
-                                <button
-                                    onClick={() => setCurrentQuestionIndex(prev => Math.min(randomizedQuestions.length - 1, prev + 1))}
-                                    disabled={isLastInfo}
-                                    className="flex-1 px-6 py-3.5 rounded-xl bg-white text-slate-600 font-semibold border-2 border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] transition-all shadow-sm"
-                                >
-                                    Skip
+                                    Back
                                 </button>
 
                                 {isLastInfo ? (
                                     <button
                                         onClick={handleRequestSubmit}
                                         disabled={isSubmitting}
-                                        className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold hover:from-red-700 hover:to-red-800 active:scale-95 transition-all shadow-lg shadow-red-500/30 disabled:opacity-70"
+                                        className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors disabled:opacity-70 shadow-sm"
                                     >
-                                        {isSubmitting ? 'Submitting...' : (
-                                            <>
-                                                <span>Submit</span>
-                                                <Send className="h-4 w-4" />
-                                            </>
-                                        )}
+                                        {isSubmitting ? 'Submitting...' : 'Submit'}
                                     </button>
                                 ) : (
                                     <button
                                         onClick={() => setCurrentQuestionIndex(prev => Math.min(randomizedQuestions.length - 1, prev + 1))}
-                                        className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-semibold hover:from-emerald-700 hover:to-emerald-800 active:scale-95 transition-all shadow-lg shadow-emerald-500/30"
+                                        className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors shadow-sm"
                                     >
-                                        <span className="hidden sm:inline">Next</span>
+                                        Next
                                         <ChevronRight className="h-4 w-4" />
                                     </button>
                                 )}
                             </div>
                         </div>
                     </div>
-                </div>
+                </div >
 
 
-                {/* Question Navigator - Desktop: Sidebar, Mobile: Bottom Sheet */}
-
-                {/* Desktop Sidebar */}
-                <AnimatePresence>
-                    {showQuestionNav && (
-                        <>
-                            {/* Desktop Sidebar */}
-                            <motion.div
-                                initial={{ x: '100%' }}
-                                animate={{ x: 0 }}
-                                exit={{ x: '100%' }}
-                                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                                className="hidden md:block fixed z-[90] top-0 bottom-0 right-0 w-[280px] shadow-2xl"
-                            >
-                                {/* Main Content Panel */}
-                                <div className="h-full bg-white flex flex-col border-l border-slate-200">
-                                    <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shrink-0">
-                                                    <LayoutGrid className="w-6 h-6 text-white" />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h3 className="text-slate-800 font-bold text-lg tracking-tight">
-                                                        Question Navigator
-                                                    </h3>
-                                                    <p className="text-slate-500 text-xs mt-1">Click number to jump</p>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => setShowQuestionNav(false)}
-                                                className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-colors"
-                                            >
-                                                <XCircle className="w-5 h-5 text-slate-600" />
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex-1 overflow-y-auto p-5 content-start">
-                                        <div className="grid grid-cols-5 gap-2">
-                                            {randomizedQuestions.map((q, idx) => {
-                                                const isAnswered = !!answers[q.id];
-                                                const isActive = currentQuestionIndex === idx;
-                                                return (
-                                                    <button
-                                                        key={q.id}
-                                                        onClick={() => {
-                                                            setCurrentQuestionIndex(idx);
-                                                            setShowQuestionNav(false);
-                                                        }}
-                                                        className={`w-10 h-10 rounded-md font-semibold text-sm transition-all flex items-center justify-center ${isActive
-                                                            ? 'bg-blue-500 text-white shadow-md scale-105'
-                                                            : isAnswered
-                                                                ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                                                                : 'bg-white text-slate-700 border border-slate-200 hover:border-blue-400 hover:text-blue-600'
-                                                            }`}
-                                                    >
-                                                        {idx + 1}
-                                                    </button>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        </>
-                    )}
-                </AnimatePresence>
-
-                {/* Mobile Bottom Sheet */}
-                <AnimatePresence>
-                    {showQuestionNav && (
-                        <>
-                            {/* Backdrop */}
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                onClick={() => setShowQuestionNav(false)}
-                                className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[200]"
-                            />
-
-                            {/* Bottom Sheet - Mobile Only */}
-                            <motion.div
-                                initial={{ y: '100%' }}
-                                animate={{ y: 0 }}
-                                exit={{ y: '100%' }}
-                                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                                className="md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl z-[201] max-h-[80vh] flex flex-col"
-                            >
-                                {/* Handle */}
-                                <div className="pt-3 pb-2 flex justify-center">
-                                    <div className="w-12 h-1.5 bg-slate-300 rounded-full"></div>
-                                </div>
-
-                                {/* Header */}
-                                <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg">
-                                                <LayoutGrid className="w-5 h-5 text-white" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-slate-800 font-bold text-lg">Questions</h3>
-                                                <p className="text-slate-500 text-xs">Tap to jump</p>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => setShowQuestionNav(false)}
-                                            className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-colors"
-                                        >
-                                            <XCircle className="w-5 h-5 text-slate-600" />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Question Grid */}
-                                <div className="flex-1 overflow-y-auto p-6">
-                                    <div className="grid grid-cols-5 gap-3">
-                                        {randomizedQuestions.map((q, idx) => {
-                                            const isAnswered = !!answers[q.id];
-                                            const isActive = currentQuestionIndex === idx;
-                                            return (
-                                                <button
-                                                    key={q.id}
-                                                    onClick={() => {
-                                                        setCurrentQuestionIndex(idx);
-                                                        setShowQuestionNav(false);
-                                                    }}
-                                                    className={`aspect-square rounded-xl font-bold text-base transition-all flex items-center justify-center active:scale-95 ${isActive
-                                                        ? 'bg-blue-500 text-white shadow-md'
-                                                        : isAnswered
-                                                            ? 'bg-emerald-500 text-white'
-                                                            : 'bg-slate-100 text-slate-700 border-2 border-slate-200'
-                                                        }`}
-                                                >
-                                                    {idx + 1}
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            </motion.div>
-                        </>
-                    )}
-                </AnimatePresence>
-
-
-            </div>
+            </div >
 
             {/* Custom Modal for Submission */}
             {
@@ -1208,6 +1102,157 @@ export default function ExamTaker() {
                     </div>
                 )
             }
+
+            {/* Question Navigator Sidebar */}
+            <AnimatePresence>
+                {showQuestionNav && (
+                    <>
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowQuestionNav(false)}
+                            className="fixed inset-0 bg-black/30 z-40"
+                        />
+
+                        {/* Sidebar */}
+                        <motion.div
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="fixed right-0 top-0 bottom-0 w-80 bg-white shadow-2xl z-50 flex flex-col"
+                        >
+                            {/* Header */}
+                            <div className="p-5 border-b border-slate-200">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-xl font-bold text-slate-800">Question Navigator</h3>
+                                    <button
+                                        onClick={() => setShowQuestionNav(false)}
+                                        className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                                    >
+                                        <XCircle className="h-5 w-5 text-slate-500" />
+                                    </button>
+                                </div>
+                                <p className="text-sm text-slate-500">
+                                    {Object.keys(answers).length} of {randomizedQuestions.length} answered
+                                </p>
+                            </div>
+
+                            {/* Legend - Horizontal */}
+                            <div className="px-5 py-3 bg-slate-50 border-b border-slate-200">
+                                <div className="flex items-center justify-between text-xs pr-3">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                                        <span className="text-slate-600">Unanswered</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                                        <span className="text-slate-600">Current</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                        <span className="text-slate-600">Answered</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Question Grid */}
+                            <div className="flex-1 overflow-y-auto p-5">
+                                <div className="grid grid-cols-5 gap-2">
+                                    {randomizedQuestions.map((q, idx) => {
+                                        const isAnswered = !!answers[q.id];
+                                        const isCurrent = idx === currentQuestionIndex;
+
+                                        return (
+                                            <button
+                                                key={q.id}
+                                                onClick={() => {
+                                                    setCurrentQuestionIndex(idx);
+                                                }}
+                                                className={`
+                                                    w-10 h-10 rounded-lg font-semibold text-sm transition-all
+                                                    ${isCurrent
+                                                        ? 'bg-blue-600 text-white shadow-md scale-105'
+                                                        : isAnswered
+                                                            ? 'bg-green-500 text-white hover:bg-green-600'
+                                                            : 'bg-white text-slate-700 border-2 border-slate-200 hover:border-blue-400 hover:text-blue-600'
+                                                    }
+                                                `}
+                                            >
+                                                {idx + 1}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Warning Modal - Unanswered Questions */}
+            <AnimatePresence>
+                {showWarningModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 50 }}
+                            transition={{ type: "spring", duration: 0.5 }}
+                            className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full"
+                        >
+                            <div className="text-center">
+                                {/* Warning Icon */}
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                    className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-6"
+                                >
+                                    <AlertCircle className="h-10 w-10 text-amber-600" />
+                                </motion.div>
+
+                                {/* Title */}
+                                <motion.h2
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="text-2xl font-bold text-slate-800 mb-3"
+                                >
+                                    Warning!
+                                </motion.h2>
+
+                                {/* Message */}
+                                <motion.p
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.4 }}
+                                    className="text-slate-600 mb-6 leading-relaxed"
+                                >
+                                    You still have <span className="font-bold text-amber-600">{remainingQuestionsCount} unanswered question{remainingQuestionsCount > 1 ? 's' : ''}</span>!
+                                    <br />
+                                    Please complete all questions before submitting.
+                                </motion.p>
+
+                                {/* Button */}
+                                <motion.button
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.5 }}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setShowWarningModal(false)}
+                                    className="w-full px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors shadow-lg"
+                                >
+                                    OK, I Understand
+                                </motion.button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Auto-Submit Notification Modal */}
             <AnimatePresence>
@@ -1279,6 +1324,136 @@ export default function ExamTaker() {
                                     Kembali ke Daftar Ujian
                                 </motion.button>
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Exam Result Modal with Confetti */}
+            <AnimatePresence>
+                {showResultModal && examResult && (
+                    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+                        />
+
+                        {/* Confetti Particles */}
+                        {[...Array(50)].map((_, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{
+                                    x: '50vw',
+                                    y: '50vh',
+                                    opacity: 1,
+                                    scale: 0
+                                }}
+                                animate={{
+                                    x: `${Math.random() * 100}vw`,
+                                    y: `${Math.random() * 100}vh`,
+                                    opacity: 0,
+                                    scale: Math.random() * 1.5 + 0.5,
+                                    rotate: Math.random() * 360
+                                }}
+                                transition={{
+                                    duration: Math.random() * 2 + 1,
+                                    ease: 'easeOut',
+                                    delay: Math.random() * 0.3
+                                }}
+                                className="absolute w-3 h-3 rounded-full"
+                                style={{
+                                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][Math.floor(Math.random() * 5)]
+                                }}
+                            />
+                        ))}
+
+                        {/* Modal Content */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 50 }}
+                            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                            className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center"
+                        >
+                            {/* Icon */}
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+                                className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-6 shadow-lg"
+                            >
+                                <CheckCircle2 className="h-10 w-10 text-white" />
+                            </motion.div>
+
+                            {/* Title */}
+                            <motion.h2
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="text-2xl font-bold text-slate-800 mb-2"
+                            >
+                                Exam Completed!
+                            </motion.h2>
+
+                            {/* Score Display */}
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.5 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.4, type: 'spring' }}
+                                className="mb-6"
+                            >
+                                <div className="text-6xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent mb-2">
+                                    {Math.round(examResult.score)}%
+                                </div>
+
+                                {/* Grade Badge */}
+                                <div className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${examResult.score >= 90 ? 'bg-green-100 text-green-700' :
+                                    examResult.score >= 75 ? 'bg-blue-100 text-blue-700' :
+                                        examResult.score >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                                            'bg-red-100 text-red-700'
+                                    }`}>
+                                    {examResult.score >= 90 ? '🎉 Excellent!' :
+                                        examResult.score >= 75 ? '👍 Good Job!' :
+                                            examResult.score >= 60 ? '💪 Keep Trying!' :
+                                                '📚 Need Improvement'}
+                                </div>
+                            </motion.div>
+
+                            {/* Statistics */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 }}
+                                className="bg-slate-50 rounded-2xl p-4 mb-6 space-y-2"
+                            >
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-600">Total Questions:</span>
+                                    <span className="font-bold text-slate-800">{examResult.totalQuestions}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-600">Answered:</span>
+                                    <span className="font-bold text-slate-800">{examResult.answeredQuestions}</span>
+                                </div>
+                            </motion.div>
+
+                            {/* Button */}
+                            <motion.button
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.6 }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => {
+                                    setShowResultModal(false);
+                                    navigate('/student/exams');
+                                }}
+                                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
+                            >
+                                Back to Exams
+                            </motion.button>
                         </motion.div>
                     </div>
                 )}
