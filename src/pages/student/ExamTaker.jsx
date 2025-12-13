@@ -4,7 +4,7 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle, Send, LogOut, XCircle } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle, Send, LogOut, XCircle, ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired } from '../../utils/examSession';
 
@@ -548,22 +548,31 @@ export default function ExamTaker() {
     };
 
     const confirmSubmit = async (isAutoSubmit = false, answersToSubmit = null) => {
-        if (isSubmitting) return;
+        console.log('confirmSubmit called', { isAutoSubmit, isSubmitting, answersCount: Object.keys(answers).length });
+
+        if (isSubmitting) {
+            console.log('Already submitting, returning');
+            return;
+        }
 
         setIsSubmitting(true);
         setShowSubmitModal(false);
 
         // Use provided answers or current state
         const finalAnswers = answersToSubmit || answers;
+        console.log('Final answers:', finalAnswers);
 
         try {
             const finalScore = calculateScore(finalAnswers);
+            console.log('Calculated score:', finalScore);
 
             // Complete exam session
             if (sessionId) {
+                console.log('Completing exam session:', sessionId);
                 await completeExamSession(sessionId, finalAnswers, finalScore);
             }
 
+            console.log('Adding exam result to database');
             await addDoc(collection(db, 'exam_results'), {
                 examId: exam.id,
                 studentId: currentUser.uid,
@@ -581,6 +590,7 @@ export default function ExamTaker() {
 
             // Show result modal instead of immediate navigation (unless auto-submitted)
             if (!isAutoSubmit) {
+                console.log('Showing result modal');
                 setExamResult({
                     score: finalScore,
                     totalQuestions: randomizedQuestions.length,
@@ -597,7 +607,8 @@ export default function ExamTaker() {
             }
         } catch (error) {
             console.error("Error submitting exam:", error);
-            toast.error("Failed to submit exam");
+            console.error("Error details:", error.message, error.stack);
+            toast.error(`Failed to submit exam: ${error.message}`);
             setIsSubmitting(false);
         }
     };
@@ -802,19 +813,6 @@ export default function ExamTaker() {
                     <span className="text-sm font-normal">Time Left: <span className="font-bold tabular-nums">{formatTime(timeLeft)}</span></span>
                 </div>
 
-                {/* Center: Question Type/Status */}
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                        {currentQ.type === 'single_choice' ? 'Single Choice' :
-                            currentQ.type === 'multiple_choice' ? 'Multiple Choice' :
-                                currentQ.type === 'matching' ? 'Matching' :
-                                    currentQ.type === 'true_false' ? 'True/False' : 'Question'}
-                    </span>
-                    <span className="text-slate-300">•</span>
-                    <span className="text-xs font-bold text-slate-700">
-                        Question {currentQuestionIndex + 1}/{randomizedQuestions.length}
-                    </span>
-                </div>
 
                 {/* Right: Exit */}
                 <div className="flex items-center gap-2">
@@ -844,11 +842,21 @@ export default function ExamTaker() {
                 <div className="flex-1 flex flex-col p-3 md:p-6 bg-slate-100/50 overflow-hidden">
                     <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col overflow-hidden">
                         {/* Exam Title */}
-                        <div className="mb-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-l-4 border-blue-500 rounded-xl p-4 flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
-                                <FileText className="h-5 w-5 text-white" />
+                        <div className="mb-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-6 shadow-lg relative overflow-hidden">
+                            {/* Decorative Elements */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
+
+                            {/* Content */}
+                            <div className="relative flex items-center justify-between">
+                                <div className="flex-1 min-w-0 pr-4">
+                                    <p className="text-sm font-medium text-white/80 mb-1">Current Exam</p>
+                                    <h1 className="text-xl md:text-2xl font-bold text-white truncate">{exam.title}</h1>
+                                </div>
+                                <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                                    <ClipboardCheck className="h-7 w-7 text-white" />
+                                </div>
                             </div>
-                            <h1 className="text-lg md:text-xl font-bold text-slate-800 truncate">{exam.title}</h1>
                         </div>
 
                         <AnimatePresence mode="wait">
@@ -1024,6 +1032,19 @@ export default function ExamTaker() {
                                     Back
                                 </button>
 
+                                {/* Center: Question Type & Progress */}
+                                <div className="flex-1 flex flex-col items-center gap-1">
+                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                                        {currentQ.type === 'single_choice' ? 'Single Choice' :
+                                            currentQ.type === 'multiple_choice' ? 'Multiple Choice' :
+                                                currentQ.type === 'matching' ? 'Matching' :
+                                                    currentQ.type === 'true_false' ? 'True/False' : 'Question'}
+                                    </span>
+                                    <span className="text-sm font-bold text-slate-700">
+                                        Question {currentQuestionIndex + 1}/{randomizedQuestions.length}
+                                    </span>
+                                </div>
+
                                 {isLastInfo ? (
                                     <button
                                         onClick={handleRequestSubmit}
@@ -1090,7 +1111,7 @@ export default function ExamTaker() {
                                     </button>
                                     {unansweredCount === 0 && (
                                         <button
-                                            onClick={confirmSubmit}
+                                            onClick={() => confirmSubmit()}
                                             className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-colors"
                                         >
                                             Yes, Submit
