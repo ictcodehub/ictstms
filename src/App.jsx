@@ -1,7 +1,10 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
+import { SplashScreen } from '@capacitor/splash-screen';
+import { AnimatePresence } from 'framer-motion';
+import AnimatedSplash from './components/AnimatedSplash';
 
 // Lazy load page components for code splitting
 const Login = lazy(() => import('./pages/Login'));
@@ -53,14 +56,29 @@ const RootRedirect = () => {
   return <Navigate to={userRole === 'teacher' ? '/teacher' : '/student'} />;
 };
 
+import { SplashScreen } from '@capacitor/splash-screen';
+
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
   useEffect(() => {
-    console.log('🚀 STMS Version 2.0.2 Loaded');
+    console.log('🚀 STMS Version 1.2 Loaded');
+    // Hide NATIVE splash immediately. Our Web Splash (AnimatedSplash) is already rendered layer above.
+    // This creates the seamless transition.
+    const hideNativeSplash = async () => {
+      await SplashScreen.hide();
+    };
+    hideNativeSplash();
   }, []);
 
   return (
     <AuthProvider>
       <Toaster position="top-right" reverseOrder={false} />
+
+      <AnimatePresence>
+        {showSplash && <AnimatedSplash onComplete={() => setShowSplash(false)} />}
+      </AnimatePresence>
+
       <Router>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>

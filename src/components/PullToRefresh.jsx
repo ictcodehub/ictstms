@@ -112,35 +112,19 @@ export default function PullToRefresh({ children, onRefresh }) {
                 {/* Indicator Container */}
                 <motion.div
                     className="relative flex items-center justify-center p-2"
-                    initial={{ opacity: 0, y: -60, scale: 0.5 }} // Force initial state
+                    initial={{ opacity: 0, y: -60, scale: 0.5 }}
                     style={{
                         y: useTransform(y, (val) => val - 60),
-                        opacity: useTransform(y, [0, 20], [0, 1], { clamp: true }), // Faster fade in, clamped
+                        opacity: useTransform(y, [0, 20], [0, 1], { clamp: true }),
                         scale: useTransform(y, [0, 80], [0.5, 1]),
                     }}
                 >
-                    <div className="bg-white/90 backdrop-blur-md rounded-full p-3 shadow-lg border border-blue-100/50 ring-4 ring-blue-50/50">
+                    <div className="bg-white rounded-full p-2.5 shadow-md border border-slate-100">
                         {isRefreshing ? (
-                            <div className="relative h-6 w-6">
-                                <motion.span
-                                    className="absolute inset-0 border-2 border-blue-200 rounded-full"
-                                />
-                                <motion.span
-                                    className="absolute inset-0 border-2 border-t-blue-600 border-r-transparent border-b-transparent border-l-transparent rounded-full"
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                                />
-                                <motion.div
-                                    className="absolute inset-1 bg-gradient-to-tr from-blue-500 to-cyan-400 rounded-full"
-                                    animate={{ scale: [0.8, 1, 0.8] }}
-                                    transition={{ duration: 1, repeat: Infinity }}
-                                />
-                            </div>
+                            <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
                         ) : (
                             <motion.div style={{ rotate }} className="relative">
-                                {/* Decor rings */}
-                                <div className="absolute -inset-1 border border-blue-100 rounded-full scale-125 opacity-50" />
-                                <ArrowDown className="h-6 w-6 text-blue-600" strokeWidth={2.5} />
+                                <ArrowDown className="h-6 w-6 text-blue-600" />
                             </motion.div>
                         )}
                     </div>
