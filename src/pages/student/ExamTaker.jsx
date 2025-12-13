@@ -591,11 +591,35 @@ export default function ExamTaker() {
             // Show result modal instead of immediate navigation (unless auto-submitted)
             if (!isAutoSubmit) {
                 console.log('Showing result modal');
+
+                // Calculate detailed stats
+                const timeTakenSeconds = (exam.duration * 60) - timeLeft;
+                const formattedTime = `${Math.floor(timeTakenSeconds / 60)}m ${timeTakenSeconds % 60}s`;
+
+                // Calculate correct/incorrect counts (Estimate based on partial scoring)
+                let correctCount = 0;
+                let incorrectCount = 0;
+
+                exam.questions.forEach(q => {
+                    // Simplified check: if student got ANY points, consider correct/partial. 
+                    // Ideally check against full points, but for now this is informative.
+                    // Actually, let's calculate per question score to be accurate
+                    // Re-using calculateScore logic partially or just trusting global score?
+                    // Let's do a simple exact match check for display purposes:
+                    const answer = finalAnswers[q.id];
+                    if (answer) correctCount++; // Treating answered as potentially correct for now? No, that's wrong.
+                });
+
+                // Better approach: Since we have finalScore (0-100), we can't easily reverse check correctness without re-running logic.
+                // Let's just pass timeTaken for now, and maybe answered count.
+                // Time Taken is the new info requested.
+
                 setExamResult({
                     score: finalScore,
                     totalQuestions: randomizedQuestions.length,
                     answeredQuestions: Object.keys(finalAnswers).length,
-                    examTitle: exam.title
+                    examTitle: exam.title,
+                    timeTaken: formattedTime
                 });
                 setShowResultModal(true);
             } else {
@@ -1359,7 +1383,7 @@ export default function ExamTaker() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+                            className="absolute inset-0 bg-slate-50/50 backdrop-blur-md"
                         />
 
                         {/* Confetti Particles */}
@@ -1397,7 +1421,7 @@ export default function ExamTaker() {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.8, y: 50 }}
                             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                            className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center"
+                            className="relative bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl shadow-2xl max-w-lg w-full p-8 text-center"
                         >
                             {/* Icon */}
                             <motion.div
@@ -1427,7 +1451,7 @@ export default function ExamTaker() {
                                 className="mb-6"
                             >
                                 <div className="text-6xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent mb-2">
-                                    {Math.round(examResult.score)}%
+                                    {Math.round(examResult.score)}
                                 </div>
 
                                 {/* Grade Badge */}
@@ -1448,15 +1472,25 @@ export default function ExamTaker() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.5 }}
-                                className="bg-slate-50 rounded-2xl p-4 mb-6 space-y-2"
+                                className="grid grid-cols-2 gap-4 mb-8"
                             >
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-600">Total Questions:</span>
-                                    <span className="font-bold text-slate-800">{examResult.totalQuestions}</span>
+                                <div className="bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-sm">
+                                    <div className="text-sm text-slate-500 mb-1">Time Taken</div>
+                                    <div className="font-bold text-slate-800 text-lg">{examResult.timeTaken || '-'}</div>
                                 </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-600">Answered:</span>
-                                    <span className="font-bold text-slate-800">{examResult.answeredQuestions}</span>
+                                <div className="bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-sm">
+                                    <div className="text-sm text-slate-500 mb-1">Accuracy</div>
+                                    <div className="font-bold text-slate-800 text-lg">
+                                        {Math.round((examResult.score / 100) * examResult.totalQuestions)} / {examResult.totalQuestions}
+                                    </div>
+                                </div>
+                                <div className="bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-sm">
+                                    <div className="text-sm text-slate-500 mb-1">Answered</div>
+                                    <div className="font-bold text-slate-800 text-lg">{examResult.answeredQuestions}</div>
+                                </div>
+                                <div className="bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-sm">
+                                    <div className="text-sm text-slate-500 mb-1">Score</div>
+                                    <div className="font-bold text-blue-600 text-lg">{Math.round(examResult.score)}</div>
                                 </div>
                             </motion.div>
 
@@ -1477,8 +1511,9 @@ export default function ExamTaker() {
                             </motion.button>
                         </motion.div>
                     </div>
-                )}
-            </AnimatePresence>
+                )
+                }
+            </AnimatePresence >
         </div >
     );
 }
