@@ -152,16 +152,15 @@ export default function Login() {
                     </motion.div>
 
                     {/* Credits Footer */}
-                    <div className="absolute bottom-0 left-0 w-full bg-white/60 backdrop-blur-md border-t border-white/40 py-4 px-4 text-center z-10">
-                        <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                            <span className="whitespace-nowrap inline-flex items-center gap-1">
+                    <div className="absolute bottom-0 left-0 w-full bg-white/60 backdrop-blur-md border-t border-white/40 py-3 px-4 text-center z-10">
+                        <div className="flex flex-col items-center gap-1">
+                            <p className="text-xs text-slate-600 font-medium flex items-center gap-1">
                                 Made with <Flame className="h-3 w-3 text-orange-500 fill-orange-500 animate-pulse" /> by Mr. Tio
-                            </span>
-                            <span className="hidden sm:inline mx-1">•</span>
-                            <span className="block sm:inline mt-1 sm:mt-0">
+                            </p>
+                            <p className="text-xs text-slate-500">
                                 Powered by Google Antigravity & Firebase
-                            </span>
-                        </p>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </PullToRefresh>
