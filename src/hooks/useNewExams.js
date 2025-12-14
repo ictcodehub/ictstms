@@ -28,8 +28,8 @@ export const useNewExams = (userRole, classId) => {
                 const examsRef = collection(db, 'exams');
                 const q = query(
                     examsRef,
-                    where('classId', '==', classId),
-                    where('published', '==', true)
+                    where('assignedClasses', 'array-contains', classId),
+                    where('status', '==', 'published')
                 );
 
                 const snapshot = await getDocs(q);
