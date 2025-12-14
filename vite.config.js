@@ -108,4 +108,9 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'firebase/app', 'firebase/auth', 'firebase/firestore'],
   },
+  // Server config for network access
+  server: {
+    host: '0.0.0.0', // Listen on all network interfaces
+    port: 5173,
+  },
 })

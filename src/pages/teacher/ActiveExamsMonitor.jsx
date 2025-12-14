@@ -71,8 +71,8 @@ export default function ActiveExamsMonitor({ examId }) {
                         <div
                             key={session.id}
                             className={`border-2 rounded-xl p-4 transition-all ${session.status === 'paused'
-                                    ? 'border-amber-200 bg-amber-50'
-                                    : 'border-green-200 bg-green-50'
+                                ? 'border-amber-200 bg-amber-50'
+                                : 'border-green-200 bg-green-50'
                                 }`}
                         >
                             <div className="flex items-center justify-between">
@@ -83,8 +83,8 @@ export default function ActiveExamsMonitor({ examId }) {
                                     </h4>
                                     <div className="flex items-center gap-3 mt-1">
                                         <span className={`inline-flex items-center gap-1 text-xs font-bold ${session.status === 'paused'
-                                                ? 'text-amber-600'
-                                                : 'text-green-600'
+                                            ? 'text-amber-600'
+                                            : 'text-green-600'
                                             }`}>
                                             {session.status === 'paused' ? (
                                                 <><Pause className="h-3 w-3" /> Paused</>
@@ -102,30 +102,53 @@ export default function ActiveExamsMonitor({ examId }) {
 
                                 {/* Pause Code */}
                                 <div className="flex items-center gap-2">
-                                    <div className="text-right mr-3">
-                                        <p className="text-xs text-slate-500 font-medium">
-                                            Pause Code
-                                        </p>
-                                        <p className="text-2xl font-bold text-slate-800 tracking-wider font-mono">
-                                            {session.pauseCode}
-                                        </p>
-                                        {session.pauseCodeUsed && (
-                                            <p className="text-xs text-green-600 font-bold">
-                                                ✓ Used
+                                    {session.pauseCode ? (
+                                        <>
+                                            <div className="text-right mr-3">
+                                                <p className="text-xs text-slate-500 font-medium">
+                                                    Pause Code
+                                                </p>
+                                                <p className={`text-2xl font-bold tracking-wider font-mono ${session.pauseCodeUsed ? 'text-slate-400 line-through' : 'text-slate-800'
+                                                    }`}>
+                                                    {session.pauseCode}
+                                                </p>
+                                                {session.pauseCodeUsed ? (
+                                                    <p className="text-xs text-red-600 font-bold">
+                                                        ✗ Expired
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-xs text-green-600 font-bold">
+                                                        ✓ Active
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => copyPauseCode(session.pauseCode, session.id)}
+                                                disabled={session.pauseCodeUsed}
+                                                className={`p-2 rounded-lg transition-colors ${session.pauseCodeUsed
+                                                        ? 'bg-slate-100 cursor-not-allowed'
+                                                        : 'bg-blue-100 hover:bg-blue-200'
+                                                    }`}
+                                                title={session.pauseCodeUsed ? "Code expired" : "Copy code"}
+                                            >
+                                                {copiedCode === session.id ? (
+                                                    <Check className="h-5 w-5 text-green-600" />
+                                                ) : (
+                                                    <Copy className={`h-5 w-5 ${session.pauseCodeUsed ? 'text-slate-400' : 'text-blue-600'
+                                                        }`} />
+                                                )}
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div className="text-right">
+                                            <p className="text-xs text-amber-600 font-medium">
+                                                ⚠️ Old Session
                                             </p>
-                                        )}
-                                    </div>
-                                    <button
-                                        onClick={() => copyPauseCode(session.pauseCode, session.id)}
-                                        className="p-2 rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors"
-                                        title="Copy code"
-                                    >
-                                        {copiedCode === session.id ? (
-                                            <Check className="h-5 w-5 text-green-600" />
-                                        ) : (
-                                            <Copy className="h-5 w-5 text-blue-600" />
-                                        )}
-                                    </button>
+                                            <p className="text-xs text-slate-500">
+                                                Student needs to restart exam
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

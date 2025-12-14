@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle, Send, LogOut, XCircle, ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired } from '../../utils/examSession';
+import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired, generatePauseCode } from '../../utils/examSession';
 import { saveAnswersOffline, getOfflineAnswers, markAsSynced } from '../../utils/offlineStorage';
 import ExamOfflineIndicator from '../../components/ExamOfflineIndicator';
 
@@ -54,6 +54,8 @@ export default function ExamTaker() {
     const [showPauseCodeModal, setShowPauseCodeModal] = useState(false);
     const [pauseCode, setPauseCode] = useState('');
     const [pauseCodeError, setPauseCodeError] = useState('');
+    const [isPausing, setIsPausing] = useState(false); // Flag to prevent auto-submit during legal pause
+
 
 
     // Helper function to exit fullscreen
@@ -253,11 +255,11 @@ export default function ExamTaker() {
 
     // Detect illegal exit (tab switch, fullscreen exit, browser close)
     useEffect(() => {
-        if (!hasStarted || timeUp || isSubmitting) return;
+        if (!hasStarted || timeUp || isSubmitting || isPausing) return;
 
         // Detect tab switch (visibility change)
         const handleVisibilityChange = () => {
-            if (document.hidden) {
+            if (document.hidden && !isPausing) {
                 console.log('Tab switch detected');
                 handleIllegalExit();
             }
@@ -265,7 +267,7 @@ export default function ExamTaker() {
 
         // Detect fullscreen exit (ESC key)
         const handleFullscreenChange = () => {
-            if (!document.fullscreenElement && hasStarted && !timeUp && !isSubmitting) {
+            if (!document.fullscreenElement && hasStarted && !timeUp && !isSubmitting && !isPausing) {
                 console.log('Fullscreen exit detected');
                 handleIllegalExit();
             }
@@ -273,13 +275,15 @@ export default function ExamTaker() {
 
         // Detect browser close / navigate away
         const handleBeforeUnload = (e) => {
+            if (isPausing) return; // Don't trigger if pausing legally
+
             e.preventDefault();
             e.returnValue = '⚠️ Your exam will be auto-submitted if you leave!';
 
             // Trigger auto-submit (best effort)
             handleIllegalExit();
 
-            return e.returnValue;
+            return e.returnValue();
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -291,7 +295,7 @@ export default function ExamTaker() {
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
-    }, [hasStarted, timeUp, isSubmitting, answers, sessionId]);
+    }, [hasStarted, timeUp, isSubmitting, isPausing, answers, sessionId]);
 
     // Update timer in Resume Modal (real-time)
     useEffect(() => {
@@ -501,6 +505,17 @@ export default function ExamTaker() {
                 setExpiresAt({ toDate: () => expirationTime }); // Match Firestore Timestamp format
 
                 toast.success('Exam session started!');
+            } else {
+                // Resuming existing session - reset pause code used flag if session was paused
+                const sessionDoc = await getDoc(doc(db, 'exam_sessions', sessionId));
+                if (sessionDoc.exists() && sessionDoc.data().status === 'paused') {
+                    await updateDoc(doc(db, 'exam_sessions', sessionId), {
+                        pauseCodeUsed: false, // Reset used flag (code already generated on pause)
+                        status: 'in_progress' // Change status back to in_progress
+                    });
+                    console.log('Exam resumed. Pause code ready for next pause.');
+                    toast.success('Exam resumed!');
+                }
             }
 
             // Enter fullscreen
@@ -630,33 +645,55 @@ export default function ExamTaker() {
     // Handle pause with teacher code
     const handlePauseWithCode = async () => {
         try {
+            console.log('Pause attempt - sessionId:', sessionId);
+            console.log('Pause attempt - code entered:', pauseCode);
+
+            // Validate sessionId exists
+            if (!sessionId) {
+                setPauseCodeError('Session not found. Please refresh and try again.');
+                return;
+            }
+
             // Get current session to verify pause code
             const sessionDoc = await getDoc(doc(db, 'exam_sessions', sessionId));
             if (!sessionDoc.exists()) {
+                console.error('Session document not found');
                 setPauseCodeError('Session not found');
                 return;
             }
 
             const sessionData = sessionDoc.data();
+            console.log('Session data:', sessionData);
+            console.log('Session pauseCode:', sessionData.pauseCode);
 
             // Verify pause code
             if (pauseCode.toUpperCase() !== sessionData.pauseCode) {
+                console.log('Code mismatch:', pauseCode.toUpperCase(), '!==', sessionData.pauseCode);
                 setPauseCodeError('Incorrect pause code. Please ask your teacher.');
                 return;
             }
 
-            // Save current answers
-            await saveAnswers();
+            console.log('Code verified, pausing exam...');
+
+            // Set pausing flag to prevent auto-submit
+            setIsPausing(true);
+
+            // Save current answers using updateSessionAnswers
+            if (Object.keys(answers).length > 0) {
+                await updateSessionAnswers(sessionId, answers);
+            }
 
             // Update session to paused
+            const newPauseCode = generatePauseCode(); // Generate new code immediately
+
             await updateDoc(doc(db, 'exam_sessions', sessionId), {
                 status: 'paused',
-                pauseCodeUsed: true,
+                pauseCode: newPauseCode, // Set new code for next pause (not used yet, so don't mark as used)
                 pauseCount: (sessionData.pauseCount || 0) + 1,
                 pauseHistory: [
                     ...(sessionData.pauseHistory || []),
                     {
-                        pausedAt: serverTimestamp(),
+                        pausedAt: new Date().toISOString(), // Use ISO string instead of serverTimestamp
                         resumedAt: null,
                         duration: null
                     }
@@ -665,6 +702,7 @@ export default function ExamTaker() {
                 lastActivityAt: serverTimestamp()
             });
 
+            console.log('Exam paused successfully. New code generated:', newPauseCode);
             toast.success('Exam paused successfully!');
             exitFullscreen();
             navigate('/student/exams');
@@ -1768,8 +1806,8 @@ export default function ExamTaker() {
                                 onClick={handlePauseWithCode}
                                 disabled={pauseCode.length !== 6}
                                 className={`flex-1 py-3 rounded-lg font-bold transition-colors ${pauseCode.length === 6
-                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                        : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
                                     }`}
                             >
                                 Pause Exam

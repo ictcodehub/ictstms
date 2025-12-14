@@ -121,11 +121,11 @@ export default function StudentExams() {
     useEffect(() => {
         if (!currentUser) return;
 
-        // Real-time listener for exam sessions
+        // Real-time listener for exam sessions (include paused sessions)
         const sessionsQuery = query(
             collection(db, 'exam_sessions'),
             where('studentId', '==', currentUser.uid),
-            where('status', '==', 'in_progress')
+            where('status', 'in', ['in_progress', 'paused']) // Include paused sessions
         );
 
         const unsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
@@ -154,6 +154,16 @@ export default function StudentExams() {
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-full border border-red-200">
                     <AlertCircle className="h-3 w-3" />
                     Expired
+                </span>
+            );
+        }
+
+        // Check if exam is paused
+        if (examSessions[exam.id]?.status === 'paused') {
+            return (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-200">
+                    <Clock className="h-3 w-3" />
+                    Paused
                 </span>
             );
         }

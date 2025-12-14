@@ -4,7 +4,7 @@ import { collection, doc, getDoc, setDoc, updateDoc, query, where, getDocs, serv
 /**
  * Generate unique 6-character pause code
  */
-const generatePauseCode = () => {
+export const generatePauseCode = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars (0,O,1,I)
     let code = '';
     for (let i = 0; i < 6; i++) {
