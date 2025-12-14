@@ -22,6 +22,13 @@ export const useNewExams = (userRole, classId) => {
         const lastSeen = localStorage.getItem(lastSeenKey);
         const lastSeenDate = lastSeen ? new Date(parseInt(lastSeen)) : new Date(0);
 
+        console.log('🔍 NewExams Hook Debug:', {
+            classId,
+            lastSeenKey,
+            lastSeen,
+            lastSeenDate: lastSeenDate.toISOString()
+        });
+
         // Setup real-time listener for published exams
         const examsRef = collection(db, 'exams');
         const q = query(
@@ -31,16 +38,25 @@ export const useNewExams = (userRole, classId) => {
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
+            console.log('📡 Exams snapshot received:', snapshot.docs.length, 'exams');
+
             const examsData = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
+
+            console.log('📋 All exams:', examsData.map(e => ({
+                title: e.title,
+                createdAt: e.createdAt?.toDate?.()?.toISOString() || 'no date'
+            })));
 
             // Filter exams created after last seen
             const newExamsList = examsData.filter(exam => {
                 const createdAt = exam.createdAt?.toDate() || new Date(0);
                 return createdAt > lastSeenDate;
             });
+
+            console.log('✨ New exams filtered:', newExamsList.length, newExamsList.map(e => e.title));
 
             setNewExams(newExamsList);
             setNewExamsCount(newExamsList.length);

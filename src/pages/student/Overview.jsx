@@ -27,11 +27,12 @@ export default function Overview() {
     const [submissions, setSubmissions] = useState({});
     const [loading, setLoading] = useState(true);
     const [userClass, setUserClass] = useState(null);
+    const [classId, setClassId] = useState(null); // Add classId state
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(window.innerWidth < 768 ? 5 : 10);
 
-    // New exams notification
-    const { newExams, markAsRead } = useNewExams('student', currentUser?.classId);
+    // New exams notification - use classId state
+    const { newExams, markAsRead } = useNewExams('student', classId);
 
 
     // Responsive itemsPerPage
@@ -62,10 +63,12 @@ export default function Overview() {
                 }
 
                 const userData = userDoc.docs[0].data();
-                const classId = userData.classId;
+                const userClassId = userData.classId;
 
-                if (classId) {
-                    const classDoc = await getDocs(query(collection(db, 'classes'), where('__name__', '==', classId)));
+                setClassId(userClassId); // Set classId state
+
+                if (userClassId) {
+                    const classDoc = await getDocs(query(collection(db, 'classes'), where('__name__', '==', userClassId)));
                     if (!classDoc.empty) {
                         setUserClass(classDoc.docs[0].data());
                     }
