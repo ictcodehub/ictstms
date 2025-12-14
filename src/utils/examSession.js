@@ -2,9 +2,21 @@ import { db } from '../lib/firebase';
 import { collection, doc, getDoc, setDoc, updateDoc, query, where, getDocs, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 /**
+ * Generate unique 6-character pause code
+ */
+const generatePauseCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars (0,O,1,I)
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+};
+
+/**
  * Create a new exam session when student starts an exam
  */
-export const createExamSession = async (examId, studentId, duration, questionOrder = null, answerOrders = {}) => {
+export const createExamSession = async (examId, studentId, studentName, duration, questionOrder = null, answerOrders = {}) => {
     try {
         const sessionRef = doc(collection(db, 'exam_sessions'));
         const now = new Date();
@@ -13,14 +25,21 @@ export const createExamSession = async (examId, studentId, duration, questionOrd
         const sessionData = {
             examId,
             studentId,
+            studentName, // NEW: For teacher monitoring
             startedAt: serverTimestamp(),
             expiresAt: Timestamp.fromDate(expiresAt),
             answers: {},
             questionOrder: questionOrder || null, // Store shuffled question order
             answerOrders: answerOrders || {}, // Store shuffled answer orders per question
-            status: 'in_progress',
+            status: 'in_progress', // 'in_progress' | 'paused' | 'completed'
             submittedAt: null,
-            lastActivityAt: serverTimestamp()
+            lastActivityAt: serverTimestamp(),
+            // NEW: Pause code system
+            pauseCode: generatePauseCode(),
+            pauseCodeUsed: false,
+            pauseCount: 0,
+            pauseHistory: [],
+            timeRemaining: duration * 60 // Store in seconds
         };
 
         await setDoc(sessionRef, sessionData);
@@ -40,7 +59,7 @@ export const getExamSession = async (examId, studentId) => {
             collection(db, 'exam_sessions'),
             where('examId', '==', examId),
             where('studentId', '==', studentId),
-            where('status', '==', 'in_progress')
+            where('status', 'in', ['in_progress', 'paused']) // Include paused sessions
         );
 
         const snapshot = await getDocs(q);

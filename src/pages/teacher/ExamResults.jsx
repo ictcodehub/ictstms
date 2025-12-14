@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, User, Calendar, CheckCircle, XCircle, RefreshCw, FileText, Search, ChevronRight, Award, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { resetExamForAllClasses, resetExamForClass, resetExamForStudent } from '../../utils/examReset';
+import ActiveExamsMonitor from './ActiveExamsMonitor';
 
 export default function ExamResults() {
     const { id: examId } = useParams();
@@ -478,6 +479,11 @@ export default function ExamResults() {
                             )}
                         </div>
                     </div>
+
+                    {/* Active Exams Monitor - Only show for published exams */}
+                    {exam?.status === 'published' && (
+                        <ActiveExamsMonitor examId={examId} />
+                    )}
 
                     {/* Students List */}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">

@@ -50,6 +50,12 @@ export default function ExamTaker() {
     const [showQuestionNav, setShowQuestionNav] = useState(false);
     const [showAutoSubmitNotif, setShowAutoSubmitNotif] = useState(false);
 
+    // Pause code system
+    const [showPauseCodeModal, setShowPauseCodeModal] = useState(false);
+    const [pauseCode, setPauseCode] = useState('');
+    const [pauseCodeError, setPauseCodeError] = useState('');
+
+
     // Helper function to exit fullscreen
     const exitFullscreen = () => {
         if (document.exitFullscreen) {
@@ -244,6 +250,48 @@ export default function ExamTaker() {
 
         return () => clearTimeout(timer);
     }, []);
+
+    // Detect illegal exit (tab switch, fullscreen exit, browser close)
+    useEffect(() => {
+        if (!hasStarted || timeUp || isSubmitting) return;
+
+        // Detect tab switch (visibility change)
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                console.log('Tab switch detected');
+                handleIllegalExit();
+            }
+        };
+
+        // Detect fullscreen exit (ESC key)
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement && hasStarted && !timeUp && !isSubmitting) {
+                console.log('Fullscreen exit detected');
+                handleIllegalExit();
+            }
+        };
+
+        // Detect browser close / navigate away
+        const handleBeforeUnload = (e) => {
+            e.preventDefault();
+            e.returnValue = '⚠️ Your exam will be auto-submitted if you leave!';
+
+            // Trigger auto-submit (best effort)
+            handleIllegalExit();
+
+            return e.returnValue;
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [hasStarted, timeUp, isSubmitting, answers, sessionId]);
 
     // Update timer in Resume Modal (real-time)
     useEffect(() => {
@@ -440,6 +488,7 @@ export default function ExamTaker() {
                 const newSessionId = await createExamSession(
                     examId,
                     currentUser.uid,
+                    currentUser.displayName || currentUser.email, // Student name for teacher monitoring
                     exam.duration,
                     questionOrder,
                     answerOrders
@@ -576,6 +625,91 @@ export default function ExamTaker() {
 
         // Return Score (0-100)
         return (totalScore / maxScore) * 100;
+    };
+
+    // Handle pause with teacher code
+    const handlePauseWithCode = async () => {
+        try {
+            // Get current session to verify pause code
+            const sessionDoc = await getDoc(doc(db, 'exam_sessions', sessionId));
+            if (!sessionDoc.exists()) {
+                setPauseCodeError('Session not found');
+                return;
+            }
+
+            const sessionData = sessionDoc.data();
+
+            // Verify pause code
+            if (pauseCode.toUpperCase() !== sessionData.pauseCode) {
+                setPauseCodeError('Incorrect pause code. Please ask your teacher.');
+                return;
+            }
+
+            // Save current answers
+            await saveAnswers();
+
+            // Update session to paused
+            await updateDoc(doc(db, 'exam_sessions', sessionId), {
+                status: 'paused',
+                pauseCodeUsed: true,
+                pauseCount: (sessionData.pauseCount || 0) + 1,
+                pauseHistory: [
+                    ...(sessionData.pauseHistory || []),
+                    {
+                        pausedAt: serverTimestamp(),
+                        resumedAt: null,
+                        duration: null
+                    }
+                ],
+                timeRemaining: timeLeft,
+                lastActivityAt: serverTimestamp()
+            });
+
+            toast.success('Exam paused successfully!');
+            exitFullscreen();
+            navigate('/student/exams');
+        } catch (error) {
+            console.error('Error pausing exam:', error);
+            setPauseCodeError('Failed to pause exam. Please try again.');
+        }
+    };
+
+    // Handle illegal exit (auto-submit)
+    const handleIllegalExit = async () => {
+        console.log('⚠️ Illegal exit detected - Auto-submitting exam');
+
+        try {
+            // Calculate score with current answers
+            const finalScore = calculateScore(answers);
+
+            // Complete session
+            if (sessionId) {
+                await completeExamSession(sessionId, answers, finalScore);
+            }
+
+            // Save result with violation flag
+            await addDoc(collection(db, 'exam_results'), {
+                examId: exam.id,
+                studentId: currentUser.uid,
+                answers: answers,
+                score: finalScore,
+                submittedAt: serverTimestamp(),
+                autoSubmitted: true,
+                autoSubmitReason: 'illegal_exit',
+                flaggedForReview: true
+            });
+
+            // Exit fullscreen
+            exitFullscreen();
+
+            // Show notification
+            toast.error('Exam auto-submitted due to illegal exit');
+
+            // Navigate away
+            navigate('/student/exams');
+        } catch (error) {
+            console.error('Error auto-submitting:', error);
+        }
     };
 
     const handleRequestSubmit = () => {
@@ -896,14 +1030,11 @@ export default function ExamTaker() {
                         <LayoutGrid className="h-6 w-6 text-slate-700" />
                     </button>
                     <button
-                        onClick={() => {
-                            exitFullscreen();
-                            navigate('/student/exams');
-                        }}
+                        onClick={() => setShowPauseCodeModal(true)}
                         className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                        aria-label="Exit Exam"
+                        aria-label="Pause Exam"
                     >
-                        <LogOut className="h-6 w-6 text-red-600" />
+                        <LogOut className="h-6 w-6 text-amber-600" />
                     </button>
                 </div>
             </div>
@@ -1581,6 +1712,72 @@ export default function ExamTaker() {
                 )
                 }
             </AnimatePresence >
+
+            {/* Pause Code Modal */}
+            {showPauseCodeModal && (
+                <div className="fixed inset-0 z-[10000] bg-black/70 flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-white rounded-2xl p-6 max-w-md w-full"
+                    >
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">
+                            🔒 Request Pause from Teacher
+                        </h3>
+                        <p className="text-slate-600 mb-4">
+                            Ask your teacher for the pause code. Your teacher can see your unique code
+                            on their dashboard.
+                        </p>
+
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                            <p className="text-sm text-amber-800">
+                                <strong>⚠️ Warning:</strong> Exiting without the correct code will
+                                auto-submit your exam!
+                            </p>
+                        </div>
+
+                        <input
+                            type="text"
+                            value={pauseCode}
+                            onChange={(e) => {
+                                setPauseCode(e.target.value.toUpperCase());
+                                setPauseCodeError('');
+                            }}
+                            placeholder="Enter pause code"
+                            className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg mb-2 text-center text-2xl font-bold tracking-widest uppercase font-mono"
+                            maxLength={6}
+                            autoFocus
+                        />
+
+                        {pauseCodeError && (
+                            <p className="text-sm text-red-600 mb-4">❌ {pauseCodeError}</p>
+                        )}
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowPauseCodeModal(false);
+                                    setPauseCode('');
+                                    setPauseCodeError('');
+                                }}
+                                className="flex-1 py-3 bg-slate-200 rounded-lg font-bold hover:bg-slate-300 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handlePauseWithCode}
+                                disabled={pauseCode.length !== 6}
+                                className={`flex-1 py-3 rounded-lg font-bold transition-colors ${pauseCode.length === 6
+                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                        : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                    }`}
+                            >
+                                Pause Exam
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div >
     );
 }
