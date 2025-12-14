@@ -56,6 +56,10 @@ export default function ExamTaker() {
     const [pauseCodeError, setPauseCodeError] = useState('');
     const [isPausing, setIsPausing] = useState(false); // Flag to prevent auto-submit during legal pause
 
+    // Auto-submit modal
+    const [showAutoSubmitModal, setShowAutoSubmitModal] = useState(false);
+    const [autoSubmitInfo, setAutoSubmitInfo] = useState({ reason: '', score: 0, answeredCount: 0 });
+
 
 
     // Helper function to exit fullscreen
@@ -259,16 +263,24 @@ export default function ExamTaker() {
 
         // Detect tab switch (visibility change)
         const handleVisibilityChange = () => {
-            if (document.hidden && !isPausing) {
-                console.log('Tab switch detected');
+            if (document.hidden && !isPausing && !showPauseCodeModal) {
+                console.log('Tab switch detected - auto-submitting');
                 handleIllegalExit();
             }
         };
 
         // Detect fullscreen exit (ESC key)
         const handleFullscreenChange = () => {
-            if (!document.fullscreenElement && hasStarted && !timeUp && !isSubmitting && !isPausing) {
-                console.log('Fullscreen exit detected');
+            if (!document.fullscreenElement && hasStarted && !timeUp && !isSubmitting && !isPausing && !showPauseCodeModal) {
+                console.log('Fullscreen exit detected - auto-submitting');
+                handleIllegalExit();
+            }
+        };
+
+        // Detect window blur (Win key, Alt+Tab, clicking outside browser)
+        const handleWindowBlur = () => {
+            if (!isPausing && !showPauseCodeModal && hasStarted && !timeUp && !isSubmitting) {
+                console.log('Window blur detected (Win key / Alt+Tab) - auto-submitting');
                 handleIllegalExit();
             }
         };
@@ -278,24 +290,24 @@ export default function ExamTaker() {
             if (isPausing) return; // Don't trigger if pausing legally
 
             e.preventDefault();
-            e.returnValue = '⚠️ Your exam will be auto-submitted if you leave!';
-
-            // Trigger auto-submit (best effort)
-            handleIllegalExit();
+            e.returnValue = '⚠️ Your exam progress will be lost if you leave!';
+            return e.returnValue;
 
             return e.returnValue();
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
         document.addEventListener('fullscreenchange', handleFullscreenChange);
+        window.addEventListener('blur', handleWindowBlur);
         window.addEventListener('beforeunload', handleBeforeUnload);
 
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            window.removeEventListener('blur', handleWindowBlur);
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
-    }, [hasStarted, timeUp, isSubmitting, isPausing, answers, sessionId]);
+    }, [hasStarted, timeUp, isSubmitting, isPausing, showPauseCodeModal, answers, sessionId]);
 
     // Update timer in Resume Modal (real-time)
     useEffect(() => {
@@ -740,11 +752,19 @@ export default function ExamTaker() {
             // Exit fullscreen
             exitFullscreen();
 
-            // Show notification
-            toast.error('Exam auto-submitted due to illegal exit');
+            // Count answered questions
+            const answeredCount = Object.keys(answers).length;
 
-            // Navigate away
-            navigate('/student/exams');
+            // Set modal info and show modal
+            setAutoSubmitInfo({
+                reason: 'Illegal Exit Detected',
+                score: Math.round(finalScore),
+                answeredCount: answeredCount,
+                totalQuestions: exam.questions.length
+            });
+            setShowAutoSubmitModal(true);
+
+            // Don't navigate immediately - let user see modal and click button
         } catch (error) {
             console.error('Error auto-submitting:', error);
         }
@@ -1769,8 +1789,7 @@ export default function ExamTaker() {
 
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                             <p className="text-sm text-amber-800">
-                                <strong>⚠️ Warning:</strong> Exiting without the correct code will
-                                auto-submit your exam!
+                                <strong>⚠️ Warning:</strong> Exiting without the correct code will auto-submit your exam!
                             </p>
                         </div>
 
@@ -1797,6 +1816,18 @@ export default function ExamTaker() {
                                     setShowPauseCodeModal(false);
                                     setPauseCode('');
                                     setPauseCodeError('');
+
+                                    // Re-enter fullscreen if not already in fullscreen
+                                    if (!document.fullscreenElement) {
+                                        const elem = document.documentElement;
+                                        if (elem.requestFullscreen) {
+                                            elem.requestFullscreen().catch(err => console.log('Fullscreen error:', err));
+                                        } else if (elem.webkitRequestFullscreen) {
+                                            elem.webkitRequestFullscreen();
+                                        } else if (elem.msRequestFullscreen) {
+                                            elem.msRequestFullscreen();
+                                        }
+                                    }
                                 }}
                                 className="flex-1 py-3 bg-slate-200 rounded-lg font-bold hover:bg-slate-300 transition-colors"
                             >
@@ -1816,6 +1847,71 @@ export default function ExamTaker() {
                     </motion.div>
                 </div>
             )}
+
+            {/* Auto-Submit Modal */}
+            <AnimatePresence>
+                {showAutoSubmitModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl"
+                        >
+                            <div className="text-center">
+                                {/* Icon */}
+                                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <XCircle className="h-12 w-12 text-red-600" />
+                                </div>
+
+                                {/* Title */}
+                                <h3 className="text-2xl font-bold text-slate-800 mb-2">
+                                    Exam Auto-Submitted
+                                </h3>
+
+                                {/* Reason */}
+                                <p className="text-red-600 font-bold mb-6">
+                                    {autoSubmitInfo.reason}
+                                </p>
+
+                                {/* Score Info */}
+                                <div className="bg-slate-50 rounded-xl p-6 mb-6 space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-slate-600">Your Score:</span>
+                                        <span className="text-3xl font-bold text-blue-600">
+                                            {autoSubmitInfo.score}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-slate-600">Questions Answered:</span>
+                                        <span className="text-lg font-bold text-slate-800">
+                                            {autoSubmitInfo.answeredCount} / {autoSubmitInfo.totalQuestions}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Warning */}
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                                    <p className="text-sm text-amber-800">
+                                        <strong>⚠️ Note:</strong> This submission has been flagged for teacher review due to illegal exit.
+                                    </p>
+                                </div>
+
+                                {/* Button */}
+                                <button
+                                    onClick={() => {
+                                        setShowAutoSubmitModal(false);
+                                        navigate('/student/exams');
+                                    }}
+                                    className="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg"
+                                >
+                                    Back to Exams
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div >
     );
 }
