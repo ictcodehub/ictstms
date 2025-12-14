@@ -292,8 +292,6 @@ export default function ExamTaker() {
             e.preventDefault();
             e.returnValue = '⚠️ Your exam progress will be lost if you leave!';
             return e.returnValue;
-
-            return e.returnValue();
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
