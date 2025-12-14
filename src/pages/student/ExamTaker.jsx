@@ -298,31 +298,27 @@ export default function ExamTaker() {
         // MOBILE: Detect hardware back button (Android)
         let backButtonListener;
         CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-            console.log('🔴 BACK BUTTON PRESSED!', { isPausing, hasStarted, timeUp, isSubmitting });
             if (!isPausing && hasStarted && !timeUp && !isSubmitting) {
                 console.log('Mobile back button detected - auto-submitting');
                 handleIllegalExit();
             }
         }).then(listener => {
             backButtonListener = listener;
-            console.log('✅ Back button listener registered');
         }).catch(err => {
-            console.error('❌ Failed to register back button listener:', err);
+            console.error('Failed to register back button listener:', err);
         });
 
         // MOBILE: Detect app state change (background/foreground)
         let appStateListener;
         CapacitorApp.addListener('appStateChange', ({ isActive }) => {
-            console.log('🔴 APP STATE CHANGED!', { isActive, isPausing, hasStarted, timeUp, isSubmitting });
             if (!isActive && !isPausing && hasStarted && !timeUp && !isSubmitting) {
                 console.log('App moved to background - auto-submitting');
                 handleIllegalExit();
             }
         }).then(listener => {
             appStateListener = listener;
-            console.log('✅ App state listener registered');
         }).catch(err => {
-            console.error('❌ Failed to register app state listener:', err);
+            console.error('Failed to register app state listener:', err);
         });
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -337,14 +333,8 @@ export default function ExamTaker() {
             window.removeEventListener('beforeunload', handleBeforeUnload);
 
             // Remove mobile listeners
-            if (backButtonListener) {
-                backButtonListener.remove();
-                console.log('🗑️ Back button listener removed');
-            }
-            if (appStateListener) {
-                appStateListener.remove();
-                console.log('🗑️ App state listener removed');
-            }
+            if (backButtonListener) backButtonListener.remove();
+            if (appStateListener) appStateListener.remove();
         };
     }, [hasStarted, timeUp, isSubmitting, isPausing, showPauseCodeModal, answers, sessionId]);
 
