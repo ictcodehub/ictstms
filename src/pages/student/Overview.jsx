@@ -84,7 +84,7 @@ export default function Overview() {
                 // Setup real-time listener for tasks
                 const tasksQuery = query(
                     collection(db, 'tasks'),
-                    where('assignedClasses', 'array-contains', classId)
+                    where('assignedClasses', 'array-contains', userClassId)
                 );
 
                 unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnap) => {
@@ -98,12 +98,16 @@ export default function Overview() {
 
                 const examsQuery = query(
                     collection(db, 'exams'),
-                    where('assignedClasses', 'array-contains', classId),
+                    where('assignedClasses', 'array-contains', userClassId),
                     where('status', '==', 'published')
                 );
 
+                console.log('📚 Exam query setup with classId:', userClassId);
+
                 unsubscribeExams = onSnapshot(examsQuery, (snap) => {
+                    console.log('📚 Exams snapshot received:', snap.docs.length, 'exams');
                     currentExams = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    console.log('📚 Current exams:', currentExams.map(e => ({ id: e.id, title: e.title, assignedClasses: e.assignedClasses, status: e.status })));
                     updateExamStats(currentExams, currentExamResults);
                 });
 
@@ -154,6 +158,13 @@ export default function Overview() {
         };
 
         const updateExamStats = (examsList, resultsList) => {
+            console.log('🔍 updateExamStats called:', {
+                examsCount: examsList.length,
+                resultsCount: resultsList.length,
+                exams: examsList.map(e => ({ id: e.id, title: e.title })),
+                results: resultsList.map(r => ({ examId: r.examId, submitted: !!r.submittedAt }))
+            });
+
             // Count exams that are available (not completed or expired)
             const availableExams = examsList.filter(exam => {
                 // Find latest completed result
@@ -168,10 +179,13 @@ export default function Overview() {
                     completedResults.some(r => r.allowRetake);
             });
 
-            // Count COMPLETED exams (submitted)
-            // Use Set to handle multiple results if any, though usually 1 per exam unless retake.
-            // We count 'exams completed', so if an exam has a result, it is completed (partially or fully).
-            const uniqueCompletedExamIds = new Set(resultsList.map(r => r.examId));
+            console.log('✅ Available exams:', availableExams.length, availableExams.map(e => e.title));
+
+            // Count COMPLETED exams (submitted) - only count exams that still exist
+            const completedExamIds = resultsList
+                .filter(r => examsList.some(exam => exam.id === r.examId)) // Only count if exam still exists
+                .map(r => r.examId);
+            const uniqueCompletedExamIds = new Set(completedExamIds);
             const completedExamsCount = uniqueCompletedExamIds.size;
 
             // Merge results into exams list for display

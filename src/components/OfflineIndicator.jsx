@@ -1,32 +1,65 @@
 import { useState, useEffect } from 'react';
 import { WifiOff, Wifi } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Network } from '@capacitor/network';
+import { Capacitor } from '@capacitor/core';
 
 export default function OfflineIndicator() {
-    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [isOnline, setIsOnline] = useState(true);
     const [showOnlineNotif, setShowOnlineNotif] = useState(false);
 
     useEffect(() => {
-        const handleOnline = () => {
-            setIsOnline(true);
-            setShowOnlineNotif(true);
-            // Hide online notification after 3 seconds
-            setTimeout(() => setShowOnlineNotif(false), 3000);
-        };
+        const isMobile = Capacitor.isNativePlatform();
 
-        const handleOffline = () => {
-            setIsOnline(false);
-            setShowOnlineNotif(false);
-        };
+        if (isMobile) {
+            // Use Capacitor Network plugin for mobile
+            const checkInitialStatus = async () => {
+                const status = await Network.getStatus();
+                setIsOnline(status.connected);
+            };
 
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
+            checkInitialStatus();
 
-        return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
-        };
-    }, []);
+            const networkListener = Network.addListener('networkStatusChange', (status) => {
+                const wasOffline = !isOnline;
+                setIsOnline(status.connected);
+
+                // Show online notification when coming back online
+                if (status.connected && wasOffline) {
+                    setShowOnlineNotif(true);
+                    setTimeout(() => setShowOnlineNotif(false), 3000);
+                } else if (!status.connected) {
+                    setShowOnlineNotif(false);
+                }
+            });
+
+            return () => {
+                networkListener.remove();
+            };
+        } else {
+            // Fallback to web API for browser
+            setIsOnline(navigator.onLine);
+
+            const handleOnline = () => {
+                setIsOnline(true);
+                setShowOnlineNotif(true);
+                setTimeout(() => setShowOnlineNotif(false), 3000);
+            };
+
+            const handleOffline = () => {
+                setIsOnline(false);
+                setShowOnlineNotif(false);
+            };
+
+            window.addEventListener('online', handleOnline);
+            window.addEventListener('offline', handleOffline);
+
+            return () => {
+                window.removeEventListener('online', handleOnline);
+                window.removeEventListener('offline', handleOffline);
+            };
+        }
+    }, [isOnline]);
 
     return (
         <>
