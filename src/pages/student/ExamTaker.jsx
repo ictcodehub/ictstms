@@ -4,7 +4,7 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle, Send, LogOut, XCircle, ClipboardCheck } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle, AlertTriangle, Send, LogOut, XCircle, ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired, generatePauseCode } from '../../utils/examSession';
 import { saveAnswersOffline, getOfflineAnswers, markAsSynced } from '../../utils/offlineStorage';
@@ -263,7 +263,7 @@ export default function ExamTaker() {
 
         // Detect tab switch (visibility change)
         const handleVisibilityChange = () => {
-            if (document.hidden && !isPausing && !showPauseCodeModal) {
+            if (document.hidden && !isPausing) {
                 console.log('Tab switch detected - auto-submitting');
                 handleIllegalExit();
             }
@@ -271,7 +271,7 @@ export default function ExamTaker() {
 
         // Detect fullscreen exit (ESC key)
         const handleFullscreenChange = () => {
-            if (!document.fullscreenElement && hasStarted && !timeUp && !isSubmitting && !isPausing && !showPauseCodeModal) {
+            if (!document.fullscreenElement && hasStarted && !timeUp && !isSubmitting && !isPausing) {
                 console.log('Fullscreen exit detected - auto-submitting');
                 handleIllegalExit();
             }
@@ -279,7 +279,7 @@ export default function ExamTaker() {
 
         // Detect window blur (Win key, Alt+Tab, clicking outside browser)
         const handleWindowBlur = () => {
-            if (!isPausing && !showPauseCodeModal && hasStarted && !timeUp && !isSubmitting) {
+            if (!isPausing && hasStarted && !timeUp && !isSubmitting) {
                 console.log('Window blur detected (Win key / Alt+Tab) - auto-submitting');
                 handleIllegalExit();
             }
@@ -761,6 +761,7 @@ export default function ExamTaker() {
                 totalQuestions: exam.questions.length
             });
             setShowAutoSubmitModal(true);
+            setShowPauseCodeModal(false); // Force close pause modal if open
 
             // Don't navigate immediately - let user see modal and click button
         } catch (error) {
@@ -1777,17 +1778,25 @@ export default function ExamTaker() {
                         animate={{ scale: 1, opacity: 1 }}
                         className="bg-white rounded-2xl p-6 max-w-md w-full"
                     >
-                        <h3 className="text-xl font-bold text-slate-800 mb-2">
-                            🔒 Request Pause from Teacher
-                        </h3>
-                        <p className="text-slate-600 mb-4">
-                            Ask your teacher for the pause code. Your teacher can see your unique code
-                            on their dashboard.
-                        </p>
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
+                                <span className="text-2xl">🔒</span>
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-800">
+                                Request Pause
+                            </h3>
+                            <p className="text-slate-500 text-sm mt-1 px-4">
+                                Ask your teacher for the secure pause code.
+                            </p>
+                        </div>
 
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                            <p className="text-sm text-amber-800">
-                                <strong>⚠️ Warning:</strong> Exiting without the correct code will auto-submit your exam!
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6 flex flex-col items-center text-center shadow-sm">
+                            <div className="bg-amber-100 p-3 rounded-full mb-3 ring-4 ring-amber-50/50">
+                                <AlertTriangle className="h-6 w-6 text-amber-600" />
+                            </div>
+                            <h4 className="font-bold text-amber-800 text-sm mb-1">Action Required</h4>
+                            <p className="text-sm text-amber-700 leading-relaxed px-4">
+                                Exiting full-screen or switching tabs without entering the correct code will <strong>automatically submit</strong> your exam.
                             </p>
                         </div>
 
@@ -1808,7 +1817,7 @@ export default function ExamTaker() {
                             <p className="text-sm text-red-600 mb-4">❌ {pauseCodeError}</p>
                         )}
 
-                        <div className="flex gap-3">
+                        <div className="grid grid-cols-2 gap-4 mt-6">
                             <button
                                 onClick={() => {
                                     setShowPauseCodeModal(false);
@@ -1827,16 +1836,17 @@ export default function ExamTaker() {
                                         }
                                     }
                                 }}
-                                className="flex-1 py-3 bg-slate-200 rounded-lg font-bold hover:bg-slate-300 transition-colors"
+                                className="px-6 py-3.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handlePauseWithCode}
                                 disabled={pauseCode.length !== 6}
-                                className={`flex-1 py-3 rounded-lg font-bold transition-colors ${pauseCode.length === 6
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                className={`px-6 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]
+                                    ${pauseCode.length === 6
+                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-200'
+                                        : 'bg-slate-300 cursor-not-allowed'
                                     }`}
                             >
                                 Pause Exam
