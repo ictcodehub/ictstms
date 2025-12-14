@@ -8,6 +8,9 @@ import toast from 'react-hot-toast';
 import { UserPlus, Mail, Lock, User, AlertCircle, School, ArrowRight, GraduationCap, BookOpen, Eye, EyeOff, Flame } from 'lucide-react';
 import { sortClasses } from '../utils/classSort';
 
+// Allowed email domain for registration
+const ALLOWED_DOMAIN = '@mutiarabangsa.sch.id';
+
 export default function Register() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -22,6 +25,11 @@ export default function Register() {
     const [loading, setLoading] = useState(false);
     const { signup } = useAuth();
     const navigate = useNavigate();
+
+    // Validate email domain
+    const isValidSchoolEmail = (email) => {
+        return email.toLowerCase().endsWith(ALLOWED_DOMAIN.toLowerCase());
+    };
 
     useEffect(() => {
         loadClasses();
@@ -42,6 +50,11 @@ export default function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validate email domain first
+        if (!isValidSchoolEmail(email)) {
+            return toast.error(`Only ${ALLOWED_DOMAIN} emails are allowed to register`);
+        }
 
         if (role === 'teacher' && teacherCode !== 'weLoveMB2!') {
             return toast.error('Incorrect teacher code');
@@ -134,11 +147,15 @@ export default function Register() {
                                 type="email"
                                 required
                                 className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all group-hover:bg-white"
-                                placeholder="name@school.id"
+                                placeholder="name@mutiarabangsa.sch.id"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
                         </div>
+                        <p className="text-xs text-slate-500 mt-1 ml-1 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            Only {ALLOWED_DOMAIN} emails are allowed
+                        </p>
                     </div>
 
                     <div className="space-y-2">
