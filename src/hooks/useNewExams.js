@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 /**
@@ -12,48 +12,45 @@ export const useNewExams = (userRole, classId) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const checkNewExams = async () => {
-            if (userRole !== 'student' || !classId) {
-                setLoading(false);
-                return;
-            }
+        if (userRole !== 'student' || !classId) {
+            setLoading(false);
+            return;
+        }
 
-            try {
-                // Get last seen timestamp from localStorage
-                const lastSeenKey = `exams-last-seen-${classId}`;
-                const lastSeen = localStorage.getItem(lastSeenKey);
-                const lastSeenDate = lastSeen ? new Date(parseInt(lastSeen)) : new Date(0);
+        // Get last seen timestamp from localStorage
+        const lastSeenKey = `exams-last-seen-${classId}`;
+        const lastSeen = localStorage.getItem(lastSeenKey);
+        const lastSeenDate = lastSeen ? new Date(parseInt(lastSeen)) : new Date(0);
 
-                // Query published exams for this class
-                const examsRef = collection(db, 'exams');
-                const q = query(
-                    examsRef,
-                    where('assignedClasses', 'array-contains', classId),
-                    where('status', '==', 'published')
-                );
+        // Setup real-time listener for published exams
+        const examsRef = collection(db, 'exams');
+        const q = query(
+            examsRef,
+            where('assignedClasses', 'array-contains', classId),
+            where('status', '==', 'published')
+        );
 
-                const snapshot = await getDocs(q);
-                const examsData = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const examsData = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
 
-                // Filter exams created after last seen
-                const newExamsList = examsData.filter(exam => {
-                    const createdAt = exam.createdAt?.toDate() || new Date(0);
-                    return createdAt > lastSeenDate;
-                });
+            // Filter exams created after last seen
+            const newExamsList = examsData.filter(exam => {
+                const createdAt = exam.createdAt?.toDate() || new Date(0);
+                return createdAt > lastSeenDate;
+            });
 
-                setNewExams(newExamsList);
-                setNewExamsCount(newExamsList.length);
-            } catch (error) {
-                console.error('Error checking new exams:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+            setNewExams(newExamsList);
+            setNewExamsCount(newExamsList.length);
+            setLoading(false);
+        }, (error) => {
+            console.error('Error listening to new exams:', error);
+            setLoading(false);
+        });
 
-        checkNewExams();
+        return () => unsubscribe();
     }, [userRole, classId]);
 
     const markAsRead = () => {
