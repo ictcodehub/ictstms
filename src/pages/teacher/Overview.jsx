@@ -62,9 +62,43 @@ export default function TeacherOverview() {
             let submissionsSnap = { docs: [] };
             if (teacherTaskIds.length > 0) {
                 const allSubmissionsSnap = await getDocs(collection(db, 'submissions'));
-                const filteredSubmissions = allSubmissionsSnap.docs.filter(doc =>
+                // Filter by teacher tasks
+                let filteredSubmissions = allSubmissionsSnap.docs.filter(doc =>
                     teacherTaskIds.includes(doc.data().taskId)
                 );
+
+                // Deduplicate: Keep only the latest submission per student per task
+                // Improved Logic: Prioritize GRADED submissions. 
+                // If a student has a graded submission, that's the one we show (assuming resubmissions are duplicates or irrelevant until graded)
+                // If multiple graded or multiple ungraded, sort by date (newest first).
+                filteredSubmissions.sort((a, b) => {
+                    const dataA = a.data();
+                    const dataB = b.data();
+
+                    const isGradedA = dataA.grade !== null && dataA.grade !== undefined;
+                    const isGradedB = dataB.grade !== null && dataB.grade !== undefined;
+
+                    // Prioritize Graded
+                    if (isGradedA && !isGradedB) return -1;
+                    if (!isGradedA && isGradedB) return 1;
+
+                    // If same status, sort by date (Newest First)
+                    const dateA = dataA.submittedAt?.toDate ? dataA.submittedAt.toDate() : new Date(dataA.submittedAt);
+                    const dateB = dataB.submittedAt?.toDate ? dataB.submittedAt.toDate() : new Date(dataB.submittedAt);
+                    return (dateB?.getTime() || 0) - (dateA?.getTime() || 0);
+                });
+
+                // Then keep only the first occurrence for each student-task pair
+                const uniqueSubMap = new Map();
+                for (const doc of filteredSubmissions) {
+                    const data = doc.data();
+                    const key = `${data.taskId}_${data.studentId}`;
+                    if (!uniqueSubMap.has(key)) {
+                        uniqueSubMap.set(key, doc);
+                    }
+                }
+                filteredSubmissions = Array.from(uniqueSubMap.values());
+
                 submissionsSnap = { docs: filteredSubmissions };
             }
             const needsGrading = submissionsSnap.docs.filter(doc => {
