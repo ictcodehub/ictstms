@@ -102,12 +102,8 @@ export default function Overview() {
                     where('status', '==', 'published')
                 );
 
-                console.log('📚 Exam query setup with classId:', userClassId);
-
                 unsubscribeExams = onSnapshot(examsQuery, (snap) => {
-                    console.log('📚 Exams snapshot received:', snap.docs.length, 'exams');
                     currentExams = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    console.log('📚 Current exams:', currentExams.map(e => ({ id: e.id, title: e.title, assignedClasses: e.assignedClasses, status: e.status })));
                     updateExamStats(currentExams, currentExamResults);
                 });
 
@@ -158,13 +154,6 @@ export default function Overview() {
         };
 
         const updateExamStats = (examsList, resultsList) => {
-            console.log('🔍 updateExamStats called:', {
-                examsCount: examsList.length,
-                resultsCount: resultsList.length,
-                exams: examsList.map(e => ({ id: e.id, title: e.title })),
-                results: resultsList.map(r => ({ examId: r.examId, submitted: !!r.submittedAt }))
-            });
-
             // Count exams that are available (not completed or expired)
             const availableExams = examsList.filter(exam => {
                 // Find latest completed result
@@ -178,8 +167,6 @@ export default function Overview() {
                 return completedResults.length === 0 ||
                     completedResults.some(r => r.allowRetake);
             });
-
-            console.log('✅ Available exams:', availableExams.length, availableExams.map(e => e.title));
 
             // Count COMPLETED exams (submitted) - only count exams that still exist
             const completedExamIds = resultsList

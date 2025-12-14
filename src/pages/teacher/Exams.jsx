@@ -22,6 +22,8 @@ export default function Exams() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [examToDelete, setExamToDelete] = useState(null);
 
     useEffect(() => {
         if (!currentUser) return;
@@ -52,16 +54,25 @@ export default function Exams() {
         return () => unsubscribe();
     }, [currentUser]);
 
-    const handleDelete = async (examId) => {
-        if (!window.confirm("Apakah Anda yakin ingin menghapus ujian ini? Data yang sudah dihapus tidak dapat dikembalikan.")) return;
+    const handleDeleteClick = (exam) => {
+        setExamToDelete(exam);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!examToDelete) return;
 
         try {
-            await deleteDoc(doc(db, 'exams', examId));
-            setExams(prev => prev.filter(e => e.id !== examId));
+            await deleteDoc(doc(db, 'exams', examToDelete.id));
+            setExams(prev => prev.filter(e => e.id !== examToDelete.id));
             toast.success("Exam deleted successfully");
+            setShowDeleteModal(false);
+            setExamToDelete(null);
         } catch (error) {
             console.error("Error deleting exam:", error);
             toast.error("Failed to delete exam");
+            setShowDeleteModal(false);
+            setExamToDelete(null);
         }
     };
 
@@ -220,7 +231,7 @@ export default function Exams() {
                                                 e.stopPropagation();
                                                 navigate(`/teacher/exams/edit/${exam.id}`);
                                             }}
-                                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                            className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-all"
                                             title="Edit"
                                         >
                                             <Edit2 className="h-4 w-4" />
@@ -228,9 +239,9 @@ export default function Exams() {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleDelete(exam.id);
+                                                handleDeleteClick(exam);
                                             }}
-                                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                            className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all"
                                             title="Delete"
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -240,6 +251,50 @@ export default function Exams() {
                             </motion.div>
                         ))}
                     </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+                    >
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                                <Trash2 className="h-6 w-6 text-red-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900">Delete Exam</h3>
+                                <p className="text-sm text-gray-500">This action cannot be undone</p>
+                            </div>
+                        </div>
+
+                        <p className="text-gray-700 mb-6">
+                            Are you sure you want to delete <span className="font-semibold">"{examToDelete?.title}"</span>?
+                            All exam data and student results will be permanently removed.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setExamToDelete(null);
+                                }}
+                                className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </motion.div>
                 </div>
             )}
         </div>
