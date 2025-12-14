@@ -404,14 +404,14 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleEditClick(student); }}
-                                                    className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition-all"
+                                                    className="text-amber-600 bg-amber-50 hover:bg-amber-100 p-2 rounded-lg transition-all"
                                                     title="Edit student"
                                                 >
                                                     <Edit2 className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleDeleteClick(student); }}
-                                                    className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition-all"
+                                                    className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-all"
                                                     title="Delete student"
                                                 >
                                                     <Trash2 className="h-4 w-4" />

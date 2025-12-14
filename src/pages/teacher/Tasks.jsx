@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query, where } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, X, GraduationCap, Calendar, Clock, FileText, AlertCircle, CheckCircle2, Eye, Users, Search, Filter, ArrowUpDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, GraduationCap, Calendar, Clock, FileText, AlertCircle, CheckCircle2, Users, Search, Filter, ArrowUpDown } from 'lucide-react';
 import TaskDetail from './TaskDetail';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -487,13 +487,6 @@ export default function Tasks() {
                                             <td className="px-6 py-4 text-center whitespace-nowrap">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
-                                                        onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
-                                                        className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-all"
-                                                        title="View details"
-                                                    >
-                                                        <Eye className="h-4 w-4" />
-                                                    </button>
-                                                    <button
                                                         onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
                                                         className="text-amber-600 bg-amber-50 hover:bg-amber-100 p-2 rounded-lg transition-all"
                                                         title="Edit task"
@@ -642,8 +635,8 @@ export default function Tasks() {
                                                 <label
                                                     key={cls.id}
                                                     className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${formData.assignedClasses.includes(cls.id)
-                                                            ? 'border-blue-500 bg-blue-50'
-                                                            : 'border-transparent bg-white hover:border-slate-300'
+                                                        ? 'border-blue-500 bg-blue-50'
+                                                        : 'border-transparent bg-white hover:border-slate-300'
                                                         }`}
                                                 >
                                                     <input

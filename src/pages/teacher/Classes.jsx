@@ -311,7 +311,7 @@ export default function Classes() {
                                                             e.stopPropagation();
                                                             handleOpenModal(cls);
                                                         }}
-                                                        className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                                                        className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-all"
                                                     >
                                                         <Edit2 className="h-3.5 w-3.5" />
                                                     </button>
@@ -320,7 +320,7 @@ export default function Classes() {
                                                             e.stopPropagation();
                                                             handleOpenDeleteModal(cls);
                                                         }}
-                                                        className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                                        className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all"
                                                     >
                                                         <Trash2 className="h-3.5 w-3.5" />
                                                     </button>
