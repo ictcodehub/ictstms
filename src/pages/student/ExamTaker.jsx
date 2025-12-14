@@ -8,6 +8,7 @@ import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, LayoutGrid, FileT
 import toast from 'react-hot-toast';
 import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired } from '../../utils/examSession';
 import { saveAnswersOffline, getOfflineAnswers, markAsSynced } from '../../utils/offlineStorage';
+import ExamOfflineIndicator from '../../components/ExamOfflineIndicator';
 
 // Debounce hook for optimized auto-save
 const useDebounce = (callback, delay) => {
@@ -885,7 +886,15 @@ export default function ExamTaker() {
 
 
                 {/* Right: Exit */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                    <ExamOfflineIndicator />
+                    <button
+                        onClick={() => setShowQuestionNav(true)}
+                        className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                        aria-label="Question Navigator"
+                    >
+                        <LayoutGrid className="h-6 w-6 text-slate-700" />
+                    </button>
                     <button
                         onClick={() => {
                             exitFullscreen();
@@ -895,13 +904,6 @@ export default function ExamTaker() {
                         aria-label="Exit Exam"
                     >
                         <LogOut className="h-6 w-6 text-red-600" />
-                    </button>
-                    <button
-                        onClick={() => setShowQuestionNav(true)}
-                        className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                        aria-label="Question Navigator"
-                    >
-                        <LayoutGrid className="h-6 w-6 text-slate-700" />
                     </button>
                 </div>
             </div>
