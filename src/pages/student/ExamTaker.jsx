@@ -8,6 +8,20 @@ import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, LayoutGrid, FileT
 import toast from 'react-hot-toast';
 import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired } from '../../utils/examSession';
 
+// Debounce hook for optimized auto-save
+const useDebounce = (callback, delay) => {
+    const timeoutRef = useRef(null);
+
+    return useCallback((...args) => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = setTimeout(() => {
+            callback(...args);
+        }, delay);
+    }, [callback, delay]);
+};
+
 export default function ExamTaker() {
     const { currentUser } = useAuth();
     const { examId } = useParams();
@@ -336,32 +350,38 @@ export default function ExamTaker() {
         };
     }, []);
 
-    // Auto-save answers every 10 seconds
+    // Save function
+    const saveAnswers = useCallback(async () => {
+        if (!sessionId) return;
+        try {
+            await updateSessionAnswers(sessionId, answers);
+            console.log('✅ Answers saved (writes optimized)');
+        } catch (error) {
+            console.error('❌ Auto-save failed:', error);
+            toast.error('Failed to save answers');
+        }
+    }, [sessionId, answers]);
+
+    // Debounced version (saves 3s after last change)
+    const debouncedSave = useDebounce(saveAnswers, 3000);
+
+    // Hybrid Auto-save: Debounce + Periodic Backup (OPTIMIZED)
     useEffect(() => {
         if (!hasStarted || !sessionId) return;
 
-        const autoSave = async () => {
-            try {
-                await updateSessionAnswers(sessionId, answers);
-                console.log('Answers auto-saved');
-            } catch (error) {
-                console.error('Auto-save failed:', error);
-            }
-        };
+        // 1. Trigger debounced save on answer changes
+        debouncedSave();
 
-        // Save immediately on first start
-        autoSave();
+        // 2. Periodic backup every 30 seconds (reduced from 10s)
+        const backupInterval = setInterval(saveAnswers, 30000);
+        autoSaveIntervalRef.current = backupInterval;
 
-        // Then save every 10 seconds
-        const interval = setInterval(autoSave, 10000);
-        autoSaveIntervalRef.current = interval;
-
+        // 3. Save on unmount (page leave)
         return () => {
-            if (autoSaveIntervalRef.current) {
-                clearInterval(autoSaveIntervalRef.current);
-            }
+            clearInterval(backupInterval);
+            saveAnswers(); // Final save before unmount
         };
-    }, [hasStarted, sessionId, answers]);
+    }, [hasStarted, sessionId, answers, debouncedSave, saveAnswers]);
 
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600);
@@ -567,6 +587,9 @@ export default function ExamTaker() {
 
         setIsSubmitting(true);
         setShowSubmitModal(false);
+
+        // OPTIMIZED: Save answers one final time before submitting
+        await saveAnswers();
 
         // Use provided answers or current state
         const finalAnswers = answersToSubmit || answers;
