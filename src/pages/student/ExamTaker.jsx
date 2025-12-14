@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired, generatePauseCode } from '../../utils/examSession';
 import { saveAnswersOffline, getOfflineAnswers, markAsSynced } from '../../utils/offlineStorage';
 import ExamOfflineIndicator from '../../components/ExamOfflineIndicator';
+import { App as CapacitorApp } from '@capacitor/app';
 
 // Debounce hook for optimized auto-save
 const useDebounce = (callback, delay) => {
@@ -294,6 +295,28 @@ export default function ExamTaker() {
             return e.returnValue;
         };
 
+        // MOBILE: Detect hardware back button (Android)
+        let backButtonListener;
+        CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+            if (!isPausing && hasStarted && !timeUp && !isSubmitting) {
+                console.log('Mobile back button detected - auto-submitting');
+                handleIllegalExit();
+            }
+        }).then(listener => {
+            backButtonListener = listener;
+        });
+
+        // MOBILE: Detect app state change (background/foreground)
+        let appStateListener;
+        CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+            if (!isActive && !isPausing && hasStarted && !timeUp && !isSubmitting) {
+                console.log('App moved to background - auto-submitting');
+                handleIllegalExit();
+            }
+        }).then(listener => {
+            appStateListener = listener;
+        });
+
         document.addEventListener('visibilitychange', handleVisibilityChange);
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         window.addEventListener('blur', handleWindowBlur);
@@ -304,6 +327,10 @@ export default function ExamTaker() {
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
             window.removeEventListener('blur', handleWindowBlur);
             window.removeEventListener('beforeunload', handleBeforeUnload);
+
+            // Remove mobile listeners
+            if (backButtonListener) backButtonListener.remove();
+            if (appStateListener) appStateListener.remove();
         };
     }, [hasStarted, timeUp, isSubmitting, isPausing, showPauseCodeModal, answers, sessionId]);
 
