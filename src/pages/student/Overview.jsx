@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, CheckCircle, Clock, AlertCircle, Calendar, TrendingUp, ChevronRight, Hourglass, Send, ClipboardCheck, PlayCircle, ClipboardList, ChevronLeft, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Pagination from '../../components/Pagination';
+import NewExamsBanner from '../../components/NewExamsBanner';
+import { useNewExams } from '../../hooks/useNewExams';
 
 export default function Overview() {
     const { currentUser } = useAuth();
@@ -27,6 +29,9 @@ export default function Overview() {
     const [userClass, setUserClass] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(window.innerWidth < 768 ? 5 : 10);
+
+    // New exams notification
+    const { newExams, markAsRead } = useNewExams('student', currentUser?.classId);
 
 
     // Responsive itemsPerPage
@@ -320,6 +325,9 @@ export default function Overview() {
                     </div>
                 </div>
             )}
+
+            {/* New Exams Notification Banner */}
+            <NewExamsBanner newExams={newExams} onDismiss={markAsRead} />
 
             {loading ? (
                 <div className="flex items-center justify-center h-64">
@@ -660,8 +668,8 @@ export default function Overview() {
                                                                         </div>
                                                                         <div className="min-w-0 flex-1">
                                                                             <h4 className={`font-bold text-slate-800 transition-colors line-clamp-2 text-sm mb-1 ${(isOverdue && !submission) || isLateSubmission ? 'group-hover:text-red-600' :
-                                                                                    submission ? 'group-hover:text-slate-900' :
-                                                                                        'group-hover:text-blue-700'
+                                                                                submission ? 'group-hover:text-slate-900' :
+                                                                                    'group-hover:text-blue-700'
                                                                                 }`} title={task.title}>{task.title}</h4>
                                                                             <p className="text-xs text-slate-500 line-clamp-1">{task.description}</p>
                                                                             <div className="md:hidden mt-1.5 text-xs text-slate-500">
