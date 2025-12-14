@@ -9,12 +9,12 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.ico', 'favicon.png', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'ICT Student App',
-        short_name: 'ICT App',
-        description: 'Aplikasi Pembelajaran ICT',
-        theme_color: '#ffffff',
+        name: 'ICT Codehub - Learning Management System',
+        short_name: 'ICT Codehub',
+        description: 'Student Task & Exam Management System for Mutiara Bangsa School',
+        theme_color: '#2563eb',
         background_color: '#ffffff',
         display: 'standalone',
         icons: [
@@ -33,6 +33,37 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
+          }
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/firebasestorage\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'firebase-storage-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'firestore-cache',
+              networkTimeoutSeconds: 10,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 // 1 hour
+              }
+            }
           }
         ]
       },

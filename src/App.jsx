@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { AnimatePresence, motion } from 'framer-motion';
 import AnimatedSplash from './components/AnimatedSplash';
+import OfflineIndicator from './components/OfflineIndicator';
 
 // Lazy load page components for code splitting
 const Login = lazy(() => import('./pages/Login'));
@@ -113,6 +114,7 @@ function AppContent({ splashMinTimeComplete, showSplash, setShowSplash }) {
   return (
     <>
       <Toaster position="top-right" reverseOrder={false} />
+      <OfflineIndicator />
 
       <AnimatePresence mode="wait">
         {showSplash ? (

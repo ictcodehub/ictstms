@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle, Send, LogOut, XCircle, ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired } from '../../utils/examSession';
+import { saveAnswersOffline, getOfflineAnswers, markAsSynced } from '../../utils/offlineStorage';
 
 // Debounce hook for optimized auto-save
 const useDebounce = (callback, delay) => {
@@ -350,15 +351,29 @@ export default function ExamTaker() {
         };
     }, []);
 
-    // Save function
+    // Save function with offline support
     const saveAnswers = useCallback(async () => {
         if (!sessionId) return;
         try {
+            // Try online save first
             await updateSessionAnswers(sessionId, answers);
-            console.log('✅ Answers saved (writes optimized)');
+            console.log('✅ Answers saved online (writes optimized)');
+
+            // Also save offline as backup
+            await saveAnswersOffline(sessionId, answers);
+
+            // Mark as synced if we successfully saved online
+            await markAsSynced(sessionId);
         } catch (error) {
-            console.error('❌ Auto-save failed:', error);
-            toast.error('Failed to save answers');
+            // If offline or error, save locally
+            if (!navigator.onLine) {
+                await saveAnswersOffline(sessionId, answers);
+                console.log('💾 Answers saved offline - will sync when online');
+            } else {
+                console.error('❌ Auto-save failed:', error);
+                // Still try to save offline as backup
+                await saveAnswersOffline(sessionId, answers);
+            }
         }
     }, [sessionId, answers]);
 
