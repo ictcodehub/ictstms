@@ -368,35 +368,35 @@ export default function TeacherOverview() {
         switch (activity.type) {
             case 'submission':
                 return activity.hasGrade ? (
-                    <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-semibold">
+                    <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-semibold">
                         Nilai: {activity.grade}
                     </span>
                 ) : (
-                    <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
+                    <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">
                         Needs Grading
                     </span>
                 );
             case 'new_student':
                 return (
-                    <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-semibold">
+                    <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-semibold">
                         Siswa Baru
                     </span>
                 );
             case 'deadline':
                 return (
-                    <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-semibold">
+                    <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-semibold">
                         Mendesak
                     </span>
                 );
             case 'new_task':
                 return (
-                    <span className="text-[10px] bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded font-semibold">
+                    <span className="text-xs bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded font-semibold">
                         Baru
                     </span>
                 );
             case 'new_exam':
                 return (
-                    <span className="text-[10px] bg-pink-100 text-pink-700 px-1.5 py-0.5 rounded font-semibold">
+                    <span className="text-xs bg-pink-100 text-pink-700 px-1.5 py-0.5 rounded font-semibold">
                         Ujian
                     </span>
                 );
@@ -409,7 +409,7 @@ export default function TeacherOverview() {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                         Dashboard Guru
                     </h1>
                     <p className="text-slate-500 mt-1">Selamat datang kembali, {currentUser?.email}</p>
@@ -489,7 +489,7 @@ export default function TeacherOverview() {
                                                         <div className="flex items-center gap-2 mt-0.5">
                                                             {activity.className && (
                                                                 <>
-                                                                    <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-bold border border-slate-200 flex-shrink-0">
+                                                                    <span className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-bold border border-slate-200 flex-shrink-0">
                                                                         {activity.className}
                                                                     </span>
                                                                     <span className="text-slate-300">•</span>
@@ -499,7 +499,7 @@ export default function TeacherOverview() {
                                                         </div>
                                                     </div>
                                                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                                        <p className="text-[10px] text-slate-400 whitespace-nowrap">{getTimeAgo(activity.timestamp)}</p>
+                                                        <p className="text-xs text-slate-400 whitespace-nowrap">{getTimeAgo(activity.timestamp)}</p>
                                                         {getActivityBadge(activity)}
                                                     </div>
                                                 </div>

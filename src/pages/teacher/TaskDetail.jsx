@@ -585,7 +585,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                             </td>
                                             <td className="px-6 py-4">
                                                 {submission?.grade !== undefined && submission?.grade !== null ? (
-                                                    <div className={`inline-flex items-center gap-1.5 font-bold text-[13px] ${submission.grade >= 80 ? 'text-green-600' :
+                                                    <div className={`inline-flex items-center gap-1.5 font-bold text-xs ${submission.grade >= 80 ? 'text-green-600' :
                                                         submission.grade >= 60 ? 'text-amber-600' :
                                                             'text-red-600'
                                                         }`}>

@@ -293,7 +293,7 @@ export default function StudentDetail({ student, onBack, onTaskClick, hideSubmis
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="max-w-md">
-                                                    <div className="font-medium text-slate-800 line-clamp-1 text-[13px]" title={task.title}>{task.title}</div>
+                                                    <div className="font-medium text-slate-800 line-clamp-1 text-xs" title={task.title}>{task.title}</div>
                                                     <div className="text-xs text-slate-500 line-clamp-1">{task.description}</div>
                                                 </div>
                                             </td>
@@ -313,7 +313,7 @@ export default function StudentDetail({ student, onBack, onTaskClick, hideSubmis
                                             )}
                                             <td className="px-6 py-4 text-center whitespace-nowrap">
                                                 {task.submission?.grade !== undefined && task.submission?.grade !== null ? (
-                                                    <span className={`font-bold text-[13px] ${task.submission.grade >= 80 ? 'text-green-600' :
+                                                    <span className={`font-bold text-xs ${task.submission.grade >= 80 ? 'text-green-600' :
                                                         task.submission.grade >= 60 ? 'text-amber-600' : 'text-red-600'
                                                         }`}>
                                                         {task.submission.grade}

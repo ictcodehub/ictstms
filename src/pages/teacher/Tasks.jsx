@@ -417,8 +417,8 @@ export default function Tasks() {
                             <table className="w-full">
                                 <thead className="bg-slate-50/50 border-b border-slate-200">
                                     <tr>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">No</th>
-                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Task Details</th>
+                                        <th className="pl-6 pr-1 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">No</th>
+                                        <th className="pl-1 pr-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Task Details</th>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Class</th>
                                         <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Deadline</th>
                                         <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
@@ -435,16 +435,21 @@ export default function Tasks() {
                                             onClick={() => setSelectedTask(task)}
                                             className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
                                         >
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
+                                            <td className="pl-6 pr-1 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
                                                 {startIndex + index + 1}
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="pl-1 pr-6 py-4">
                                                 <div className="max-w-md">
                                                     <h3 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors mb-1">
                                                         {task.title}
                                                     </h3>
-                                                    <p className="text-xs text-slate-500 line-clamp-1">
+                                                    <p className="text-xs text-slate-500 line-clamp-1 mb-2">
                                                         {task.description || 'No description'}
+                                                    </p>
+                                                    <p className="text-[10px] text-blue-600 font-medium">
+                                                        Diberikan: {task.createdAt
+                                                            ? new Date(task.createdAt.toDate()).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                                                            : '-'}
                                                     </p>
                                                 </div>
                                             </td>
@@ -453,7 +458,7 @@ export default function Tasks() {
                                                     {task.assignedClasses?.map(classId => {
                                                         const cls = classes.find(c => c.id === classId);
                                                         return cls ? (
-                                                            <span key={classId} className="text-xs text-slate-600 bg-white px-2 py-1 rounded-lg border border-slate-200 font-medium">
+                                                            <span key={classId} className="inline-flex items-center justify-center w-7 h-7 text-[11px] text-slate-700 bg-slate-100 font-medium">
                                                                 {cls.name}
                                                             </span>
                                                         ) : null;

@@ -87,7 +87,7 @@ export default function Exams() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
+                    <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
                         Exam Management
                     </h1>
                     <p className="text-slate-500 mt-1">Create and manage CBT exams for students</p>
@@ -146,16 +146,15 @@ export default function Exams() {
                 <div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
                     {/* TABLE HEADER */}
                     <div className="flex items-center justify-between py-4 px-6 bg-slate-50 border-b border-slate-200">
-                        <div className="flex items-center gap-3 flex-1">
-                            <span className="w-6 text-center text-[13px] font-bold text-slate-500 uppercase tracking-wider">No</span>
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Detail Ujian</span>
+                        <div className="flex items-center gap-6 flex-1">
+                            <span className="w-6 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">No</span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Detail Ujian</span>
                         </div>
                         <div className="flex items-center gap-8 pl-4">
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[90px] text-center">Durasi</span>
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[130px] text-center">Tanggal</span>
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Status</span>
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[80px] text-center">Soal</span>
-                            <span className="text-[13px] font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Aksi</span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[90px] text-center">Durasi</span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Status</span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[80px] text-center">Soal</span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Aksi</span>
                         </div>
                     </div>
 
@@ -168,20 +167,25 @@ export default function Exams() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.03 }}
                                 onClick={() => navigate(`/teacher/exams/results/${exam.id}`)}
-                                className={`flex items-center justify-between py-4 px-6 transition-colors cursor-pointer ${exam.status === 'published' ? 'bg-emerald-50/30 hover:bg-emerald-50/50' : 'bg-white hover:bg-slate-50'
+                                className={`group flex items-center justify-between py-4 px-6 transition-colors cursor-pointer ${exam.status === 'published' ? 'bg-emerald-50/30 hover:bg-emerald-50/50' : 'bg-white hover:bg-slate-50'
                                     }`}
                             >
                                 {/* Left Section: Number + Details */}
-                                <div className="flex items-center gap-3 flex-1">
-                                    <span className="w-6 text-center text-sm font-bold text-slate-400">
+                                <div className="flex items-center gap-6 flex-1">
+                                    <span className="w-6 text-center text-sm text-slate-500 font-medium">
                                         {index + 1}
                                     </span>
-                                    <div className="flex-1">
-                                        <h3 className="text-base font-bold text-slate-800 mb-0.5">
+                                    <div className="max-w-md">
+                                        <h3 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors mb-1 truncate">
                                             {exam.title}
                                         </h3>
-                                        <p className="text-sm text-slate-500 line-clamp-1">
+                                        <p className="text-xs text-slate-500 line-clamp-1 mb-2">
                                             {exam.description || 'No description'}
+                                        </p>
+                                        <p className="text-[10px] text-blue-600 font-medium">
+                                            Diberikan: {exam.createdAt
+                                                ? new Date(exam.createdAt.toDate()).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                                                : '-'}
                                         </p>
                                     </div>
                                 </div>
@@ -196,15 +200,6 @@ export default function Exams() {
                                         </span>
                                     </div>
 
-                                    {/* Date */}
-                                    <div className="min-w-[130px] text-center">
-                                        <span className="text-sm font-medium text-slate-600">
-                                            {exam.createdAt
-                                                ? new Date(exam.createdAt.toDate()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
-                                                : '-'
-                                            }
-                                        </span>
-                                    </div>
 
                                     {/* Status */}
                                     <div className="min-w-[100px] flex justify-center">

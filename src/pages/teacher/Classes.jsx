@@ -215,7 +215,7 @@ export default function Classes() {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
+                    <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
                         Class Management
                     </h1>
                     <p className="text-slate-500 mt-1">Kelola kelas, siswa, dan aktivitas pembelajaran</p>
@@ -298,7 +298,7 @@ export default function Classes() {
                                                     {cls.subject}
                                                 </p>
                                                 <div className="flex items-center gap-2">
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${isSelected ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                                                    <span className={`text-xs px-1.5 py-0.5 rounded-md font-medium ${isSelected ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
                                                         }`}>
                                                         {stats.studentCount} Siswa
                                                     </span>

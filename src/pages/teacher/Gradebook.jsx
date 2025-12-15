@@ -265,7 +265,7 @@ export default function Gradebook() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
+                <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
                     Rekap Nilai
                 </h1>
                 <p className="text-slate-500 mt-1">Pantau dan kelola nilai siswa Anda</p>
@@ -509,7 +509,7 @@ export default function Gradebook() {
                                                             </td>
                                                             <td className="px-4 py-4">
                                                                 <div>
-                                                                    <div className="text-[13px] font-semibold text-slate-800">{task.title}</div>
+                                                                    <div className="text-xs font-semibold text-slate-800">{task.title}</div>
                                                                     <div className="text-xs text-slate-500 line-clamp-1">{task.description}</div>
                                                                 </div>
                                                             </td>
@@ -547,7 +547,7 @@ export default function Gradebook() {
                                                             </td>
                                                             <td className="px-4 py-4 whitespace-nowrap text-center">
                                                                 {task.submission?.grade ? (
-                                                                    <span className="text-[13px] font-bold text-green-600">
+                                                                    <span className="text-xs font-bold text-green-600">
                                                                         {task.submission.grade}
                                                                     </span>
                                                                 ) : (

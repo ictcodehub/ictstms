@@ -811,7 +811,7 @@ export default function ExamEditor() {
 
                                                             <div className="flex-1 min-w-0">
                                                                 <p className="text-xs font-medium text-slate-700 truncate" title={att.name}>{att.name}</p>
-                                                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 hover:underline truncate block">
+                                                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate block">
                                                                     Lihat
                                                                 </a>
                                                             </div>

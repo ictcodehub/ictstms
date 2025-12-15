@@ -274,7 +274,7 @@ export default function Students() {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
+                    <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
                         Daftar Siswa
                     </h1>
                     <p className="text-slate-500 mt-1">Kelola siswa dan lihat performa mereka</p>
