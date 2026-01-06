@@ -142,6 +142,18 @@ export default function Register() {
                         </div>
                     </div>
 
+                    {/* Inline validation error (Domain check) */}
+                    {error && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-red-50 text-red-600 p-3 rounded-xl flex items-center gap-2 text-sm border border-red-100 mb-4"
+                        >
+                            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                            <p>{error}</p>
+                        </motion.div>
+                    )}
+
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-gray-700 ml-1">Email</label>
                         <div className="relative group">
@@ -151,16 +163,26 @@ export default function Register() {
                             <input
                                 type="email"
                                 required
-                                className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all group-hover:bg-white"
+                                className={`w-full pl-11 pr-4 py-3 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all group-hover:bg-white ${error ? 'border-red-300 focus:ring-red-200' : 'border-gray-200'}`}
                                 placeholder="name@mutiarabangsa.sch.id"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    if (error) setError('');
+                                }}
+                                onBlur={() => {
+                                    if (email && !isValidSchoolEmail(email)) {
+                                        setError(`Email must use domain ${ALLOWED_DOMAIN}`);
+                                    }
+                                }}
                             />
                         </div>
-                        <p className="text-xs text-slate-500 mt-1 ml-1 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            Only {ALLOWED_DOMAIN} emails are allowed
-                        </p>
+                        {!error && (
+                            <p className="text-xs text-blue-600 mt-1 ml-1 flex items-center gap-1 font-medium">
+                                <AlertCircle className="h-3 w-3" />
+                                Only {ALLOWED_DOMAIN} emails are allowed
+                            </p>
+                        )}
                     </div>
 
                     <div className="space-y-2">
@@ -289,7 +311,7 @@ export default function Register() {
                     </motion.button>
                 </form>
 
-                <div className="mt-8 text-center">
+                <div className="mt-8 text-center text-sm">
                     <p className="text-gray-500">
                         Already have an account?{' '}
                         <Link to="/login" className="font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors">

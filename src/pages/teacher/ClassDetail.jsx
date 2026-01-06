@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Search, Filter, MoreVertical, Mail, Plus, Edit2, Trash2, X, Save, UserPlus, BookOpen, Award, CheckCircle, Lock, School, Star, TrendingUp, Users, ArrowUpDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { sortClasses } from '../../utils/classSort';
 
 import StudentDetail from './StudentDetail';
 import TaskDetail from './TaskDetail';
@@ -400,7 +401,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                             value={formData.classId}
                                             onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
                                         >
-                                            {classes?.map((cls) => (
+                                            {sortClasses(classes || []).map((cls) => (
                                                 <option key={cls.id} value={cls.id}>
                                                     {cls.name}{cls.subject ? ` - ${cls.subject}` : ''}
                                                 </option>

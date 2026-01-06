@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { Mail, ArrowLeft, KeyRound, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, ArrowLeft, KeyRound, CheckCircle, AlertCircle, Flame } from 'lucide-react';
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState('');
@@ -115,6 +115,13 @@ export default function ForgotPassword() {
                     </Link>
                 </div>
             </motion.div>
+
+            {/* Credits Footer */}
+            <div className="fixed bottom-0 left-0 w-full bg-white/60 backdrop-blur-md border-t border-white/40 py-4 text-center z-10">
+                <p className="text-xs text-slate-600 font-medium flex items-center justify-center gap-1">
+                    Made with <Flame className="h-3 w-3 text-orange-500 fill-orange-500 animate-pulse" /> by Mr. Tio • Powered by Google Antigravity & Firebase
+                </p>
+            </div>
         </div>
     );
 }
