@@ -4,7 +4,7 @@ import { collection, getDocs, query, where, doc, updateDoc, deleteDoc, serverTim
 
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Search, Filter, MoreVertical, Mail, Plus, Edit2, Trash2, X, Save, UserPlus, BookOpen, Award, CheckCircle, Lock, School, Star, TrendingUp, Users, ArrowUpDown } from 'lucide-react';
+import { ArrowLeft, Search, Filter, MoreVertical, Mail, Plus, Edit2, Trash2, X, Save, UserPlus, BookOpen, Award, CheckCircle, Lock, School, Star, TrendingUp, Users, ArrowUpDown, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { sortClasses } from '../../utils/classSort';
 
@@ -29,6 +29,10 @@ export default function ClassDetail({ classData, classes, onBack }) {
     // Delete Modal State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [studentToDelete, setStudentToDelete] = useState(null);
+
+    // Restore Modal State
+    const [restoreModalOpen, setRestoreModalOpen] = useState(false);
+    const [pendingRestoreStudent, setPendingRestoreStudent] = useState(null);
 
     useEffect(() => {
         setSelectedStudent(null); // Reset selected student when class changes
@@ -118,6 +122,30 @@ export default function ClassDetail({ classData, classes, onBack }) {
         }
     };
 
+    const handleConfirmRestore = async () => {
+        if (!pendingRestoreStudent) return;
+
+        try {
+            await updateDoc(doc(db, 'users', pendingRestoreStudent.id), {
+                status: 'active',
+                classId: classData.id,
+                name: formData.name, // Update name if changed
+                updatedAt: serverTimestamp(),
+                restoredAt: serverTimestamp(),
+                restoredBy: currentUser.uid
+            });
+
+            toast.success(`Student "${formData.name}" restored successfully!`);
+            setRestoreModalOpen(false);
+            setPendingRestoreStudent(null);
+            setShowModal(false); // Close the add/edit modal too
+            loadClassData();
+        } catch (error) {
+            console.error("Error restoring student:", error);
+            toast.error("Failed to restore student.");
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -141,7 +169,10 @@ export default function ClassDetail({ classData, classes, onBack }) {
                 const emailCheckSnap = await getDocs(emailCheckQuery);
 
                 if (!emailCheckSnap.empty) {
-                    toast.error("This email was previously used by a deleted student. Please use a different email.");
+                    // Found a deleted student with this email - Prompt to restore
+                    const deletedStudent = { id: emailCheckSnap.docs[0].id, ...emailCheckSnap.docs[0].data() };
+                    setPendingRestoreStudent(deletedStudent);
+                    setRestoreModalOpen(true);
                     setSaving(false);
                     return;
                 }
@@ -490,6 +521,55 @@ export default function ClassDetail({ classData, classes, onBack }) {
                     </div>
                 )}
             </AnimatePresence >
+
+            {/* Restore Confirmation Modal */}
+            <AnimatePresence>
+                {restoreModalOpen && pendingRestoreStudent && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                        >
+                            <div className="bg-green-600 p-6 text-white flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white/20 p-2 rounded-lg">
+                                        <RotateCcw className="h-6 w-6 text-white" />
+                                    </div>
+                                    <h3 className="font-bold text-lg">Restore Student?</h3>
+                                </div>
+                                <button onClick={() => setRestoreModalOpen(false)} className="text-white/70 hover:text-white">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="bg-green-50 p-4 rounded-xl border border-green-100 text-green-800 text-sm">
+                                    <p className="font-bold mb-1">Found deleted account:</p>
+                                    <p>The email <strong>{pendingRestoreStudent.email}</strong> belongs to a deleted student: <strong>"{pendingRestoreStudent.name}"</strong>.</p>
+                                    <p className="mt-2 text-green-700">Would you like to restore this account instead of creating a new one?</p>
+                                </div>
+
+                                <div className="pt-2 flex gap-3">
+                                    <button
+                                        onClick={() => setRestoreModalOpen(false)}
+                                        className="flex-1 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-medium text-slate-700"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleConfirmRestore}
+                                        className="flex-1 px-4 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold shadow-lg shadow-green-200 flex items-center justify-center gap-2"
+                                    >
+                                        <RotateCcw className="h-4 w-4" />
+                                        Yes, Restore
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div >
     );
 }
