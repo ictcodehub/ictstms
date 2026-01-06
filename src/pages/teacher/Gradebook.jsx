@@ -109,7 +109,7 @@ export default function Gradebook() {
                 const examResQuery = query(collection(db, 'exam_results'));
                 const examResSnap = await getDocs(examResQuery);
                 const examResults = examResSnap.docs
-                    .filter(doc => activityIds.includes(doc.data().examId))
+                    .filter(doc => activityIds.includes(doc.data().examId) && doc.data().score !== undefined && doc.data().score !== null && doc.data().score !== '')
                     .map(doc => ({
                         id: doc.id,
                         taskId: doc.data().examId, // Map examId to taskId for unified lookup
@@ -184,14 +184,18 @@ export default function Gradebook() {
     }, [searchTerm, selectedClass]);
 
     const getStudentStats = (student) => {
-        const studentSubs = submissions.filter(sub => sub.studentId === student.uid);
+        const studentClass = student.classId;
+        const classTasks = tasks.filter(task => task.assignedClasses?.includes(studentClass));
+        const classTaskIds = classTasks.map(t => t.id);
+
+        // Only count submissions for tasks/exams assigned to this student's class
+        const studentSubs = submissions.filter(sub =>
+            sub.studentId === student.uid && classTaskIds.includes(sub.taskId)
+        );
         const gradedSubs = studentSubs.filter(sub => sub.grade);
         const avgGrade = gradedSubs.length > 0
             ? (gradedSubs.reduce((sum, sub) => sum + parseFloat(sub.grade), 0) / gradedSubs.length).toFixed(1)
             : 0;
-
-        const studentClass = student.classId;
-        const classTasks = tasks.filter(task => task.assignedClasses?.includes(studentClass));
 
         return {
             submitted: studentSubs.length,
@@ -215,11 +219,24 @@ export default function Gradebook() {
             const now = new Date();
             const isOverdue = deadline && deadline < now && !submission;
 
+            const hasGrade = submission?.grade !== undefined && submission?.grade !== null && String(submission?.grade).trim() !== '';
+
+            // Debug logging for Scratch task
+            if (task.title && task.title.includes('Scratch')) {
+                console.log('=== DEBUG Scratch Task ===');
+                console.log('Task ID:', task.id);
+                console.log('Student UID:', selectedStudent.uid);
+                console.log('Submission found:', submission);
+                console.log('Submission grade:', submission?.grade);
+                console.log('Has grade:', hasGrade);
+                console.log('Calculated status:', hasGrade ? 'graded' : submission ? 'submitted' : isOverdue ? 'overdue' : 'pending');
+            }
+
             return {
                 ...task,
                 submission,
                 isOverdue,
-                status: submission?.grade !== undefined && submission?.grade !== null ? 'graded' :
+                status: hasGrade ? 'graded' :
                     submission ? 'submitted' :
                         isOverdue ? 'overdue' : 'pending'
             };
@@ -546,7 +563,7 @@ export default function Gradebook() {
                                                                 )}
                                                             </td>
                                                             <td className="px-4 py-4 whitespace-nowrap text-center">
-                                                                {task.submission?.grade ? (
+                                                                {(task.submission?.grade !== undefined && task.submission?.grade !== null && String(task.submission?.grade).trim() !== '') ? (
                                                                     <span className="text-xs font-bold text-green-600">
                                                                         {task.submission.grade}
                                                                     </span>
