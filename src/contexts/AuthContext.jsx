@@ -23,11 +23,14 @@ export function AuthProvider({ children }) {
                     const docSnap = await getDoc(docRef);
                     if (docSnap.exists()) {
                         const userData = docSnap.data();
-                        if (userData.status === 'banned') {
+                        if (userData.status === 'banned' || userData.status === 'deleted') {
                             await signOut(auth);
                             setCurrentUser(null);
                             setUserRole(null);
-                            alert("Akun Anda telah dinonaktifkan. Hubungi admin.");
+                            const message = userData.status === 'deleted'
+                                ? "This account has been deleted. Please contact your teacher."
+                                : "Akun Anda telah dinonaktifkan. Hubungi admin.";
+                            alert(message);
                         } else {
                             setCurrentUser(user);
                             setUserRole(userData.role);

@@ -84,7 +84,12 @@ export default function Students() {
             // Load stats for each student
             const stats = {};
             const submissionsSnap = await getDocs(collection(db, 'submissions'));
-            const tasksSnap = await getDocs(collection(db, 'tasks'));
+            // Only get tasks created by current teacher
+            const tasksQuery = query(
+                collection(db, 'tasks'),
+                where('createdBy', '==', currentUser.uid)
+            );
+            const tasksSnap = await getDocs(tasksQuery);
             const allSubmissions = submissionsSnap.docs.map(d => d.data());
             const allTasks = tasksSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -94,9 +99,14 @@ export default function Students() {
                     t.assignedClasses?.includes(studentClassId)
                 );
 
+                // Get task IDs for this student's class (only teacher's tasks)
+                const classTaskIds = classTasks.map(t => t.id);
+
                 // Match submissions using either uid or id (for backward compatibility)
+                // AND only count submissions for tasks created by current teacher
                 const studentSubmissions = allSubmissions.filter(sub =>
-                    sub.studentId === student.uid || sub.studentId === student.id
+                    (sub.studentId === student.uid || sub.studentId === student.id) &&
+                    classTaskIds.includes(sub.taskId)
                 );
 
                 const gradedSubmissions = studentSubmissions.filter(sub =>

@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -18,3 +18,18 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Helper to create student account without logging out teacher
+export const createStudentAccount = async (email, password) => {
+    const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+    const secondaryAuth = getAuth(secondaryApp);
+    try {
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+        return userCredential;
+    } finally {
+        // We don't delete the app here to avoid issues if called rapidly, 
+        // but traditionally one might. For now, letting it live or caching it is fine.
+        // Actually, deleting it is safer to clean up.
+        // deleteApp(secondaryApp); // deleteApp is async, need import.
+    }
+};

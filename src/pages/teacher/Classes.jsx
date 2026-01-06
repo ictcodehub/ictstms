@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query, where } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, X, Users as UsersIcon, Edit2, BookOpen, TrendingUp, Award, GraduationCap, BarChart3, Calendar, MapPin, Star, Users, Search, ArrowUpDown } from 'lucide-react';
+import { Plus, Trash2, X, Users as UsersIcon, Edit2, BookOpen, TrendingUp, Award, GraduationCap, BarChart3, Calendar, MapPin, Star, Users, Search, ArrowUpDown, UserPlus } from 'lucide-react';
 import ClassDetail from './ClassDetail';
 import { useAuth } from '../../contexts/AuthContext';
 import { sortClasses } from '../../utils/classSort';
@@ -55,9 +55,13 @@ export default function Classes() {
                     query(collection(db, 'users'), where('role', '==', 'student'), where('classId', '==', cls.id))
                 );
 
-                // Count tasks
+                // Count tasks - only tasks created by current teacher
                 const tasksSnap = await getDocs(
-                    query(collection(db, 'tasks'), where('assignedClasses', 'array-contains', cls.id))
+                    query(
+                        collection(db, 'tasks'),
+                        where('assignedClasses', 'array-contains', cls.id),
+                        where('createdBy', '==', currentUser.uid)
+                    )
                 );
 
                 // Calculate average grade for this class
@@ -220,15 +224,34 @@ export default function Classes() {
                     </h1>
                     <p className="text-slate-500 mt-1">Kelola kelas, siswa, dan aktivitas pembelajaran</p>
                 </div>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleOpenModal()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg shadow-blue-200 flex items-center gap-2 transition-all"
-                >
-                    <Plus className="h-5 w-5" />
-                    Add Class
-                </motion.button>
+                <div className="flex items-center gap-3">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleOpenModal()}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg shadow-blue-200 flex items-center gap-2 transition-all"
+                    >
+                        <Plus className="h-5 w-5" />
+                        Add Class
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                            if (selectedClass) {
+                                // Open Add Student modal in ClassDetail
+                                // This will be handled by passing a prop
+                                window.dispatchEvent(new CustomEvent('openAddStudent'));
+                            } else {
+                                toast.error('Please select a class first');
+                            }
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl shadow-lg shadow-green-200 flex items-center gap-2 transition-all"
+                    >
+                        <UserPlus className="h-5 w-5" />
+                        Add Student
+                    </motion.button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

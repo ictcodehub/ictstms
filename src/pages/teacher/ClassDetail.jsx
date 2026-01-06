@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { db } from '../../lib/firebase';
-import { collection, getDocs, query, where, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth, createStudentAccount } from '../../lib/firebase';
+import { collection, getDocs, query, where, doc, updateDoc, deleteDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Search, Filter, MoreVertical, Mail, Plus, Edit2, Trash2, X, Save, UserPlus, BookOpen, Award, CheckCircle, Lock, School, Star, TrendingUp, Users, ArrowUpDown } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 import StudentDetail from './StudentDetail';
 import TaskDetail from './TaskDetail';
 
 export default function ClassDetail({ classData, classes, onBack }) {
+    const { currentUser } = useAuth();
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -19,7 +22,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
     // Modal States
     const [showModal, setShowModal] = useState(false);
     const [currentStudent, setCurrentStudent] = useState(null);
-    const [formData, setFormData] = useState({ name: '', email: '', classId: '' });
+    const [formData, setFormData] = useState({ name: '', email: '', classId: '', password: '' });
     const [saving, setSaving] = useState(false);
 
     // Delete Modal State
@@ -29,12 +32,25 @@ export default function ClassDetail({ classData, classes, onBack }) {
     useEffect(() => {
         setSelectedStudent(null); // Reset selected student when class changes
         loadClassData();
+
+        // Listen for Add Student event from Classes page
+        const handleOpenAddStudent = () => {
+            setFormData({ name: '', email: '', classId: classData.id, password: '' });
+            setCurrentStudent(null);
+            setShowModal(true);
+        };
+
+        window.addEventListener('openAddStudent', handleOpenAddStudent);
+
+        return () => {
+            window.removeEventListener('openAddStudent', handleOpenAddStudent);
+        };
     }, [classData.id]);
 
     const loadClassData = async () => {
         setLoading(true);
         try {
-            // 1. Get all students in this class
+            // Get all students in this class
             const studentsQuery = query(
                 collection(db, 'users'),
                 where('role', '==', 'student'),
@@ -42,44 +58,13 @@ export default function ClassDetail({ classData, classes, onBack }) {
             );
             const studentsSnap = await getDocs(studentsQuery);
 
-            // 2. Get task stats
-            const tasksQuery = query(
-                collection(db, 'tasks'),
-                where('assignedClasses', 'array-contains', classData.id)
-            );
-            const tasksSnap = await getDocs(tasksQuery);
-            const totalTasks = tasksSnap.size;
-            const taskIds = tasksSnap.docs.map(d => d.id);
-
-            // 3. Get submissions
-            const submissionsSnap = await getDocs(collection(db, 'submissions'));
-            const allSubmissions = submissionsSnap.docs.map(d => d.data());
-
-            const studentsList = studentsSnap.docs.map(doc => {
-                const student = { id: doc.id, ...doc.data() };
-
-                const studentSubmissions = allSubmissions.filter(sub =>
-                    sub.studentId === student.uid && taskIds.includes(sub.taskId)
-                );
-
-                const completedCount = studentSubmissions.length;
-                const completionRate = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
-
-                const gradedSubmissions = studentSubmissions.filter(sub => sub.grade !== undefined && sub.grade !== null);
-                const totalGrade = gradedSubmissions.reduce((sum, sub) => sum + sub.grade, 0);
-                const avgGrade = gradedSubmissions.length > 0 ? (totalGrade / gradedSubmissions.length).toFixed(1) : 0;
-
-                return {
-                    ...student,
-                    stats: {
-                        completionRate,
-                        avgGrade,
-                        completedCount,
-                        totalTasks,
-                        gradedCount: gradedSubmissions.length
-                    }
-                };
-            });
+            // Filter out deleted students in JavaScript (since not all students have status field)
+            const studentsList = studentsSnap.docs
+                .map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }))
+                .filter(student => student.status !== 'deleted'); // Filter deleted students
 
             // Sort students alphabetically by name
             studentsList.sort((a, b) => {
@@ -115,7 +100,13 @@ export default function ClassDetail({ classData, classes, onBack }) {
         if (!studentToDelete) return;
 
         try {
-            await deleteDoc(doc(db, 'users', studentToDelete.id));
+            // Soft delete: Update status to 'deleted' instead of removing document
+            await updateDoc(doc(db, 'users', studentToDelete.id), {
+                status: 'deleted',
+                deletedAt: serverTimestamp(),
+                deletedBy: currentUser.uid
+            });
+
             toast.success('Student deleted successfully');
             setDeleteModalOpen(false);
             setStudentToDelete(null);
@@ -138,13 +129,52 @@ export default function ClassDetail({ classData, classes, onBack }) {
                     classId: formData.classId,
                     updatedAt: serverTimestamp()
                 });
+                toast.success("Student data updated successfully!");
+            } else {
+                // Check if email was previously used by a deleted student
+                const emailCheckQuery = query(
+                    collection(db, 'users'),
+                    where('email', '==', formData.email),
+                    where('status', '==', 'deleted')
+                );
+                const emailCheckSnap = await getDocs(emailCheckQuery);
+
+                if (!emailCheckSnap.empty) {
+                    toast.error("This email was previously used by a deleted student. Please use a different email.");
+                    setSaving(false);
+                    return;
+                }
+
+                // Create new student with Firebase Auth (using secondary app to avoid session swap)
+                const userCredential = await createStudentAccount(
+                    formData.email,
+                    formData.password
+                );
+
+                // Create Firestore user document using setDoc to match UID
+                await setDoc(doc(db, 'users', userCredential.user.uid), {
+                    uid: userCredential.user.uid,
+                    name: formData.name,
+                    email: formData.email,
+                    classId: formData.classId,
+                    role: 'student',
+                    status: 'active',
+                    createdAt: serverTimestamp()
+                });
+
+                toast.success(`Student "${formData.name}" created successfully!`);
             }
             setShowModal(false);
             loadClassData();
-            toast.success("Student data saved successfully!");
         } catch (error) {
             console.error("Error saving student:", error);
-            toast.error("Failed to save student data.");
+            if (error.code === 'auth/email-already-in-use') {
+                toast.error("Email already in use. Please use a different email.");
+            } else if (error.code === 'auth/weak-password') {
+                toast.error("Password should be at least 6 characters.");
+            } else {
+                toast.error("Failed to save student data.");
+            }
         } finally {
             setSaving(false);
         }
@@ -162,51 +192,16 @@ export default function ClassDetail({ classData, classes, onBack }) {
         student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.email?.toLowerCase().includes(searchTerm.toLowerCase())
     ).sort((a, b) => {
-        let aValue, bValue;
-
-        switch (sortConfig.key) {
-            case 'name':
-                aValue = (a.name || '').toLowerCase();
-                bValue = (b.name || '').toLowerCase();
-                return sortConfig.direction === 'asc'
-                    ? aValue.localeCompare(bValue, 'id-ID')
-                    : bValue.localeCompare(aValue, 'id-ID');
-            case 'tasks':
-                aValue = a.stats.completedCount;
-                bValue = b.stats.completedCount;
-                break;
-            case 'average':
-                aValue = parseFloat(a.stats.avgGrade) || 0;
-                bValue = parseFloat(b.stats.avgGrade) || 0;
-                break;
-            default:
-                return 0;
-        }
+        const aValue = (a.name || '').toLowerCase();
+        const bValue = (b.name || '').toLowerCase();
 
         if (sortConfig.direction === 'asc') {
-            return aValue - bValue;
+            return aValue.localeCompare(bValue, 'id-ID');
         }
-        return bValue - aValue;
+        return bValue.localeCompare(aValue, 'id-ID');
     });
 
-    const getTaskBadgeColor = (completed, total) => {
-        if (total === 0) return 'bg-slate-100 text-slate-600 border-slate-200';
-        if (completed === 0) return 'bg-red-50 text-red-600 border-red-200';
-        const rate = completed / total;
-        if (rate >= 0.8) return 'bg-green-50 text-green-600 border-green-200';
-        return 'bg-amber-50 text-amber-600 border-amber-200';
-    };
 
-    const classStats = {
-        avgGrade: students.length > 0
-            ? (students.reduce((acc, s) => acc + parseFloat(s.stats.avgGrade || 0), 0) / students.length).toFixed(1)
-            : 0,
-        completionRate: students.length > 0
-            ? Math.round(students.reduce((acc, s) => acc + (s.stats.completionRate || 0), 0) / students.length)
-            : 0,
-        totalStudents: students.length,
-        totalTasks: students.length > 0 ? students[0].stats.totalTasks : 0
-    };
 
     if (selectedTask) {
         return (
@@ -231,76 +226,6 @@ export default function ClassDetail({ classData, classes, onBack }) {
 
     return (
         <div className="space-y-6">
-            {/* Stats Dashboard */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"
-                >
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-                            <Star className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-slate-500 font-medium">Class Average</p>
-                            <p className="text-2xl font-bold text-slate-800">{classStats.avgGrade}</p>
-                        </div>
-                    </div>
-                </motion.div>
-
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"
-                >
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
-                            <TrendingUp className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-slate-500 font-medium">Penyelesaian</p>
-                            <p className="text-2xl font-bold text-slate-800">{classStats.completionRate}%</p>
-                        </div>
-                    </div>
-                </motion.div>
-
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"
-                >
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
-                            <Users className="h-5 w-5 text-indigo-600" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-slate-500 font-medium">Total Students</p>
-                            <p className="text-2xl font-bold text-slate-800">{classStats.totalStudents}</p>
-                        </div>
-                    </div>
-                </motion.div>
-
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"
-                >
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
-                            <BookOpen className="h-5 w-5 text-purple-600" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-slate-500 font-medium">Total Tasks</p>
-                            <p className="text-2xl font-bold text-slate-800">{classStats.totalTasks}</p>
-                        </div>
-                    </div>
-                </motion.div>
-            </div>
-
             {/* Toolbar */}
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 justify-between items-center">
                 <div className="relative w-full md:w-96">
@@ -347,24 +272,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                             <ArrowUpDown className="h-3 w-3 opacity-40 group-hover:opacity-100" />
                                         </div>
                                     </th>
-                                    <th
-                                        className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-blue-600 transition-colors group"
-                                        onClick={() => handleSort('tasks')}
-                                    >
-                                        <div className="flex items-center justify-center gap-1.5">
-                                            Tasks
-                                            <ArrowUpDown className="h-3 w-3 opacity-40 group-hover:opacity-100" />
-                                        </div>
-                                    </th>
-                                    <th
-                                        className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-blue-600 transition-colors group"
-                                        onClick={() => handleSort('average')}
-                                    >
-                                        <div className="flex items-center justify-center gap-1.5">
-                                            Rata-Rata
-                                            <ArrowUpDown className="h-3 w-3 opacity-40 group-hover:opacity-100" />
-                                        </div>
-                                    </th>
+
                                     <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
                                 </tr>
                             </thead>
@@ -392,14 +300,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className={`inline-flex items-center gap-1.5 font-bold ${student.stats.avgGrade >= 80 ? 'text-green-600' :
-                                                student.stats.avgGrade >= 60 ? 'text-amber-600' : 'text-slate-600'
-                                                }`}>
-                                                <Award className="h-4 w-4" />
-                                                {student.stats.avgGrade}
-                                            </div>
-                                        </td>
+
                                         <td className="px-6 py-4 text-center">
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
@@ -438,7 +339,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                             className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
                         >
                             <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 text-white flex justify-between items-center">
-                                <h2 className="text-xl font-bold">Edit Data Student</h2>
+                                <h2 className="text-xl font-bold">{currentStudent ? 'Edit Student' : 'Add Student'}</h2>
                                 <button onClick={() => setShowModal(false)} className="text-white/80 hover:text-white transition-colors">
                                     <X className="h-6 w-6" />
                                 </button>
@@ -453,7 +354,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="Nama Student"
+                                        placeholder="Full Name"
                                     />
                                 </div>
                                 <div>
@@ -464,9 +365,31 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white"
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        placeholder="email@sekolah.com"
+                                        placeholder="email@mutiarabangsa.sch.id"
+                                        disabled={currentStudent !== null}
                                     />
+                                    {currentStudent && (
+                                        <p className="text-xs text-slate-500 mt-1">Email cannot be changed</p>
+                                    )}
                                 </div>
+                                {!currentStudent && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
+                                        <div className="relative">
+                                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                            <input
+                                                type="password"
+                                                required
+                                                minLength={6}
+                                                className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white"
+                                                value={formData.password}
+                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                placeholder="Minimum 6 characters"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-1">Student will use this password to login</p>
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-2">Class</label>
                                     <div className="relative">
