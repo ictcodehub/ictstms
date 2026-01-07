@@ -57,13 +57,20 @@ export default function Tasks() {
                 }
 
                 const userData = userDoc.docs[0].data();
-                const classId = userData.classId;
 
-                if (classId) {
-                    const classDoc = await getDocs(query(collection(db, 'classes'), where('__name__', '==', classId)));
-                    if (!classDoc.empty) {
-                        setUserClass(classDoc.docs[0].data());
-                    }
+
+                // DATA MODEL UPDATE: Support both single classId (legacy) and multiple classIds
+                const myClassIds = [
+                    ...(userData.classIds || []),
+                    userData.classId
+                ].filter(id => id); // Remove null/undefined/empty strings
+
+                // Deduplicate
+                const uniqueClassIds = [...new Set(myClassIds)];
+
+                if (uniqueClassIds.length > 0) {
+                    // We just need to set this to something truthy so the "Not assigned" UI doesn't show
+                    setUserClass({ id: 'enrolled', count: uniqueClassIds.length });
                 } else {
                     setUserClass(null);
                     setLoading(false);
@@ -74,9 +81,11 @@ export default function Tasks() {
                 let currentSubmissions = {};
 
                 // Setup real-time listener for tasks
+                // Note: array-contains-any has a limit (usually 10 or 30). 
+                // For a student enrolled in >10 classes, this might need batching, but sufficient for now.
                 const tasksQuery = query(
                     collection(db, 'tasks'),
-                    where('assignedClasses', 'array-contains', classId)
+                    where('assignedClasses', 'array-contains-any', uniqueClassIds)
                 );
 
                 unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnap) => {

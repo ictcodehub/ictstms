@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db, auth, createStudentAccount } from '../../lib/firebase';
-import { collection, getDocs, query, where, doc, updateDoc, deleteDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, updateDoc, deleteDoc, serverTimestamp, setDoc, arrayUnion } from 'firebase/firestore';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -22,8 +22,12 @@ export default function ClassDetail({ classData, classes, onBack }) {
 
     // Modal States
     const [showModal, setShowModal] = useState(false);
+    const [modalTab, setModalTab] = useState('new'); // 'new' or 'existing'
     const [currentStudent, setCurrentStudent] = useState(null);
     const [formData, setFormData] = useState({ name: '', email: '', classId: '', password: '' });
+    const [availableStudents, setAvailableStudents] = useState([]);
+    const [existingSearchTerm, setExistingSearchTerm] = useState('');
+    const [searchingExisting, setSearchingExisting] = useState(false);
     const [saving, setSaving] = useState(false);
 
     // Delete Modal State
@@ -34,6 +38,10 @@ export default function ClassDetail({ classData, classes, onBack }) {
     const [restoreModalOpen, setRestoreModalOpen] = useState(false);
     const [pendingRestoreStudent, setPendingRestoreStudent] = useState(null);
 
+    // Enroll Modal State
+    const [enrollModalOpen, setEnrollModalOpen] = useState(false);
+    const [studentToEnroll, setStudentToEnroll] = useState(null);
+
     useEffect(() => {
         setSelectedStudent(null); // Reset selected student when class changes
         loadClassData();
@@ -42,6 +50,9 @@ export default function ClassDetail({ classData, classes, onBack }) {
         const handleOpenAddStudent = () => {
             setFormData({ name: '', email: '', classId: classData.id, password: '' });
             setCurrentStudent(null);
+            setModalTab('new');
+            setExistingSearchTerm('');
+            setAvailableStudents([]);
             setShowModal(true);
         };
 
@@ -55,21 +66,37 @@ export default function ClassDetail({ classData, classes, onBack }) {
     const loadClassData = async () => {
         setLoading(true);
         try {
-            // Get all students in this class
-            const studentsQuery = query(
+            // Get all students in this class (Legacy check: classId field)
+            const legacyQuery = query(
                 collection(db, 'users'),
                 where('role', '==', 'student'),
                 where('classId', '==', classData.id)
             );
-            const studentsSnap = await getDocs(studentsQuery);
 
-            // Filter out deleted students in JavaScript (since not all students have status field)
-            const studentsList = studentsSnap.docs
-                .map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }))
-                .filter(student => student.status !== 'deleted'); // Filter deleted students
+            // Get all students in this class (New check: classIds array)
+            const newQuery = query(
+                collection(db, 'users'),
+                where('role', '==', 'student'),
+                where('classIds', 'array-contains', classData.id)
+            );
+
+            const [legacySnap, newSnap] = await Promise.all([
+                getDocs(legacyQuery),
+                getDocs(newQuery)
+            ]);
+
+            const studentsMap = new Map();
+
+            // Merge results
+            [...legacySnap.docs, ...newSnap.docs].forEach(doc => {
+                if (!studentsMap.has(doc.id)) {
+                    studentsMap.set(doc.id, { id: doc.id, ...doc.data() });
+                }
+            });
+
+            // Filter out deleted students
+            const studentsList = Array.from(studentsMap.values())
+                .filter(student => student.status !== 'deleted');
 
             // Sort students alphabetically by name
             studentsList.sort((a, b) => {
@@ -128,7 +155,8 @@ export default function ClassDetail({ classData, classes, onBack }) {
         try {
             await updateDoc(doc(db, 'users', pendingRestoreStudent.id), {
                 status: 'active',
-                classId: classData.id,
+                classId: classData.id, // Legacy support
+                classIds: arrayUnion(classData.id), // Add to this class
                 name: formData.name, // Update name if changed
                 updatedAt: serverTimestamp(),
                 restoredAt: serverTimestamp(),
@@ -146,6 +174,90 @@ export default function ClassDetail({ classData, classes, onBack }) {
         }
     };
 
+    const searchAvailableStudents = async (term) => {
+        if (!term || term.length < 2) {
+            setAvailableStudents([]);
+            return;
+        }
+
+        setSearchingExisting(true);
+        try {
+            // Simplified search: Get all active students and filter client-side 
+            // (Firestore text search is limited without third-party like Algolia)
+            const q = query(
+                collection(db, 'users'),
+                where('role', '==', 'student')
+            );
+
+            const querySnapshot = await getDocs(q);
+            const allStudents = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // Filter by name or email, AND exclude students already in this class
+            const results = allStudents.filter(student => {
+                const matchesTerm = (student.name || '').toLowerCase().includes(term.toLowerCase()) ||
+                    (student.email || '').toLowerCase().includes(term.toLowerCase());
+
+                const alreadyInClass = student.classId === classData.id ||
+                    (student.classIds && student.classIds.includes(classData.id));
+
+                const isActive = student.status !== 'deleted';
+
+                return matchesTerm && !alreadyInClass && isActive;
+            });
+
+            setAvailableStudents(results.slice(0, 10)); // Limit to 10 results
+        } catch (error) {
+            console.error("Error searching students:", error);
+        } finally {
+            setSearchingExisting(false);
+        }
+    };
+
+    // Trigger search when term changes
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            if (modalTab === 'existing') {
+                searchAvailableStudents(existingSearchTerm);
+            }
+        }, 500);
+        return () => clearTimeout(timeoutId);
+    }, [existingSearchTerm, modalTab]);
+
+    const handleAssignClick = (student) => {
+        setStudentToEnroll(student);
+        setEnrollModalOpen(true);
+        // We keep the main modal open until confirmed
+    };
+
+    const handleConfirmEnroll = async () => {
+        if (!studentToEnroll) return;
+
+        try {
+            const studentRef = doc(db, 'users', studentToEnroll.id);
+
+            // Prepare classIds: If user has legacy classId, ensure it's in the array
+            let currentClassIds = studentToEnroll.classIds || [];
+            if (studentToEnroll.classId && !currentClassIds.includes(studentToEnroll.classId)) {
+                currentClassIds.push(studentToEnroll.classId);
+            }
+
+            // We use arrayUnion to safely add the new class ID
+            await updateDoc(studentRef, {
+                classIds: arrayUnion(...currentClassIds, classData.id),
+                updatedAt: serverTimestamp()
+            });
+
+            toast.success(`Student "${studentToEnroll.name}" enrolled in this class!`);
+            setEnrollModalOpen(false);
+            setStudentToEnroll(null);
+            setShowModal(false);
+            loadClassData();
+        } catch (error) {
+            console.error("Error enrolling student:", error);
+            toast.error("Failed to enroll student.");
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -160,21 +272,39 @@ export default function ClassDetail({ classData, classes, onBack }) {
                 });
                 toast.success("Student data updated successfully!");
             } else {
-                // Check if email was previously used by a deleted student
+                // Check if email was previously used by ANY student (Active or Deleted)
                 const emailCheckQuery = query(
                     collection(db, 'users'),
-                    where('email', '==', formData.email),
-                    where('status', '==', 'deleted')
+                    where('email', '==', formData.email)
                 );
                 const emailCheckSnap = await getDocs(emailCheckQuery);
 
                 if (!emailCheckSnap.empty) {
-                    // Found a deleted student with this email - Prompt to restore
-                    const deletedStudent = { id: emailCheckSnap.docs[0].id, ...emailCheckSnap.docs[0].data() };
-                    setPendingRestoreStudent(deletedStudent);
-                    setRestoreModalOpen(true);
-                    setSaving(false);
-                    return;
+                    const existingUser = { id: emailCheckSnap.docs[0].id, ...emailCheckSnap.docs[0].data() };
+
+                    if (existingUser.status === 'deleted') {
+                        // Restore Flow
+                        setPendingRestoreStudent(existingUser);
+                        setRestoreModalOpen(true);
+                        setSaving(false);
+                        return;
+                    } else {
+                        // Active User Found - Check if already in this class
+                        const isAlreadyInClass = (existingUser.classId === classData.id) ||
+                            (existingUser.classIds && existingUser.classIds.includes(classData.id));
+
+                        if (isAlreadyInClass) {
+                            toast.error("Student is already enrolled in this class.");
+                            setSaving(false);
+                            return;
+                        }
+
+                        // Not in this class yet -> Enrollment Flow
+                        setStudentToEnroll(existingUser);
+                        setEnrollModalOpen(true);
+                        setSaving(false);
+                        return;
+                    }
                 }
 
                 // Create new student with Firebase Auth (using secondary app to avoid session swap)
@@ -189,6 +319,7 @@ export default function ClassDetail({ classData, classes, onBack }) {
                     name: formData.name,
                     email: formData.email,
                     classId: formData.classId,
+                    classIds: [formData.classId], // Initialize array
                     role: 'student',
                     status: 'active',
                     createdAt: serverTimestamp()
@@ -377,97 +508,175 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="Full Name"
-                                    />
+                            {/* Tabs */}
+                            {!currentStudent && (
+                                <div className="flex border-b border-slate-200">
+                                    <button
+                                        onClick={() => setModalTab('new')}
+                                        className={`flex-1 py-3 text-sm font-bold transition-all ${modalTab === 'new'
+                                            ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                                    >
+                                        Create New
+                                    </button>
+                                    <button
+                                        onClick={() => setModalTab('existing')}
+                                        className={`flex-1 py-3 text-sm font-bold transition-all ${modalTab === 'existing'
+                                            ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                                    >
+                                        Assign Existing
+                                    </button>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
-                                    <input
-                                        type="email"
-                                        required
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        placeholder="email@mutiarabangsa.sch.id"
-                                        disabled={currentStudent !== null}
-                                    />
-                                    {currentStudent && (
-                                        <p className="text-xs text-slate-500 mt-1">Email cannot be changed</p>
-                                    )}
-                                </div>
-                                {!currentStudent && (
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
-                                        <div className="relative">
-                                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                                            <input
-                                                type="password"
-                                                required
-                                                minLength={6}
-                                                className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white"
-                                                value={formData.password}
-                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                                placeholder="Minimum 6 characters"
-                                            />
-                                        </div>
-                                        <p className="text-xs text-slate-500 mt-1">Student will use this password to login</p>
-                                    </div>
-                                )}
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Class</label>
-                                    <div className="relative">
-                                        <School className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                                        <select
-                                            required
-                                            className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white appearance-none cursor-pointer"
-                                            value={formData.classId}
-                                            onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-                                        >
-                                            {sortClasses(classes || []).map((cls) => (
-                                                <option key={cls.id} value={cls.id}>
-                                                    {cls.name}{cls.subject ? ` - ${cls.subject}` : ''}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
+                            )}
 
-                                <div className="pt-4 flex gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowModal(false)}
-                                        className="flex-1 px-6 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={saving}
-                                        className="flex-1 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        {saving ? (
-                                            <>
-                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                Saving...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Save className="h-5 w-5" />
-                                                Save
-                                            </>
+                            {modalTab === 'new' ? (
+                                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white"
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            placeholder="Full Name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
+                                        <input
+                                            type="email"
+                                            required
+                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            placeholder="email@mutiarabangsa.sch.id"
+                                            disabled={currentStudent !== null}
+                                        />
+                                        {currentStudent && (
+                                            <p className="text-xs text-slate-500 mt-1">Email cannot be changed</p>
                                         )}
-                                    </button>
+                                    </div>
+                                    {!currentStudent && (
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
+                                            <div className="relative">
+                                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                                <input
+                                                    type="password"
+                                                    required
+                                                    minLength={6}
+                                                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white"
+                                                    value={formData.password}
+                                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                    placeholder="Minimum 6 characters"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-1">Student will use this password to login</p>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Class</label>
+                                        <div className="relative">
+                                            <School className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                            <select
+                                                required
+                                                className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white appearance-none cursor-pointer"
+                                                value={formData.classId}
+                                                onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
+                                            >
+                                                {sortClasses(classes || []).map((cls) => (
+                                                    <option key={cls.id} value={cls.id}>
+                                                        {cls.name}{cls.subject ? ` - ${cls.subject}` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowModal(false)}
+                                            className="flex-1 px-6 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={saving}
+                                            className="flex-1 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                        >
+                                            {saving ? (
+                                                <>
+                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                    Saving...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save className="h-5 w-5" />
+                                                    Save
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </form>
+                            ) : (
+                                // EXISTING STUDENTS TAB
+                                <div className="p-6 h-[500px] flex flex-col">
+                                    <div className="relative mb-4">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            autoFocus
+                                            placeholder="Search by name or email..."
+                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 focus:bg-white transition-all"
+                                            value={existingSearchTerm}
+                                            onChange={(e) => setExistingSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+                                        {searchingExisting ? (
+                                            <div className="flex justify-center py-8">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                            </div>
+                                        ) : availableStudents.length > 0 ? (
+                                            availableStudents.map(student => (
+                                                <div key={student.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all group">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                                                            {student.name?.[0]?.toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-slate-800 text-sm">{student.name}</div>
+                                                            <div className="text-xs text-slate-500">{student.email}</div>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleAssignClick(student)}
+                                                        className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-blue-700 transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-1.5"
+                                                    >
+                                                        <Plus className="h-3 w-3" />
+                                                        Add
+                                                    </button>
+                                                </div>
+                                            ))
+                                        ) : existingSearchTerm.length > 1 ? (
+                                            <div className="text-center py-12 text-slate-500">
+                                                <Search className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                                                <p>No available students found.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-12 text-slate-400">
+                                                <Users className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                                                <p>Type to search existing students</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </form>
+                            )}
                         </motion.div>
                     </div>
                 )}
@@ -563,6 +772,56 @@ export default function ClassDetail({ classData, classes, onBack }) {
                                     >
                                         <RotateCcw className="h-4 w-4" />
                                         Yes, Restore
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Enroll Confirmation Modal */}
+            <AnimatePresence>
+                {enrollModalOpen && studentToEnroll && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                        >
+                            <div className="bg-blue-600 p-6 text-white flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white/20 p-2 rounded-lg">
+                                        <UserPlus className="h-6 w-6 text-white" />
+                                    </div>
+                                    <h3 className="font-bold text-lg">Enroll Existing Student?</h3>
+                                </div>
+                                <button onClick={() => setEnrollModalOpen(false)} className="text-white/70 hover:text-white">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-blue-800 text-sm">
+                                    <p className="font-bold mb-1">Student Found:</p>
+                                    <p>The email <strong>{studentToEnroll.email}</strong> is already registered to <strong>"{studentToEnroll.name}"</strong>.</p>
+                                    <p className="mt-2 text-blue-700">Would you like to enroll this student in <strong>{classData.name}</strong> as well?</p>
+                                    <p className="mt-1 text-xs text-blue-600/80">They will remain in their other classes.</p>
+                                </div>
+
+                                <div className="pt-2 flex gap-3">
+                                    <button
+                                        onClick={() => setEnrollModalOpen(false)}
+                                        className="flex-1 px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-medium text-slate-700"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleConfirmEnroll}
+                                        className="flex-1 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
+                                    >
+                                        <UserPlus className="h-4 w-4" />
+                                        Yes, Enroll
                                     </button>
                                 </div>
                             </div>
