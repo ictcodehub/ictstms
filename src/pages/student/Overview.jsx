@@ -63,14 +63,25 @@ export default function Overview() {
                 }
 
                 const userData = userDoc.docs[0].data();
-                const userClassId = userData.classId;
 
-                setClassId(userClassId); // Set classId state
+                // DATA MODEL UPDATE: Support both single classId (legacy) and multiple classIds
+                const myClassIds = [
+                    ...(userData.classIds || []),
+                    userData.classId
+                ].filter(id => id); // Remove null/undefined/empty strings
 
-                if (userClassId) {
-                    const classDoc = await getDocs(query(collection(db, 'classes'), where('__name__', '==', userClassId)));
+                const uniqueClassIds = [...new Set(myClassIds)];
+                setClassId(uniqueClassIds[0]); // Set primary/first classId state for hooks if needed
+
+                if (uniqueClassIds.length > 0) {
+                    // We just need to set this to something truthy so the "Not assigned" UI doesn't show
+                    // Or fetch the first class details for display if we really want to show "Class Name" somewhere
+                    const classDoc = await getDocs(query(collection(db, 'classes'), where('__name__', 'in', uniqueClassIds.slice(0, 10))));
                     if (!classDoc.empty) {
                         setUserClass(classDoc.docs[0].data());
+                    } else {
+                        // Fallback object to prevent null
+                        setUserClass({ id: 'enrolled', count: uniqueClassIds.length });
                     }
                 } else {
                     setUserClass(null);
@@ -84,7 +95,7 @@ export default function Overview() {
                 // Setup real-time listener for tasks
                 const tasksQuery = query(
                     collection(db, 'tasks'),
-                    where('assignedClasses', 'array-contains', userClassId)
+                    where('assignedClasses', 'array-contains-any', uniqueClassIds)
                 );
 
                 unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnap) => {
@@ -98,7 +109,7 @@ export default function Overview() {
 
                 const examsQuery = query(
                     collection(db, 'exams'),
-                    where('assignedClasses', 'array-contains', userClassId),
+                    where('assignedClasses', 'array-contains-any', uniqueClassIds),
                     where('status', '==', 'published')
                 );
 
