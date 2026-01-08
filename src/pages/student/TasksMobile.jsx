@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Download, Edit, X, Save } from 'lucide-react';
+import { LinkifiedText } from '../../utils/linkify';
 
 export default function TasksMobile({
     tasks,
@@ -187,7 +188,7 @@ export default function TasksMobile({
                                                     <span className="text-sm font-bold text-slate-800">Task Description</span>
                                                 </div>
                                                 <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed max-h-[300px] overflow-y-auto scrollbar-hide">
-                                                    {task.description}
+                                                    <LinkifiedText text={task.description} />
                                                 </div>
                                             </div>
                                         )}
@@ -293,9 +294,9 @@ export default function TasksMobile({
                                                         {submission.content && (
                                                             <>
                                                                 <p className="text-xs font-semibold text-slate-700 mb-1">Answer:</p>
-                                                                <p className="text-xs text-slate-700 bg-white rounded-lg p-3 leading-relaxed whitespace-pre-wrap border border-slate-100 shadow-sm">
-                                                                    {submission.content}
-                                                                </p>
+                                                                <div className="text-xs text-slate-700 bg-white rounded-lg p-3 leading-relaxed whitespace-pre-wrap border border-slate-100 shadow-sm">
+                                                                    <LinkifiedText text={submission.content} />
+                                                                </div>
                                                             </>
                                                         )}
                                                     </div>

@@ -594,7 +594,9 @@ export default function Tasks() {
                                                         <div className="p-6 md:pl-[4.5rem]">
                                                             <div className="mb-6">
                                                                 <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Description</h4>
-                                                                <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{task.description}</p>
+                                                                <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
+                                                                    <LinkifiedText text={task.description} />
+                                                                </div>
                                                             </div>
 
                                                             {submission ? (
