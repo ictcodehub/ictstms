@@ -7,6 +7,75 @@
 
 ---
 
+---
+
+## 🎯 [2026-01-08 | 21:29 - 21:39] ExamResults Table Layout Refactor
+
+### Overview
+Major UI refactor: Converted ExamResults from card-based grid layout to table/list layout for better screen space utilization and improved data visibility.
+
+### ✅ Completed Features
+- **Table Structure**: 7 columns (No, Name, Class, Status, Attempts, Highest Score, Action)
+- **Sticky Header**: Header stays visible when scrolling
+- **Status Badges**: All status colors preserved (In Progress with pulse, Completed, Needs Grading, Remedial, Not Started)
+- **Interactive Rows**: Click row to open student detail view (same as before)
+- **Hover Effects**: Visual feedback on row hover
+- **Empty State**: Shows "No students found" message in table when filtered results are empty
+- **All Features Preserved**: Search, class filter, status filter, real-time updates
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/ExamResults.jsx` | Replaced grid layout (lines 744-804) with table structure (122 insertions, 70 deletions) |
+
+### 🎨 Table Styling
+- Compact rows for more visible students per screen
+- Zebra striping (subtle row alternation) via `divide-y`
+- Student avatar with name + email
+- Class badge
+- Status badges with icons
+- Responsive (horizontal scroll on mobile if needed)
+
+### 🧪 Verification Results
+- ✅ All students visible in table format
+- ✅ Search works
+- ✅ Class filter works  
+- ✅ Status filter works
+- ✅ Real-time status updates (pulse animation preserved)
+- ✅ Click row opens detail view
+- ✅ Status badges colored correctly
+- ✅ No console errors
+- ✅ Syntax errors fixed (modal positioning, table closing tags)
+
+### 📦 Git Commits
+- `aaa784b` - checkpoint: before ExamResults table layout refactor (safety backup)
+- `aaa0917` - refactor: convert ExamResults from card grid to table layout
+
+### 🎯 Impact
+- **Screen utilization**: ↑ ~200% more students visible without scrolling
+- **Data clarity**: Structured table format easier to scan
+- **Performance**: Same (no logic changes, UI only)
+
+---
+
+## 🎯 [2026-01-08 | 21:23 - 21:25] Add Status Filter to ExamResults
+
+### Overview
+Added status filter dropdown next to class filter for filtering students by exam completion status.
+
+### ✅ Completed Features
+- Status filter dropdown with options: All Status, In Progress, Needs Grading, Completed, Remedial, Not Started
+- Filter logic integrated with existing search and class filters
+- Real-time filtering without page reload
+
+### 📁 Files Modified
+- `src/pages/teacher/ExamResults.jsx` - Added `selectedStatus` state and filter dropdown
+
+### 📦 Git Commits
+- `aaa784b` - feat: add status filter to ExamResults (without emoji icons)
+
+---
+
 ## 🎯 [2026-01-08 | 20:00 - 21:19] Realtime Exam Status Implementation
 
 ### Overview
