@@ -86,8 +86,11 @@ export default defineConfig({
         manualChunks: {
           // Separate vendor chunks
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
-          'ui-vendor': ['framer-motion', 'lucide-react'],
+          'firebase-app': ['firebase/app'],
+          'firebase-auth': ['firebase/auth'],
+          'firebase-firestore': ['firebase/firestore'],
+          'ui-framer': ['framer-motion'],
+          'ui-lucide': ['lucide-react'],
         },
       },
     },
