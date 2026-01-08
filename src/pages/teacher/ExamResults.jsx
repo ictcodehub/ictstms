@@ -221,6 +221,7 @@ export default function ExamResults() {
     const [studentMap, setStudentMap] = useState({}); // Map of ID -> Student Profile
     const [classMap, setClassMap] = useState({}); // Map of classId -> Class data
     const [results, setResults] = useState([]); // Real-time results
+    const [sessions, setSessions] = useState([]); // Real-time active sessions
     const [students, setStudents] = useState([]); // Derived view model
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -296,23 +297,39 @@ export default function ExamResults() {
         fetchBaseData();
     }, [examId]);
 
-    // 2. Listen to Real-time Results
+    // 2. Listen to Real-time Results AND Sessions
     useEffect(() => {
         const resultsQuery = query(
             collection(db, 'exam_results'),
             where('examId', '==', examId)
         );
 
-        const unsubscribe = onSnapshot(resultsQuery, (snapshot) => {
+        const sessionsQuery = query(
+            collection(db, 'exam_sessions'),
+            where('examId', '==', examId),
+            where('status', '==', 'in_progress')
+        );
+
+        const unsubResults = onSnapshot(resultsQuery, (snapshot) => {
             const resList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setResults(resList);
+            // Don't disable loading here, let initial fetch do it or if we want better UX
             setLoading(false);
         }, (error) => {
             console.error("Error listening to results:", error);
-            setLoading(false);
         });
 
-        return () => unsubscribe();
+        const unsubSessions = onSnapshot(sessionsQuery, (snapshot) => {
+            const sessList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setSessions(sessList);
+        }, (error) => {
+            console.error("Error listening to sessions:", error);
+        });
+
+        return () => {
+            unsubResults();
+            unsubSessions();
+        };
     }, [examId]);
 
     // 3. Merge & Process Data (Derived State)
@@ -320,6 +337,9 @@ export default function ExamResults() {
         const processedList = Object.values(studentMap).map(student => {
             // Find results for this student
             const studentResults = results.filter(r => r.studentId === student.id);
+
+            // Check for active session
+            const activeSession = sessions.find(s => s.studentId === student.id);
 
             // Sort attempts
             studentResults.sort((a, b) => (b.submittedAt?.toMillis() || 0) - (a.submittedAt?.toMillis() || 0));
@@ -329,7 +349,9 @@ export default function ExamResults() {
 
             // Status Logic
             let status = 'pending';
-            if (latest) {
+            if (activeSession) {
+                status = 'in_progress';
+            } else if (latest) {
                 if (latest.allowRetake) status = 'remedial';
                 else if (latest.gradingStatus === 'pending') status = 'grading_pending';
                 else status = 'completed';
@@ -340,7 +362,8 @@ export default function ExamResults() {
                 attempts: studentResults,
                 latestAttempt: latest,
                 bestScore,
-                status
+                status,
+                activeSession // Pass it down if needed
             };
         });
 
@@ -348,7 +371,7 @@ export default function ExamResults() {
         processedList.sort((a, b) => a.name.localeCompare(b.name));
         setStudents(processedList);
 
-    }, [studentMap, results]);
+    }, [studentMap, results, sessions]);
 
     // State for custom confirmation modal
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, resultId: null });
@@ -734,6 +757,12 @@ export default function ExamResults() {
                                     <div className="relative z-10 space-y-3">
                                         <div className="flex justify-between items-center text-sm p-3 bg-slate-50 rounded-xl border border-slate-100 group-hover:bg-white group-hover:border-blue-100 transition-colors">
                                             <span className="text-slate-500 font-medium">Status</span>
+                                            {student.status === 'in_progress' && (
+                                                <span className="text-blue-600 font-bold flex items-center gap-1 animate-pulse">
+                                                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-ping" />
+                                                    In Progress
+                                                </span>
+                                            )}
                                             {student.status === 'completed' && <span className="text-green-600 font-bold flex items-center gap-1"><CheckCircle className="h-4 w-4" /> Completed</span>}
                                             {student.status === 'grading_pending' && <span className="text-yellow-600 font-bold flex items-center gap-1"><AlertCircle className="h-4 w-4" /> Needs Grading</span>}
                                             {student.status === 'remedial' && <span className="text-orange-600 font-bold flex items-center gap-1"><RefreshCw className="h-4 w-4" /> Remedial</span>}
