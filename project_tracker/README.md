@@ -9,6 +9,44 @@
 
 ---
 
+
+---
+
+## 🎯 [2026-01-08 | 21:40 - 21:49] ExamResults Table Enhancements
+
+### Overview
+Added sorting functionality and design consistency improvements to ExamResults table layout.
+
+### ✅ Completed Features
+- **Sortable Headers**: All columns (Name, Class, Status, Attempts, Score) now clickable for sorting
+- **Sort Indicators**: Visual feedback with Arrow icons (ArrowUp/ArrowDown/ArrowUpDown)
+- **Sort Toggle**: Click same header to toggle asc/desc order
+- **Center Alignment**: Attempts and Highest Score columns centered
+- **Font Consistency**: Adjusted to `text-sm` matching Students page
+- **Icon Fix**: Added missing `Clock` icon import
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/ExamResults.jsx` | Added sorting state, handlers, clickable headers, font adjustments |
+
+### 🎨 Design Changes
+- Student name: `text-sm font-bold`
+- Numbers: `text-sm`
+- Score suffix "/100": `text-xs`
+- Attempts & Score alignment: `text-center` (previously `text-right`)
+
+### 🧪 Verification
+- ✅ Sorting works on all columns
+- ✅ Visual indicators show current sort state
+- ✅ Font sizes consistent with Students page
+- ✅ No blank page issues (Clock icon imported)
+
+### 📦 Git Commits
+- `fdeef47` - Combined: fix missing icon + sorting + alignment + font improvements
+
+---
+
 ## 🎯 [2026-01-08 | 21:29 - 21:39] ExamResults Table Layout Refactor
 
 ### Overview
