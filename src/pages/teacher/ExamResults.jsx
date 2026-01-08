@@ -226,6 +226,7 @@ export default function ExamResults() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedClassId, setSelectedClassId] = useState('all'); // 'all' or specific classId
+    const [selectedStatus, setSelectedStatus] = useState('all'); // 'all' or specific status
 
     // Selection state for Master-Detail view
     const [selectedStudentId, setSelectedStudentId] = useState(null);
@@ -484,7 +485,8 @@ export default function ExamResults() {
         const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             s.email.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesClass = selectedClassId === 'all' || s.classId === selectedClassId;
-        return matchesSearch && matchesClass;
+        const matchesStatus = selectedStatus === 'all' || s.status === selectedStatus;
+        return matchesSearch && matchesClass && matchesStatus;
     });
 
     const uniqueClasses = useMemo(() => {
@@ -712,6 +714,19 @@ export default function ExamResults() {
                                 {uniqueClasses.map(cls => (
                                     <option key={cls.id} value={cls.id}>{cls.name}</option>
                                 ))}
+                            </select>
+
+                            <select
+                                className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium text-slate-700"
+                                value={selectedStatus}
+                                onChange={(e) => setSelectedStatus(e.target.value)}
+                            >
+                                <option value="all">All Status</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="grading_pending">Needs Grading</option>
+                                <option value="completed">Completed</option>
+                                <option value="remedial">Remedial</option>
+                                <option value="pending">Not Started</option>
                             </select>
                         </div>
 
