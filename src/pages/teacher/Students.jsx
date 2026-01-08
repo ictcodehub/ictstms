@@ -295,65 +295,6 @@ export default function Students() {
                 </div>
             </div>
 
-            {/* Summary Stats */}
-            {!loading && students.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                                <Users className="h-6 w-6 text-blue-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-500 font-medium">Total Siswa</p>
-                                <p className="text-2xl font-bold text-slate-800">{students.length}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-cyan-50 rounded-xl flex items-center justify-center">
-                                <TrendingUp className="h-6 w-6 text-cyan-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-500 font-medium">Class Average</p>
-                                <p className="text-2xl font-bold text-slate-800">
-                                    {students.length > 0
-                                        ? (Object.values(studentStats).reduce((sum, s) => sum + parseFloat(s.avgGrade || 0), 0) / students.length).toFixed(1)
-                                        : 0
-                                    }
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-sky-50 rounded-xl flex items-center justify-center">
-                                <BookOpen className="h-6 w-6 text-sky-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-500 font-medium">Tasks Submitted</p>
-                                <p className="text-2xl font-bold text-slate-800">
-                                    {Object.values(studentStats).reduce((sum, s) => sum + s.submitted, 0)}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center">
-                                <Award className="h-6 w-6 text-indigo-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-500 font-medium">Sudah Dinilai</p>
-                                <p className="text-2xl font-bold text-slate-800">
-                                    {Object.values(studentStats).reduce((sum, s) => sum + s.graded, 0)}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
                 {/* Filters Bar */}
                 <div className="p-6 border-b border-slate-100 bg-white">
