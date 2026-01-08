@@ -211,6 +211,22 @@ export default function Tasks() {
         return new Date(deadline) < new Date();
     };
 
+    const getShortClassName = (name) => {
+        // If name contains " - ", take the part before it
+        if (name.includes(' - ')) {
+            const parts = name.split(' - ');
+            name = parts[0].trim();
+        }
+
+        // If name contains brackets like "[Agama Islam]", extract content
+        if (name.startsWith('[') && name.includes(']')) {
+            name = name.substring(1, name.indexOf(']'));
+        }
+
+        // Take first 3 characters and uppercase (e.g., "Religion" -> "REL")
+        return name.substring(0, 3).toUpperCase();
+    };
+
     const formatDeadline = (deadline) => {
         const date = new Date(deadline);
         return date.toLocaleDateString('id-ID', {
@@ -486,7 +502,7 @@ export default function Tasks() {
                                                         const cls = classes.find(c => c.id === classId);
                                                         return cls ? (
                                                             <span key={classId} className="inline-flex items-center justify-center w-7 h-7 text-[11px] text-slate-700 bg-slate-100 font-medium">
-                                                                {cls.name}
+                                                                {getShortClassName(cls.name)}
                                                             </span>
                                                         ) : null;
                                                     })}
