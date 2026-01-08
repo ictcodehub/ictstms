@@ -606,6 +606,10 @@ export default function ExamTaker() {
         });
     };
 
+    const handleTextAnswer = (qId, text) => {
+        setAnswers(prev => ({ ...prev, [qId]: text }));
+    };
+
     // Calculation Logic (PARTIAL SCORING)
     // Calculation Logic (PARTIAL SCORING)
     const calculateScore = (answersToUse = null) => {
@@ -1164,7 +1168,9 @@ export default function ExamTaker() {
                                         {currentQ.type === 'single_choice' ? 'Single Choice' :
                                             currentQ.type === 'multiple_choice' ? 'Multiple Choice' :
                                                 currentQ.type === 'matching' ? 'Matching' :
-                                                    currentQ.type === 'true_false' ? 'True/False' : 'Question'}
+                                                    currentQ.type === 'true_false' ? 'True/False' :
+                                                        currentQ.type === 'essay' ? 'Essay' :
+                                                            currentQ.type === 'short_answer' ? 'Short Answer' : 'Question'}
                                     </span>
                                     <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
                                         Question {currentQuestionIndex + 1}/{randomizedQuestions.length}
@@ -1317,6 +1323,32 @@ export default function ExamTaker() {
                                                     )
                                                 })}
                                                 <p className="text-xs text-slate-500 italic mt-2">* Select matching pair from dropdown. Used options cannot be selected again.</p>
+                                            </div>
+                                        ) : currentQ.type === 'essay' ? (
+                                            <div className="space-y-2">
+                                                <textarea
+                                                    value={answers[currentQ.id] || ''}
+                                                    onChange={(e) => handleTextAnswer(currentQ.id, e.target.value)}
+                                                    placeholder="Type your essay answer here..."
+                                                    className="w-full p-4 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none min-h-[300px] resize-y"
+                                                />
+                                                <p className="text-xs text-slate-500">
+                                                    {(answers[currentQ.id] || '').length} characters
+                                                </p>
+                                            </div>
+                                        ) : currentQ.type === 'short_answer' ? (
+                                            <div className="space-y-2">
+                                                <input
+                                                    type="text"
+                                                    value={answers[currentQ.id] || ''}
+                                                    onChange={(e) => handleTextAnswer(currentQ.id, e.target.value)}
+                                                    maxLength={currentQ.characterLimit || 500}
+                                                    placeholder="Type your short answer here..."
+                                                    className="w-full p-4 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                                                />
+                                                <p className="text-xs text-slate-500">
+                                                    {(answers[currentQ.id] || '').length} / {currentQ.characterLimit || 500} characters
+                                                </p>
                                             </div>
                                         ) : null}
                                     </div>

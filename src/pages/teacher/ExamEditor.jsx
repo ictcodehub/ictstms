@@ -20,7 +20,8 @@ import {
     Link,
     Paperclip,
     FileDown,
-    Upload
+    Upload,
+    AlertCircle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../../contexts/AuthContext';
@@ -122,6 +123,11 @@ export default function ExamEditor() {
             }
 
             // Check options based on type
+            // Skip validation for essay/short_answer (no options needed)
+            if (q.type === 'essay' || q.type === 'short_answer') {
+                continue; // Text-based questions don't need options
+            }
+
             if (q.type === 'single_choice' || q.type === 'true_false') {
                 if (!q.options.some(o => o.isCorrect)) {
                     toast.error(`Soal nomor ${i + 1} belum ada kunci jawaban`);
@@ -346,8 +352,15 @@ export default function ExamEditor() {
                 { id: 'p2', left: '', right: '' },
                 { id: 'p3', left: '', right: '' }
             ];
-        } else if (currentQ.type === 'matching' || currentQ.type === 'true_false') {
-            // Revert to standard options if switching from matching/tf
+        } else if (newType === 'essay' || newType === 'short_answer') {
+            // Text-based questions don't need options
+            updates.options = [];
+            updates.expectedAnswer = '';
+            if (newType === 'short_answer') {
+                updates.characterLimit = 200;
+            }
+        } else if (currentQ.type === 'matching' || currentQ.type === 'true_false' || currentQ.type === 'essay' || currentQ.type === 'short_answer') {
+            // Revert to standard options if switching from matching/tf/essay
             updates.options = [
                 { id: crypto.randomUUID(), text: '', isCorrect: false },
                 { id: crypto.randomUUID(), text: '', isCorrect: false },
@@ -502,6 +515,11 @@ export default function ExamEditor() {
         for (let i = 0; i < questions.length; i++) {
             const q = questions[i];
             if (!q.text) return toast.error(`Soal nomor ${i + 1} belum ada pertanyaannya`);
+
+            // Skip option validation for essay/short_answer
+            if (q.type === 'essay' || q.type === 'short_answer') {
+                continue;
+            }
 
             if (q.type === 'single_choice' || q.type === 'true_false') {
                 if (!q.options.some(o => o.isCorrect)) return toast.error(`Soal nomor ${i + 1} belum ada kunci jawaban`);
@@ -762,6 +780,8 @@ export default function ExamEditor() {
                                                 <option value="multiple_choice">Pilihan Jamak (Checkbox)</option>
                                                 <option value="true_false">Benar / Salah</option>
                                                 <option value="matching">Menjodohkan</option>
+                                                <option value="short_answer">Jawaban Singkat</option>
+                                                <option value="essay">Essay</option>
                                             </select>
                                             <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
                                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Poin</label>
@@ -871,143 +891,193 @@ export default function ExamEditor() {
                                             </div>
                                         </div>
 
-                                        {/* Options Editor */}
-                                        <div>
-                                            <div className="flex justify-between items-center mb-2">
-                                                <label className="block text-sm font-bold text-slate-700">Opsi Jawaban</label>
-                                                {(question.type === 'multiple_choice' || question.type === 'matching') && (
-                                                    <div className="flex items-center gap-4">
-                                                        <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded-md border border-slate-200 hover:bg-slate-100 transition-colors" title="Jika aktif, siswa mendapat nilai sebagian untuk jawaban yang benar sebagian. Jika mati, jawaban harus benar sempurna.">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={question.enablePartialScoring !== false}
-                                                                onChange={(e) => updateQuestion(question.id, { enablePartialScoring: e.target.checked })}
-                                                                className="rounded text-blue-600 focus:ring-blue-500"
-                                                            />
-                                                            Partial Scoring
+                                        {/* Options Editor OR Expected Answer for Essay/Short Answer */}
+                                        {(question.type === 'essay' || question.type === 'short_answer') ? (
+                                            // Essay/Short Answer: Expected Answer Editor
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                                                        Expected Answer (Referensi untuk Grading)
+                                                    </label>
+                                                    <textarea
+                                                        value={question.expectedAnswer || ''}
+                                                        onChange={(e) => updateQuestion(question.id, { expectedAnswer: e.target.value })}
+                                                        placeholder="Contoh jawaban yang diharapkan dari siswa..."
+                                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px] text-sm bg-amber-50/30"
+                                                    />
+                                                    <p className="text-xs text-slate-500 mt-1">
+                                                        Expected answer akan digunakan sebagai referensi saat manual grading
+                                                    </p>
+                                                </div>
+
+                                                {question.type === 'short_answer' && (
+                                                    <div>
+                                                        <label className="block text-sm font-bold text-slate-700 mb-2">
+                                                            Character Limit (Optional)
                                                         </label>
-                                                        {question.type === 'multiple_choice' && (
-                                                            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-                                                                Centang semua jawaban benar
-                                                            </span>
-                                                        )}
-                                                        {question.type === 'matching' && (
-                                                            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-                                                                Pasangan Kiri - Kanan
-                                                            </span>
-                                                        )}
+                                                        <input
+                                                            type="number"
+                                                            min="50"
+                                                            max="1000"
+                                                            value={question.characterLimit || 200}
+                                                            onChange={(e) => updateQuestion(question.id, { characterLimit: parseInt(e.target.value) || 200 })}
+                                                            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                            placeholder="e.g., 200"
+                                                        />
+                                                        <p className="text-xs text-slate-500 mt-1">
+                                                            Batasi jumlah karakter untuk jawaban singkat
+                                                        </p>
                                                     </div>
                                                 )}
+
+                                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                                    <p className="text-sm text-amber-800 flex items-center gap-2">
+                                                        <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                                                        <span>
+                                                            Soal tipe {question.type === 'essay' ? 'Essay' : 'Jawaban Singkat'} memerlukan <strong>manual grading</strong> oleh guru. Siswa tidak akan mendapat nilai secara otomatis.
+                                                        </span>
+                                                    </p>
+                                                </div>
                                             </div>
-
-                                            <div className="space-y-3">
-                                                {question.type === 'matching' ? (
-                                                    // Matching Editor
-                                                    <>
-                                                        {question.options.map((opt, idx) => (
-                                                            <div key={opt.id} className="flex gap-4 items-center">
-                                                                <div className="bg-slate-100 flex items-center justify-center w-8 h-8 rounded-full font-bold text-slate-500 text-xs">
-                                                                    {idx + 1}
-                                                                </div>
+                                        ) : (
+                                            // Multiple Choice: Options Editor (existing)
+                                            <div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <label className="block text-sm font-bold text-slate-700">Opsi Jawaban</label>
+                                                    {(question.type === 'multiple_choice' || question.type === 'matching') && (
+                                                        <div className="flex items-center gap-4">
+                                                            <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded-md border border-slate-200 hover:bg-slate-100 transition-colors" title="Jika aktif, siswa mendapat nilai sebagian untuk jawaban yang benar sebagian. Jika mati, jawaban harus benar sempurna.">
                                                                 <input
-                                                                    type="text"
-                                                                    value={opt.left}
-                                                                    onChange={(e) => {
-                                                                        const newOpts = [...question.options];
-                                                                        newOpts[idx].left = e.target.value;
-                                                                        updateQuestion(question.id, { options: newOpts });
-                                                                    }}
-                                                                    className="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                                    placeholder="Item Kiri"
+                                                                    type="checkbox"
+                                                                    checked={question.enablePartialScoring !== false}
+                                                                    onChange={(e) => updateQuestion(question.id, { enablePartialScoring: e.target.checked })}
+                                                                    className="rounded text-blue-600 focus:ring-blue-500"
                                                                 />
-                                                                <span className="text-slate-400">↔</span>
-                                                                <input
-                                                                    type="text"
-                                                                    value={opt.right}
-                                                                    onChange={(e) => {
-                                                                        const newOpts = [...question.options];
-                                                                        newOpts[idx].right = e.target.value;
-                                                                        updateQuestion(question.id, { options: newOpts });
-                                                                    }}
-                                                                    className="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                                    placeholder="Pasangan Kanan"
-                                                                />
-                                                                <button onClick={() => {
-                                                                    const newOpts = question.options.filter((_, i) => i !== idx);
-                                                                    updateQuestion(question.id, { options: newOpts });
-                                                                }} className="text-slate-400 hover:text-red-500">
-                                                                    <X className="h-4 w-4" />
-                                                                </button>
-                                                            </div>
-                                                        ))}
-                                                        <button
-                                                            onClick={() => updateQuestion(question.id, { options: [...question.options, { id: crypto.randomUUID(), left: '', right: '' }] })}
-                                                            className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1"
-                                                        >
-                                                            <Plus className="h-3 w-3" /> Tambah Pasangan
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    // Standard Options (Multiple Choice / Checkbox / TrueFalse)
-                                                    <>
-                                                        {question.options.map((opt, idx) => (
-                                                            <div key={opt.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${opt.isCorrect ? 'border-green-200 bg-green-50/50' : 'border-slate-200'}`}>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const newOpts = [...question.options];
-                                                                        if (question.type === 'single_choice' || question.type === 'true_false') {
-                                                                            // Clear others
-                                                                            newOpts.forEach(o => o.isCorrect = false);
-                                                                            newOpts[idx].isCorrect = true;
-                                                                        } else {
-                                                                            // Toggle
-                                                                            newOpts[idx].isCorrect = !newOpts[idx].isCorrect;
-                                                                        }
-                                                                        updateQuestion(question.id, { options: newOpts });
-                                                                    }}
-                                                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${opt.isCorrect
-                                                                        ? 'border-green-500 bg-green-500 text-white'
-                                                                        : 'border-slate-300 hover:border-blue-400'
-                                                                        }`}
-                                                                >
-                                                                    {opt.isCorrect && <CheckCircle2 className="h-3.5 w-3.5" />}
-                                                                </button>
+                                                                Partial Scoring
+                                                            </label>
+                                                            {question.type === 'multiple_choice' && (
+                                                                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                                                                    Centang semua jawaban benar
+                                                                </span>
+                                                            )}
+                                                            {question.type === 'matching' && (
+                                                                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                                                                    Pasangan Kiri - Kanan
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
 
-                                                                <input
-                                                                    type="text"
-                                                                    value={opt.text}
-                                                                    readOnly={question.type === 'true_false'} // TF text is fixed
-                                                                    onChange={(e) => {
-                                                                        const newOpts = [...question.options];
-                                                                        newOpts[idx].text = e.target.value;
-                                                                        updateQuestion(question.id, { options: newOpts });
-                                                                    }}
-                                                                    className={`flex-1 bg-transparent outline-none ${opt.isCorrect ? 'text-green-800 font-medium' : 'text-slate-700'}`}
-                                                                    placeholder={`Opsi ${idx + 1}`}
-                                                                />
-
-                                                                {question.type !== 'true_false' && (
+                                                <div className="space-y-3">
+                                                    {question.type === 'matching' ? (
+                                                        // Matching Editor
+                                                        <>
+                                                            {question.options.map((opt, idx) => (
+                                                                <div key={opt.id} className="flex gap-4 items-center">
+                                                                    <div className="bg-slate-100 flex items-center justify-center w-8 h-8 rounded-full font-bold text-slate-500 text-xs">
+                                                                        {idx + 1}
+                                                                    </div>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={opt.left}
+                                                                        onChange={(e) => {
+                                                                            const newOpts = [...question.options];
+                                                                            newOpts[idx].left = e.target.value;
+                                                                            updateQuestion(question.id, { options: newOpts });
+                                                                        }}
+                                                                        className="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                        placeholder="Item Kiri"
+                                                                    />
+                                                                    <span className="text-slate-400">↔</span>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={opt.right}
+                                                                        onChange={(e) => {
+                                                                            const newOpts = [...question.options];
+                                                                            newOpts[idx].right = e.target.value;
+                                                                            updateQuestion(question.id, { options: newOpts });
+                                                                        }}
+                                                                        className="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                        placeholder="Pasangan Kanan"
+                                                                    />
                                                                     <button onClick={() => {
                                                                         const newOpts = question.options.filter((_, i) => i !== idx);
                                                                         updateQuestion(question.id, { options: newOpts });
-                                                                    }} className="text-slate-400 hover:text-red-500 px-2">
+                                                                    }} className="text-slate-400 hover:text-red-500">
                                                                         <X className="h-4 w-4" />
                                                                     </button>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                        {question.type !== 'true_false' && (
+                                                                </div>
+                                                            ))}
                                                             <button
-                                                                onClick={() => updateQuestion(question.id, { options: [...question.options, { id: crypto.randomUUID(), text: '', isCorrect: false }] })}
-                                                                className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1 mt-2"
+                                                                onClick={() => updateQuestion(question.id, { options: [...question.options, { id: crypto.randomUUID(), left: '', right: '' }] })}
+                                                                className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1"
                                                             >
-                                                                <Plus className="h-3 w-3" /> Tambah Opsi
+                                                                <Plus className="h-3 w-3" /> Tambah Pasangan
                                                             </button>
-                                                        )}
-                                                    </>
-                                                )}
+                                                        </>
+                                                    ) : (
+                                                        // Standard Options (Multiple Choice / Checkbox / TrueFalse)
+                                                        <>
+                                                            {question.options.map((opt, idx) => (
+                                                                <div key={opt.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${opt.isCorrect ? 'border-green-200 bg-green-50/50' : 'border-slate-200'}`}>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const newOpts = [...question.options];
+                                                                            if (question.type === 'single_choice' || question.type === 'true_false') {
+                                                                                // Clear others
+                                                                                newOpts.forEach(o => o.isCorrect = false);
+                                                                                newOpts[idx].isCorrect = true;
+                                                                            } else {
+                                                                                // Toggle
+                                                                                newOpts[idx].isCorrect = !newOpts[idx].isCorrect;
+                                                                            }
+                                                                            updateQuestion(question.id, { options: newOpts });
+                                                                        }}
+                                                                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${opt.isCorrect
+                                                                            ? 'border-green-500 bg-green-500 text-white'
+                                                                            : 'border-slate-300 hover:border-blue-400'
+                                                                            }`}
+                                                                    >
+                                                                        {opt.isCorrect && <CheckCircle2 className="h-3.5 w-3.5" />}
+                                                                    </button>
+
+                                                                    <input
+                                                                        type="text"
+                                                                        value={opt.text}
+                                                                        readOnly={question.type === 'true_false'} // TF text is fixed
+                                                                        onChange={(e) => {
+                                                                            const newOpts = [...question.options];
+                                                                            newOpts[idx].text = e.target.value;
+                                                                            updateQuestion(question.id, { options: newOpts });
+                                                                        }}
+                                                                        className={`flex-1 bg-transparent outline-none ${opt.isCorrect ? 'text-green-800 font-medium' : 'text-slate-700'}`}
+                                                                        placeholder={`Opsi ${idx + 1}`}
+                                                                    />
+
+                                                                    {question.type !== 'true_false' && (
+                                                                        <button onClick={() => {
+                                                                            const newOpts = question.options.filter((_, i) => i !== idx);
+                                                                            updateQuestion(question.id, { options: newOpts });
+                                                                        }} className="text-slate-400 hover:text-red-500 px-2">
+                                                                            <X className="h-4 w-4" />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                            {question.type !== 'true_false' && (
+                                                                <button
+                                                                    onClick={() => updateQuestion(question.id, { options: [...question.options, { id: crypto.randomUUID(), text: '', isCorrect: false }] })}
+                                                                    className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1 mt-2"
+                                                                >
+                                                                    <Plus className="h-3 w-3" /> Tambah Opsi
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </motion.div>
                             );
