@@ -726,6 +726,15 @@ export default function Tasks() {
                                                             ) : (
                                                                 <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
                                                                     <h4 className="text-sm font-bold text-slate-700 mb-3">Submit Task</h4>
+                                                                    {task.submissionInstructions && (
+                                                                        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                                                                            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                                                            <div>
+                                                                                <p className="text-xs font-bold text-amber-900 mb-1">Submission Instructions:</p>
+                                                                                <p className="text-xs text-amber-800 whitespace-pre-wrap">{task.submissionInstructions}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
                                                                     <textarea
                                                                         value={submissionText}
                                                                         onChange={(e) => setSubmissionText(e.target.value)}

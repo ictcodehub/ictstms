@@ -36,7 +36,8 @@ export default function Tasks() {
         description: '',
         deadline: '',
         assignedClasses: [],
-        resources: []
+        resources: [],
+        submissionInstructions: ''
     });
 
     useEffect(() => {
@@ -112,11 +113,12 @@ export default function Tasks() {
                 description: task.description,
                 deadline: task.deadline,
                 assignedClasses: task.assignedClasses || [],
-                resources: task.resources || []
+                resources: task.resources || [],
+                submissionInstructions: task.submissionInstructions || ''
             });
         } else {
             setEditingTask(null);
-            setFormData({ title: '', description: '', deadline: '', assignedClasses: [], resources: [] });
+            setFormData({ title: '', description: '', deadline: '', assignedClasses: [], resources: [], submissionInstructions: '' });
         }
         setShowModal(true);
     };
@@ -687,6 +689,22 @@ export default function Tasks() {
                                                 Add Link
                                             </button>
                                         </div>
+                                    </div>
+
+                                    {/* Submission Instructions */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                            Submission Instructions (Optional)
+                                        </label>
+                                        <textarea
+                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white min-h-[80px]"
+                                            placeholder="Contoh: Beri nama file: NamaKamu_Tugas1.pdf"
+                                            value={formData.submissionInstructions}
+                                            onChange={(e) => setFormData({ ...formData, submissionInstructions: e.target.value })}
+                                        />
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            Instruksi akan ditampilkan kepada siswa saat mereka akan mengerjakan tugas
+                                        </p>
                                     </div>
 
                                     <div>

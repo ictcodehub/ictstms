@@ -367,6 +367,16 @@ export default function TasksMobile({
                                                     <span className="text-sm font-bold text-blue-800">Submit Your Work</span>
                                                 </div>
 
+                                                {task.submissionInstructions && (
+                                                    <div className="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                                                        <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-amber-900 mb-0.5">Instructions:</p>
+                                                            <p className="text-[10px] text-amber-800 whitespace-pre-wrap leading-relaxed">{task.submissionInstructions}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 <div className="space-y-3">
                                                     <textarea
                                                         placeholder="Add a comment (optional)"
