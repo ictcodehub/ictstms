@@ -740,6 +740,9 @@ export default function ExamResults() {
                         </div>
                     </div>
 
+                    {/* Active Exam Sessions Monitor */}
+                    <ActiveExamsMonitor examId={examId} onStudentClick={setSelectedStudentId} />
+
                     {/* Toolbar */}
                     <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                         <div className="flex items-center gap-4 w-full md:w-auto flex-wrap">
@@ -794,7 +797,7 @@ export default function ExamResults() {
                     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
-                                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+                                <thead className="bg-slate-50 border-b border-slate-200">
                                     <tr className="text-xs uppercase tracking-wider text-slate-500">
                                         <th className="px-6 py-4 font-bold">No</th>
                                         <th className="px-6 py-4 font-bold cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('name')}>
