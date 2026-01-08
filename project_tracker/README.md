@@ -1,10 +1,66 @@
-# Project Tracker - Essay & Short Answer Implementation
+# Project Tracker
 
 **Last Updated:** 2026-01-08  
-**Status:** 🟡 Work In Progress (60% Complete)  
+**Current Task:** ✅ Realtime Exam Status Implementation (Completed)  
 **Commit:** 322ef62
 
+
 ---
+
+## 🎯 [2026-01-08] Realtime Exam Status Implementation
+
+### Overview
+Implemented real-time status monitoring for student exams on Teacher's Exam Results page.
+
+### ✅ Completed Features
+- **Real-time Listener**: Added Firestore `onSnapshot` for `exam_sessions` collection
+- **Status Priority Logic**:
+  1. `in_progress` (active session) → "In Progress" (blue, pulsing)
+  2. `completed`/`grading_pending`/`remedial` → from exam results
+  3. `pending` → "Not Started"
+- **Visual Indicators**: Pulse animation for "In Progress" badge
+- **Network Configuration**: `vite --host` for mobile testing
+- **Firewall Setup**: Windows Firewall rule for port 5173
+
+### 🐛 Bugs Fixed
+- **Field Mismatch**: Changed `userId` → `studentId` in session lookup (line 271)
+- **Syntax Errors**: Corrected JSX structure in students grid
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/ExamResults.jsx` | Added `sessions` state, listener, status logic |
+| `package.json` | Added `--host` flag to dev script |
+
+### 🧪 Verification
+- ✅ Real-time sync tested (student on mobile, teacher on PC)
+- ✅ "In Progress" status appears instantly when exam starts
+- ✅ Status updates to "Completed"/"Needs Grading" on submission
+- ✅ "Not Started" displays for unattempted exams
+
+### 📦 Git Commits
+- `3fb334f` - feat: implement real-time exam status and config mobile access
+- `40ff102` - fix: correct field mapping for realtime session status
+
+### 📝 Technical Notes
+**Firestore Query:**
+```javascript
+const sessionsQuery = query(
+    collection(db, 'exam_sessions'),
+    where('examId', '==', examId),
+    where('status', '==', 'in_progress')
+);
+```
+
+**Troubleshooting:**
+- Windows Firewall blocks mobile access → Add rule: `New-NetFirewallRule -DisplayName "React Dev Server" -Direction Inbound -LocalPort 5173 -Protocol TCP -Action Allow`
+- Field name must match: `exam_sessions` uses `studentId`, not `userId`
+
+---
+
+## 📝 [Previous] Essay & Short Answer Implementation
+
+**Status:** 🟡 Work In Progress (60% Complete)
 
 ## 📋 Current Implementation Status
 
