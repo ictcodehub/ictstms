@@ -15,16 +15,24 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let isMounted = true;
+
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (!isMounted) return;
+
             if (user) {
                 // Fetch role
                 try {
                     const docRef = doc(db, "users", user.uid);
                     const docSnap = await getDoc(docRef);
+
+                    if (!isMounted) return;
+
                     if (docSnap.exists()) {
                         const userData = docSnap.data();
                         if (userData.status === 'banned' || userData.status === 'deleted') {
                             await signOut(auth);
+                            if (!isMounted) return;
                             setCurrentUser(null);
                             setUserRole(null);
                             const message = userData.status === 'deleted'
@@ -49,10 +57,16 @@ export function AuthProvider({ children }) {
                 setCurrentUser(null);
                 setUserRole(null);
             }
-            setLoading(false);
+
+            if (isMounted) {
+                setLoading(false);
+            }
         });
 
-        return unsubscribe;
+        return () => {
+            isMounted = false;
+            unsubscribe();
+        };
     }, []);
 
     const logout = () => {
@@ -65,6 +79,7 @@ export function AuthProvider({ children }) {
         if (!currentUser) return;
 
         const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+        let activityTimeout = null;
 
         const checkSession = () => {
             const lastActivity = localStorage.getItem('lastActivity');
@@ -83,25 +98,38 @@ export function AuthProvider({ children }) {
         checkSession();
         const intervalId = setInterval(checkSession, 60 * 1000); // Check every minute
 
-        // Activity Listener
+        // Debounced Activity Listener - only update once per minute
         const handleActivity = () => {
-            const now = Date.now();
-            const lastSaved = parseInt(localStorage.getItem('lastActivity') || '0');
-
-            // Only update storage if more than 1 minute has passed to avoid performance hit
-            if (now - lastSaved > 60 * 1000) {
-                localStorage.setItem('lastActivity', now.toString());
+            // Clear existing timeout
+            if (activityTimeout) {
+                clearTimeout(activityTimeout);
             }
+
+            // Set new timeout - only update after 1 second of activity
+            activityTimeout = setTimeout(() => {
+                const now = Date.now();
+                const lastSaved = parseInt(localStorage.getItem('lastActivity') || '0');
+
+                // Only update storage if more than 1 minute has passed
+                if (now - lastSaved > 60 * 1000) {
+                    localStorage.setItem('lastActivity', now.toString());
+                }
+            }, 1000);
         };
 
-        window.addEventListener('mousemove', handleActivity);
-        window.addEventListener('keydown', handleActivity);
-        window.addEventListener('click', handleActivity);
-        window.addEventListener('scroll', handleActivity);
-        window.addEventListener('touchstart', handleActivity);
+        // Use passive listeners for better performance
+        const options = { passive: true };
+        window.addEventListener('mousemove', handleActivity, options);
+        window.addEventListener('keydown', handleActivity, options);
+        window.addEventListener('click', handleActivity, options);
+        window.addEventListener('scroll', handleActivity, options);
+        window.addEventListener('touchstart', handleActivity, options);
 
         return () => {
             clearInterval(intervalId);
+            if (activityTimeout) {
+                clearTimeout(activityTimeout);
+            }
             window.removeEventListener('mousemove', handleActivity);
             window.removeEventListener('keydown', handleActivity);
             window.removeEventListener('click', handleActivity);

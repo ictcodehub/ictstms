@@ -35,19 +35,31 @@ export default function DashboardLayout({ children }) {
             const mobile = window.innerWidth < 1024;
             setIsMobile(mobile);
             // Auto-open sidebar on desktop, closed on mobile
-            setSidebarOpen(!mobile);
+            if (!mobile) {
+                setSidebarOpen(true);
+            } else {
+                setSidebarOpen(false);
+            }
         };
 
         checkMobile();
         window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
+
+        return () => {
+            window.removeEventListener('resize', checkMobile);
+        };
     }, []);
 
     // Check and auto-submit expired sessions periodically (student only)
     useEffect(() => {
         if (!currentUser || userRole !== 'student') return;
 
+        let isMounted = true;
+        const abortController = new AbortController();
+
         const checkExpiredSessions = async () => {
+            if (!isMounted) return;
+
             try {
                 // Get all in_progress sessions for this student
                 const sessionsQuery = query(
@@ -57,7 +69,11 @@ export default function DashboardLayout({ children }) {
                 );
                 const sessionsSnap = await getDocs(sessionsQuery);
 
+                if (!isMounted) return;
+
                 for (const sessionDoc of sessionsSnap.docs) {
+                    if (!isMounted) break;
+
                     const sessionData = sessionDoc.data();
                     const expiresAt = sessionData.expiresAt.toDate();
                     const now = new Date();
@@ -65,7 +81,7 @@ export default function DashboardLayout({ children }) {
                     if (now > expiresAt) {
                         // Get exam details
                         const examDoc = await getDoc(doc(db, 'exams', sessionData.examId));
-                        if (!examDoc.exists()) continue;
+                        if (!examDoc.exists() || !isMounted) continue;
 
                         const examData = examDoc.data();
 
@@ -129,6 +145,8 @@ export default function DashboardLayout({ children }) {
 
                         const finalScore = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
 
+                        if (!isMounted) break;
+
                         // Complete session
                         await updateDoc(doc(db, 'exam_sessions', sessionDoc.id), {
                             status: 'completed',
@@ -148,17 +166,27 @@ export default function DashboardLayout({ children }) {
                     }
                 }
             } catch (error) {
-                console.error('[Expired Sessions] Error:', error);
+                if (error.name !== 'AbortError') {
+                    console.error('[Expired Sessions] Error:', error);
+                }
             }
         };
 
         // Check immediately on mount
         checkExpiredSessions();
 
-        // Then check every 5 seconds
-        const interval = setInterval(checkExpiredSessions, 5000);
+        // Then check every 10 seconds (reduced frequency)
+        const interval = setInterval(() => {
+            if (isMounted) {
+                checkExpiredSessions();
+            }
+        }, 10000);
 
-        return () => clearInterval(interval);
+        return () => {
+            isMounted = false;
+            abortController.abort();
+            clearInterval(interval);
+        };
     }, [currentUser, userRole]);
 
     // Auto-submit notification system (student only)
