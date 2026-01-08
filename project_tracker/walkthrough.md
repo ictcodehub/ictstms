@@ -1,197 +1,78 @@
-# Walkthrough: Submission Instructions Feature
+# Panduan: Dukungan Soal Esai & Jawaban Singkat + Sistem Penilaian Manual
 
-## 🎯 Objective
-Allow teachers to provide submission instructions (e.g., file naming conventions) that are prominently displayed to students before they submit their work, reducing repetitive questions.
+Panduan ini mendemonstrasikan kemampuan baru untuk menangani soal **Esai** dan **Jawaban Singkat**, mencakup alur kerja ujung-ke-ujung mulai dari pembuatan ujian hingga penilaian manual dan tinjauan siswa.
 
----
+## 1. Gambaran Fitur
+Kami telah menambahkan dukungan untuk soal subjektif yang memerlukan penilaian manual oleh guru.
+- **Tipe Soal Baru**: Esai (Teks Panjang) dan Jawaban Singkat (Satu/Dua baris).
+- **Antarmuka Penilaian Manual**: UI khusus bagi guru untuk meninjau jawaban, memberikan nilai, dan memberikan umpan balik (feedback).
+- **Penilaian Hibrida**: Ujian sekarang dapat memiliki campuran soal yang dinilai otomatis (Pilihan Ganda) dan soal yang dinilai manual.
+- **Pelacakan Status**: Melacak status penilaian "Pending" (Menunggu), "Partial" (Sebagian), dan "Complete" (Selesai).
 
-## 📝 What Was Implemented
+## 2. Alur Penggunaan
 
-### Teacher Side - Task Form
+### Langkah 1: Buat Ujian dengan Soal Esai (Guru)
+1. Buka menu **Ujian** -> **Buat Ujian Baru**.
+2. Tambahkan soal dan pilih **Tipe**: `Essay` (Esai) atau `Short Answer` (Jawaban Singkat).
+3. Isi **Teks Soal**.
+4. (Opsional) Berikan **Kunci Jawaban/Referensi** (hanya terlihat oleh Anda saat menilai).
+5. Tentukan **Poin Maksimum** untuk soal tersebut.
+6. Terbitkan (Publish) ujian.
 
-#### 1. Data Model Update
-Added `submissionInstructions` field to task structure:
+### Langkah 2: Siswa Mengerjakan Ujian (Siswa)
+1. Siswa memulai ujian.
+2. Untuk soal Esai, disediakan area teks yang besar.
+3. Untuk Jawaban Singkat, disediakan input satu baris dengan penghitung karakter.
+4. Saat dikirim (submit), sistem menghitung nilai untuk soal *otomatis* secara langsung.
+5. Soal khusus yang butuh penilaian manual akan ditandai sebagai **Pending**.
 
-```javascript
-{
-    title: string,
-    description: string,
-    deadline: string,
-    assignedClasses: array,
-    resources: array,
-    submissionInstructions: string  // NEW
-}
-```
+### Langkah 3: Penilaian Manual (Guru)
+1. Buka **Hasil Ujian** untuk ujian terkait.
+2. Di daftar siswa, Anda akan melihat lencana **"Butuh Penilaian"** untuk siswa yang telah mengirim jawaban esai.
+3. Klik tombol **Edit/Nilai** (Ikon Pensil) pada percobaan siswa tersebut.
+4. **Antarmuka Penilaian** akan terbuka menutupi layar.
+   - Gulir ke soal Esai/Jawaban Singkat.
+   - Tinjau jawaban siswa vs Kunci Jawaban Anda.
+   - Masukkan **Nilai** (0 - Poin Maks).
+   - (Opsional) Masukkan **Feedback** (umpan balik) tertulis.
+5. **Total Nilai** di pojok kanan atas akan diperbarui secara real-time saat Anda memasukkan angka.
+6. Klik **Simpan Nilai**.
+   - Status diperbarui menjadi "Selesai" (Complete).
+   - Nilai akhir siswa tersimpan.
 
-#### 2. Form Field
-Added textarea input field in task creation form:
+### Langkah 4: Tinjau Nilai (Siswa)
+1. Siswa membuka **Riwayat Ujian**.
+2. Jika penilaian selesai, mereka melihat Nilai Akhir.
+3. Jika penilaian belum selesai, mereka melihat status "Pending Review" (Menunggu Tinjauan).
+4. Membuka halaman **Review** (Tinjauan) akan menampilkan:
+   - Jawaban mereka.
+   - Nilai yang diberikan oleh guru.
+   - Feedback guru (jika ada).
 
-**Position:** Between "Resources & Links" and "Deadline"
+## 3. Perubahan Teknis
+### File yang Dimodifikasi
+- [`src/pages/teacher/ExamResults.jsx`](file:///c:/STMS/src/pages/teacher/ExamResults.jsx): Menambahkan komponen `GradingInterface`, logika `handleSaveGrading`, dan indikator status.
+- [`src/pages/student/ExamReview.jsx`](file:///c:/STMS/src/pages/student/ExamReview.jsx): Diperbarui untuk menampilkan nilai manual, feedback, dan spanduk pending.
+- [`src/pages/student/ExamTaker.jsx`](file:///c:/STMS/src/pages/student/ExamTaker.jsx): (Sebelumnya) Memperbarui logika pengiriman untuk menangani `textAnswer` dan status penilaian awal.
+- [`src/pages/student/ExamResultModal.jsx`](file:///c:/STMS/src/pages/student/ExamResultModal.jsx): (Baru) Komponen modal hasil ujian yang dipisahkan dari `ExamTaker.jsx` untuk menangani tampilan hasil klasik dan logika pending.
 
-**Features:**
-- Optional field (not required)
-- Multi-line textarea (min-height: 80px)
-- Helpful placeholder: "Contoh: Beri nama file: NamaKamu_Tugas1.pdf"
-- Helper text explaining where it will be shown
+### Pembaruan Model Data
+- **Koleksi `exam_results`**:
+  - `manualGradedScore`: Angka (Jumlah nilai manual).
+  - `autoGradedScore`: Angka (Jumlah nilai otomatis).
+  - `gradingStatus`: String ('pending' | 'complete').
+  - `manualScores`: Map { questionId: number }.
+  - `feedbacks`: Map { questionId: string }.
 
-**File:** [Tasks.jsx (Teacher)](file:///c:/Project/src/pages/teacher/Tasks.jsx)
+### Perbaikan Bug & UI Update
+- **Revisi Modal Hasil Ujian**: Modal hasil di `ExamTaker.jsx` dikembalikan ke desain "Klasik" yang lebih sederhana namun tetap informatif, dengan tambahan logika khusus untuk menampilkan status "Menunggu Penilaian" jika ujian mengandung soal esai.
+- **Perbaikan Auto-Scroll Grading**: Memisahkan komponen `GradingInterface` dari `ExamResults.jsx` untuk memperbaiki masalah fokus input dan scrolling otomatis saat mengetik nilai.
 
----
-
-### Student Side - Alert Box Display
-
-#### Desktop View ([Tasks.jsx](file:///c:/Project/src/pages/student/Tasks.jsx))
-
-**Position:** Inside "Submit Task" section, BEFORE the textarea
-
-**Design:**
-```
-┌─────────────────────────────────────────┐
-│ ⚠️  Submission Instructions:             │
-│     Beri nama file: NamaKamu_Tugas1.pdf │
-└─────────────────────────────────────────┘
-          ↓
-    [ Textarea ]
-```
-
-**Styling:**
-- Amber background (bg-amber-50)
-- Amber border (border-amber-200)
-- Alert icon (AlertCircle) in amber-600
-- Bold title "Submission Instructions:"
-- Text content with whitespace-pre-wrap (preserves line breaks)
-
-**Conditional Rendering:**
-```jsx
-{task.submissionInstructions && (
-    <div className="mb-4 p-3 bg-amber-50...">
-        ...
-    </div>
-)}
-```
-Only shows if instructions exist!
-
----
-
-#### Mobile View ([TasksMobile.jsx](file:///c:/Project/src/pages/student/TasksMobile.jsx))
-
-**Same concept, optimized for mobile:**
-- Smaller text (text-[10px])
-- Compact padding (p-2.5)
-- Smaller icon (h-4 w-4)
-- Shortened label "Instructions:" instead of "Submission Instructions:"
-
----
-
-## 🎨 Visual Design
-
-### Alert Box Appearance
-
-**Colors:**
-- Background: Amber-50 (warm, attention-grabbing but not alarming)
-- Border: Amber-200
-- Icon: Amber-600 (warning color to draw attention)
-- Title: Amber-900 (dark for contrast)
-- Text: Amber-800
-
-**Why Amber?**
-- Not as severe as red (which implies error)
-- More noticeable than blue (info)
-- Perfect for "important information to read"
-
----
-
-## 💡 Use Cases
-
-### Example 1: File Naming
-```
-Teacher Input:
-"Beri nama file: NamaKamu_Tugas1.pdf
-Contoh: BudiSantoso_Tugas1.pdf"
-
-Student Sees:
-⚠️ Submission Instructions:
-   Beri nama file: NamaKamu_Tugas1.pdf
-   Contoh: BudiSantoso_Tugas1.pdf
-```
-
-### Example 2: Format Requirements
-```
-Teacher Input:
-"Jawaban harus dalam format:
-1. Pendahuluan
-2. Isi
-3. Kesimpulan"
-
-Student Sees:
-⚠️ Submission Instructions:
-   Jawaban harus dalam format:
-   1. Pendahuluan
-   2. Isi
-   3. Kesimpulan
-```
-
-### Example 3: File Size Limit
-```
-Teacher Input:
-"Maksimal ukuran file: 5MB
-Format: PDF atau Word (.docx)"
-
-Student Sees:
-⚠️ Submission Instructions:
-   Maksimal ukuran file: 5MB
-   Format: PDF atau Word (.docx)
-```
-
----
-
-## 📊 Files Modified
-
-| File | Changes | Description |
-|------|---------|-------------|
-| [src/pages/teacher/Tasks.jsx](file:///c:/Project/src/pages/teacher/Tasks.jsx) | +20 lines | Added form field |
-| [src/pages/student/Tasks.jsx](file:///c:/Project/src/pages/student/Tasks.jsx) | +10 lines | Added alert box (desktop) |
-| [src/pages/student/TasksMobile.jsx](file:///c:/Project/src/pages/student/TasksMobile.jsx) | +11 lines | Added alert box (mobile) |
-
-**Total:** ~41 lines added
-
----
-
-## ✅ Benefits
-
-1. **Reduces repetitive questions** - Students see instructions before asking
-2. **Prominent placement** - Right before submission form, impossible to miss
-3. **Flexible format** - Teachers can write whatever instructions needed
-4. **Multi-line support** - Can include numbered lists, examples, etc.
-5. **Optional** - Only shows if teacher provides instructions
-6. **Consistent UX** - Same design on desktop and mobile
-
----
-
-## 🚀 Usage Flow
-
-### Teacher:
-1. Create/Edit task
-2. Scroll to "Submission Instructions (Optional)"
-3. Enter instructions (e.g., file naming format)
-4. Save task
-
-### Student:
-1. Open task
-2. Expand to see details
-3. Scroll to "Submit Task" section
-4. **See amber alert box with instructions** ⚠️
-5. Follow instructions and submit
-
----
-
-## 🔍 Edge Cases Handled
-
-✅ **No instructions provided** → Alert box doesn't appear  
-✅ **Multi-line instructions** → `whitespace-pre-wrap` preserves formatting  
-✅ **Long text** → Alert box expands vertically  
-✅ **Already submitted** → Alert doesn't show (only shows in submit form)
-
----
-
-Feature is complete and ready to use!
+## 4. Daftar Periksa Verifikasi (Checklist)
+- [x] Buat ujian dengan 1 soal Esai dan 1 soal Pilihan Ganda.
+- [x] Kerjakan sebagai siswa (jawab keduanya).
+- [x] Pastikan hasil Siswa menunjukkan status "Pending" atau modal "Submission Received" dengan jelas.
+- [x] Pastikan Guru melihat status "Butuh Penilaian".
+- [x] Nilai esai sebagai Guru (beri poin parsial dan feedback).
+- [x] Pastikan status berubah menjadi "Selesai" di tampilan standar.
+- [x] Pastikan Siswa melihat nilai dan feedback yang diperbarui di halaman Review.

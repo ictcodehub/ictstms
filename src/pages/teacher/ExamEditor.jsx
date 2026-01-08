@@ -375,23 +375,27 @@ export default function ExamEditor() {
     // --- Excel Import/Export Logic ---
     const downloadTemplate = () => {
         const wb = XLSX.utils.book_new();
-        const headers = ['Pertanyaan', 'Tipe', 'Poin', 'Opsi_A', 'Opsi_B', 'Opsi_C', 'Opsi_D', 'Opsi_E', 'Jawaban_Benar'];
+        const headers = ['Pertanyaan', 'Tipe', 'Poin', 'Opsi_A', 'Opsi_B', 'Opsi_C', 'Opsi_D', 'Opsi_E', 'Jawaban_Benar', 'Jawaban_Ekspektasi'];
         const exampleData = [
-            ['Ibu kota Indonesia adalah...', 'single_choice', 10, 'Jakarta', 'Bandung', 'Surabaya', 'Medan', '', 'A'],
-            ['Manakah yang termasuk buah?', 'multiple_choice', 10, 'Apel', 'Kucing', 'Jeruk', 'Batu', '', 'A,C'],
-            ['Bumi itu bulat', 'true_false', 10, '', '', '', '', '', 'Benar'],
-            ['Jodohkan hewan dan kakinya', 'matching', 10, 'Ayam || 2 Kaki', 'Kucing || 4 Kaki', 'Ular || Tidak punya kaki', '', '', ''],
+            ['Ibu kota Indonesia adalah...', 'single_choice', 10, 'Jakarta', 'Bandung', 'Surabaya', 'Medan', '', 'A', ''],
+            ['Manakah yang termasuk buah?', 'multiple_choice', 10, 'Apel', 'Kucing', 'Jeruk', 'Batu', '', 'A,C', ''],
+            ['Bumi itu bulat', 'true_false', 10, '', '', '', '', '', 'Benar', ''],
+            ['Jodohkan hewan dan kakinya', 'matching', 10, 'Ayam || 2 Kaki', 'Kucing || 4 Kaki', 'Ular || Tidak punya kaki', '', '', '', ''],
+            ['Jelaskan dampak pemanasan global', 'essay', 20, '', '', '', '', '', '', 'Mencairnya es kutub, perubahan iklim...'],
+            ['Siapakah presiden pertama RI?', 'short_answer', 10, '', '', '', '', '', '', 'Soekarno'],
         ];
 
         const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleData]);
 
         // Add comments/help as a second sheet
-        const helpHeaders = ['Tipe Soal', 'Kode Tipe', 'Format Opsi', 'Format Jawaban'];
+        const helpHeaders = ['Tipe Soal', 'Kode Tipe', 'Format Opsi', 'Format Jawaban', 'Jawaban Ekspektasi'];
         const helpData = [
-            ['Pilihan Ganda', 'single_choice', 'Isi Opsi A-E', 'Huruf opsi benar (misal: A)'],
-            ['Pilihan Jamak', 'multiple_choice', 'Isi Opsi A-E', 'Huruf opsi benar dipisah koma (misal: A,C)'],
-            ['Benar Salah', 'true_false', 'Kosongkan Opsi', 'Tulis "Benar" atau "Salah"'],
-            ['Menjodohkan', 'matching', 'Format: "Kiri || Kanan"', 'Kosongkan Jawaban'],
+            ['Pilihan Ganda', 'single_choice', 'Isi Opsi A-E', 'Huruf opsi benar (misal: A)', '-'],
+            ['Pilihan Jamak', 'multiple_choice', 'Isi Opsi A-E', 'Huruf opsi benar dipisah koma (misal: A,C)', '-'],
+            ['Benar Salah', 'true_false', 'Kosongkan Opsi', 'Tulis "Benar" atau "Salah"', '-'],
+            ['Menjodohkan', 'matching', 'Format: "Kiri || Kanan"', 'Kosongkan Jawaban', '-'],
+            ['Essay', 'essay', 'Kosongkan Opsi', 'Kosongkan Jawaban', 'Isi referensi jawaban (opsional)'],
+            ['Jawaban Singkat', 'short_answer', 'Kosongkan Opsi', 'Kosongkan Jawaban', 'Isi kunci jawaban singkat'],
         ];
         const wsHelp = XLSX.utils.aoa_to_sheet([helpHeaders, ...helpData]);
 
@@ -426,12 +430,15 @@ export default function ExamEditor() {
                     const qTypeRaw = (row['Tipe'] || 'single_choice').toLowerCase().trim();
                     let qType = 'single_choice';
                     if (qTypeRaw.includes('multiple') || qTypeRaw.includes('jamak')) qType = 'multiple_choice';
-                    if (qTypeRaw.includes('true') || qTypeRaw.includes('fals') || qTypeRaw.includes('benar')) qType = 'true_false';
-                    if (qTypeRaw.includes('match') || qTypeRaw.includes('jodoh')) qType = 'matching';
+                    else if (qTypeRaw.includes('true') || qTypeRaw.includes('fals') || qTypeRaw.includes('benar')) qType = 'true_false';
+                    else if (qTypeRaw.includes('match') || qTypeRaw.includes('jodoh')) qType = 'matching';
+                    else if (qTypeRaw.includes('essay') || qTypeRaw.includes('urai')) qType = 'essay';
+                    else if (qTypeRaw.includes('short') || qTypeRaw.includes('singkat')) qType = 'short_answer';
 
                     const points = parseInt(row['Poin']) || 10;
                     const text = row['Pertanyaan'] || `Soal Tanpa Teks #${idx + 1}`;
                     const answerRaw = String(row['Jawaban_Benar'] || '').toUpperCase().trim();
+                    const expectedAnswer = row['Jawaban_Ekspektasi'] || '';
 
                     const newQ = {
                         id: crypto.randomUUID(),
@@ -440,10 +447,17 @@ export default function ExamEditor() {
                         points,
                         attachments: [],
                         enablePartialScoring: true,
-                        options: []
+                        options: [],
+                        expectedAnswer: expectedAnswer // Added for Essay/Short Answer
                     };
 
-                    if (qType === 'matching') {
+                    if (qType === 'essay' || qType === 'short_answer') {
+                        // Text questions don't have options
+                        newQ.options = [];
+                        if (qType === 'short_answer') {
+                            newQ.characterLimit = 200; // Default limit
+                        }
+                    } else if (qType === 'matching') {
                         // Matching Parser: Split 'A || B'
                         const rawOptions = [row['Opsi_A'], row['Opsi_B'], row['Opsi_C'], row['Opsi_D'], row['Opsi_E']];
                         newQ.options = rawOptions.filter(o => o && String(o).includes('||')).map(o => {

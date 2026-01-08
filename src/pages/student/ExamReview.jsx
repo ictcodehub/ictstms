@@ -4,7 +4,7 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Video, File, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Video, File, Link as LinkIcon, Image as ImageIcon, ExternalLink } from 'lucide-react';
 
 export default function ExamReview() {
     const { id } = useParams();
@@ -96,6 +96,12 @@ export default function ExamReview() {
             return { correct: false, partial: false }; // Placeholder
         }
 
+        // For Essay/Short Answer, correctness is determined by manual score vs max points
+        if (question.type === 'essay' || question.type === 'short_answer') {
+            // This is handled in render, return null here or generic
+            return { correct: false, partial: false, manual: true };
+        }
+
         return { correct: false };
     };
 
@@ -111,15 +117,33 @@ export default function ExamReview() {
                         <h1 className="text-lg font-bold text-slate-800">Review: {exam.title}</h1>
                         <p className="text-xs text-slate-500">
                             Your Score: <span className="font-bold text-blue-600">{Math.round(result.score)}</span>
+                            {result.gradingStatus === 'pending' && (
+                                <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                    Pending Review
+                                </span>
+                            )}
                         </p>
                     </div>
                 </div>
             </div>
 
             <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+                {result.gradingStatus === 'pending' && (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl flex items-start gap-3 text-yellow-800">
+                        <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-bold text-sm">Grading in Progress</p>
+                            <p className="text-sm opacity-90">Some questions (Essay/Short Answer) require manual grading by your teacher. Your final score may update later.</p>
+                        </div>
+                    </div>
+                )}
+
                 {exam.questions.map((question, idx) => {
                     const answer = result.answers[question.id];
                     const correctness = isCorrectInfo(question, answer);
+                    const manualScore = result.manualScores?.[question.id];
+                    const feedback = result.feedbacks?.[question.id];
+                    const isManual = question.type === 'essay' || question.type === 'short_answer';
 
                     return (
                         <motion.div
@@ -137,7 +161,27 @@ export default function ExamReview() {
                                     </span>
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-base text-slate-800 font-medium whitespace-pre-wrap leading-relaxed">{question.text}</p>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-base text-slate-800 font-medium whitespace-pre-wrap leading-relaxed">{question.text}</p>
+
+                                        {/* Score Badge for Manual Questions */}
+                                        {isManual && (
+                                            <div className="flex-shrink-0 ml-4">
+                                                {manualScore !== undefined ? (
+                                                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${parseFloat(manualScore) >= (question.points || 10) / 2
+                                                            ? 'bg-green-50 text-green-700 border border-green-200'
+                                                            : 'bg-red-50 text-red-700 border border-red-200'
+                                                        }`}>
+                                                        {manualScore} / {question.points || 10} Pts
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold border border-slate-200">
+                                                        Pending
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
 
                                     {/* Attachments */}
                                     {question.attachments && question.attachments.length > 0 && (
@@ -165,6 +209,39 @@ export default function ExamReview() {
 
                             {/* Answer Section */}
                             <div className="p-5 bg-slate-50/50">
+                                {/* ESSAY & SHORT ANSWER (NEW) */}
+                                {isManual && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-400 uppercase mb-2">Your Answer</p>
+                                            <div className="p-4 bg-white border border-slate-200 rounded-xl text-slate-800 font-medium font-serif leading-relaxed whitespace-pre-wrap">
+                                                {answer || <span className="text-slate-400 italic">No answer provided</span>}
+                                            </div>
+                                        </div>
+
+                                        {/* Teacher Feedback */}
+                                        {feedback && (
+                                            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                                                <p className="flex items-center gap-2 text-xs font-bold text-blue-700 uppercase mb-2">
+                                                    <span className="p-1 bg-blue-100 rounded-md"><CheckCircle2 className="h-3 w-3" /></span>
+                                                    Teacher Feedback
+                                                </p>
+                                                <p className="text-blue-900 text-sm">{feedback}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Expected Answer (Only if configured/graded) */}
+                                        {result.gradingStatus === 'complete' && question.expectedAnswer && (
+                                            <div className="mt-4 opacity-75 hover:opacity-100 transition-opacity">
+                                                <p className="text-xs font-bold text-slate-400 uppercase mb-1">Answer Key / Reference</p>
+                                                <div className="text-xs text-slate-600 bg-slate-100 p-2 rounded-lg border border-slate-200 inline-block max-w-full">
+                                                    {question.expectedAnswer}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* SINGLE / TRUE_FALSE */}
                                 {(question.type === 'single_choice' || question.type === 'true_false') && (
                                     <div className="space-y-2">

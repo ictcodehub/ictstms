@@ -9,6 +9,8 @@ import toast from 'react-hot-toast';
 import { createExamSession, getExamSession, updateSessionAnswers, completeExamSession, calculateRemainingTime, isSessionExpired, generatePauseCode } from '../../utils/examSession';
 import { saveAnswersOffline, getOfflineAnswers, markAsSynced } from '../../utils/offlineStorage';
 import ExamOfflineIndicator from '../../components/ExamOfflineIndicator';
+import ExamResultModal from './ExamResultModal';
+import ExamResultModal from './ExamResultModal';
 import { App as CapacitorApp } from '@capacitor/app';
 
 // Debounce hook for optimized auto-save
@@ -611,42 +613,44 @@ export default function ExamTaker() {
     };
 
     // Calculation Logic (PARTIAL SCORING)
-    // Calculation Logic (PARTIAL SCORING)
-    const calculateScore = (answersToUse = null) => {
+    // Calculation Logic (PARTIAL SCORING) & Stats
+    const calculateExamStats = (answersToUse = null) => {
         const finalAnswers = answersToUse || answers;
-        let totalScore = 0;
-        const maxScore = exam.questions.reduce((acc, q) => acc + (q.points || 10), 0);
-
-        if (maxScore === 0) return 0; // Prevent division by zero
+        let autoPoints = 0;
+        let maxPoints = 0;
+        let hasManualQuestions = false;
 
         exam.questions.forEach(q => {
-            const studentAnswer = finalAnswers[q.id];
-            const qPoints = q.points || 10; // Default 10 if not set
-            const partialEnabled = q.enablePartialScoring !== false; // Default true
+            const qPoints = q.points || 10;
+            maxPoints += qPoints;
 
-            if (!studentAnswer) return; // No points if unanswered
+            if (q.type === 'essay' || q.type === 'short_answer') {
+                hasManualQuestions = true;
+                return;
+            }
+
+            const studentAnswer = finalAnswers[q.id];
+            if (!studentAnswer) return;
+
+            const partialEnabled = q.enablePartialScoring !== false;
 
             if (q.type === 'single_choice' || q.type === 'true_false') {
-                // Exact Match
                 const correctOpt = q.options.find(o => o.isCorrect);
                 if (correctOpt && correctOpt.id === studentAnswer) {
-                    totalScore += qPoints;
+                    autoPoints += qPoints;
                 }
             }
             else if (q.type === 'multiple_choice') {
                 const correctOptions = q.options.filter(o => o.isCorrect).map(o => o.id);
 
                 if (!partialEnabled) {
-                    // Strict Mode: All correct options must be selected, and NO wrong options
-                    // Compare arrays (sort for safety)
                     const studentSelection = Array.isArray(studentAnswer) ? studentAnswer : [];
                     const isExactMatch =
                         studentSelection.length === correctOptions.length &&
                         studentSelection.every(id => correctOptions.includes(id));
 
-                    if (isExactMatch) totalScore += qPoints;
+                    if (isExactMatch) autoPoints += qPoints;
                 } else {
-                    // Partial Scoring
                     const weightPerOption = qPoints / q.options.length;
                     let questionScore = 0;
 
@@ -656,19 +660,17 @@ export default function ExamTaker() {
                             questionScore += weightPerOption;
                         }
                     });
-                    totalScore += questionScore;
+                    autoPoints += questionScore;
                 }
             }
             else if (q.type === 'matching') {
                 if (!partialEnabled) {
-                    // Strict Mode: All pairs must be correct
                     const allCorrect = q.options.every((pair, idx) => {
                         const studentRightVal = studentAnswer[idx];
                         return studentRightVal && studentRightVal.trim().toLowerCase() === pair.right.trim().toLowerCase();
                     });
-                    if (allCorrect) totalScore += qPoints;
+                    if (allCorrect) autoPoints += qPoints;
                 } else {
-                    // Partial Scoring
                     const weightPerPair = qPoints / q.options.length;
                     let questionScore = 0;
 
@@ -678,13 +680,18 @@ export default function ExamTaker() {
                             questionScore += weightPerPair;
                         }
                     });
-                    totalScore += questionScore;
+                    autoPoints += questionScore;
                 }
             }
         });
 
-        // Return Score (0-100)
-        return (totalScore / maxScore) * 100;
+        return { autoPoints, maxPoints, hasManualQuestions };
+    };
+
+    const calculateScore = (answersToUse = null) => {
+        const stats = calculateExamStats(answersToUse);
+        if (stats.maxPoints === 0) return 0;
+        return (stats.autoPoints / stats.maxPoints) * 100;
     };
 
     // Handle pause with teacher code
@@ -733,12 +740,12 @@ export default function ExamTaker() {
 
             await updateDoc(doc(db, 'exam_sessions', sessionId), {
                 status: 'paused',
-                pauseCode: newPauseCode, // Set new code for next pause (not used yet, so don't mark as used)
+                pauseCode: newPauseCode, // Set new code for next pause
                 pauseCount: (sessionData.pauseCount || 0) + 1,
                 pauseHistory: [
                     ...(sessionData.pauseHistory || []),
                     {
-                        pausedAt: new Date().toISOString(), // Use ISO string instead of serverTimestamp
+                        pausedAt: new Date().toISOString(),
                         resumedAt: null,
                         duration: null
                     }
@@ -763,7 +770,8 @@ export default function ExamTaker() {
 
         try {
             // Calculate score with current answers
-            const finalScore = calculateScore(answers);
+            const stats = calculateExamStats(answers);
+            const finalScore = (stats.autoPoints / stats.maxPoints) * 100;
 
             // Complete session
             if (sessionId) {
@@ -775,7 +783,12 @@ export default function ExamTaker() {
                 examId: exam.id,
                 studentId: currentUser.uid,
                 answers: answers,
-                score: finalScore,
+                score: finalScore, // Current score (auto-graded only)
+                autoGradedScore: stats.autoPoints,
+                manualGradedScore: null,
+                totalScore: stats.autoPoints,
+                maxScore: stats.maxPoints,
+                gradingStatus: stats.hasManualQuestions ? 'pending' : 'complete',
                 submittedAt: serverTimestamp(),
                 autoSubmitted: true,
                 autoSubmitReason: 'illegal_exit',
@@ -838,8 +851,9 @@ export default function ExamTaker() {
         console.log('Final answers:', finalAnswers);
 
         try {
-            const finalScore = calculateScore(finalAnswers);
-            console.log('Calculated score:', finalScore);
+            const stats = calculateExamStats(finalAnswers);
+            const finalScore = (stats.autoPoints / stats.maxPoints) * 100;
+            console.log('Calculated stats:', stats);
 
             // Complete exam session
             if (sessionId) {
@@ -853,6 +867,11 @@ export default function ExamTaker() {
                 studentId: currentUser.uid,
                 answers: finalAnswers,
                 score: finalScore,
+                autoGradedScore: stats.autoPoints,
+                manualGradedScore: null,
+                totalScore: stats.autoPoints,
+                maxScore: stats.maxPoints,
+                gradingStatus: stats.hasManualQuestions ? 'pending' : 'complete',
                 submittedAt: serverTimestamp(),
                 autoSubmitted: isAutoSubmit,
                 autoSubmitNotified: false
@@ -870,24 +889,6 @@ export default function ExamTaker() {
                 // Calculate detailed stats
                 const timeTakenSeconds = (exam.duration * 60) - timeLeft;
                 const formattedTime = `${Math.floor(timeTakenSeconds / 60)}m ${timeTakenSeconds % 60}s`;
-
-                // Calculate correct/incorrect counts (Estimate based on partial scoring)
-                let correctCount = 0;
-                let incorrectCount = 0;
-
-                exam.questions.forEach(q => {
-                    // Simplified check: if student got ANY points, consider correct/partial. 
-                    // Ideally check against full points, but for now this is informative.
-                    // Actually, let's calculate per question score to be accurate
-                    // Re-using calculateScore logic partially or just trusting global score?
-                    // Let's do a simple exact match check for display purposes:
-                    const answer = finalAnswers[q.id];
-                    if (answer) correctCount++; // Treating answered as potentially correct for now? No, that's wrong.
-                });
-
-                // Better approach: Since we have finalScore (0-100), we can't easily reverse check correctness without re-running logic.
-                // Let's just pass timeTaken for now, and maybe answered count.
-                // Time Taken is the new info requested.
 
                 setExamResult({
                     score: finalScore,
@@ -1692,146 +1693,13 @@ export default function ExamTaker() {
                 )}
             </AnimatePresence>
 
-            {/* Exam Result Modal with Confetti */}
-            <AnimatePresence>
-                {showResultModal && examResult && (
-                    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-                        {/* Backdrop */}
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-slate-50/50 backdrop-blur-md"
-                        />
-
-                        {/* Confetti Particles */}
-                        {[...Array(50)].map((_, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{
-                                    x: '50vw',
-                                    y: '50vh',
-                                    opacity: 1,
-                                    scale: 0
-                                }}
-                                animate={{
-                                    x: `${Math.random() * 100}vw`,
-                                    y: `${Math.random() * 100}vh`,
-                                    opacity: 0,
-                                    scale: Math.random() * 1.5 + 0.5,
-                                    rotate: Math.random() * 360
-                                }}
-                                transition={{
-                                    duration: Math.random() * 2 + 1,
-                                    ease: 'easeOut',
-                                    delay: Math.random() * 0.3
-                                }}
-                                className="absolute w-3 h-3 rounded-full"
-                                style={{
-                                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][Math.floor(Math.random() * 5)]
-                                }}
-                            />
-                        ))}
-
-                        {/* Modal Content */}
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.8, y: 50 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.8, y: 50 }}
-                            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                            className="relative bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl shadow-2xl max-w-lg w-full p-8 text-center"
-                        >
-                            {/* Icon */}
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                                className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-6 shadow-lg"
-                            >
-                                <CheckCircle2 className="h-10 w-10 text-white" />
-                            </motion.div>
-
-                            {/* Title */}
-                            <motion.h2
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.3 }}
-                                className="text-2xl font-bold text-slate-800 mb-2"
-                            >
-                                Exam Completed!
-                            </motion.h2>
-
-                            {/* Score Display */}
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.5 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: 0.4, type: 'spring' }}
-                                className="mb-6"
-                            >
-                                <div className="text-6xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent mb-2">
-                                    {Math.round(examResult.score)}
-                                </div>
-
-                                {/* Grade Badge */}
-                                <div className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${examResult.score >= 90 ? 'bg-green-100 text-green-700' :
-                                    examResult.score >= 75 ? 'bg-blue-100 text-blue-700' :
-                                        examResult.score >= 60 ? 'bg-yellow-100 text-yellow-700' :
-                                            'bg-red-100 text-red-700'
-                                    }`}>
-                                    {examResult.score >= 90 ? '🎉 Excellent!' :
-                                        examResult.score >= 75 ? '👍 Good Job!' :
-                                            examResult.score >= 60 ? '💪 Keep Trying!' :
-                                                '📚 Need Improvement'}
-                                </div>
-                            </motion.div>
-
-                            {/* Statistics */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.5 }}
-                                className="grid grid-cols-2 gap-4 mb-8"
-                            >
-                                <div className="bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                    <div className="text-sm text-slate-500 mb-1">Time Taken</div>
-                                    <div className="font-bold text-slate-800 text-lg">{examResult.timeTaken || '-'}</div>
-                                </div>
-                                <div className="bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                    <div className="text-sm text-slate-500 mb-1">Accuracy</div>
-                                    <div className="font-bold text-slate-800 text-lg">
-                                        {Math.round((examResult.score / 100) * examResult.totalQuestions)} / {examResult.totalQuestions}
-                                    </div>
-                                </div>
-                                <div className="bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                    <div className="text-sm text-slate-500 mb-1">Answered</div>
-                                    <div className="font-bold text-slate-800 text-lg">{examResult.answeredQuestions}</div>
-                                </div>
-                                <div className="bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                    <div className="text-sm text-slate-500 mb-1">Score</div>
-                                    <div className="font-bold text-blue-600 text-lg">{Math.round(examResult.score)}</div>
-                                </div>
-                            </motion.div>
-
-                            {/* Button */}
-                            <motion.button
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.6 }}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => {
-                                    setShowResultModal(false);
-                                    navigate('/student/exams');
-                                }}
-                                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
-                            >
-                                Back to Exams
-                            </motion.button>
-                        </motion.div>
-                    </div>
-                )
-                }
-            </AnimatePresence >
+            {/* Exam Result Modal (Refactored) */}
+            <ExamResultModal
+                showResultModal={showResultModal}
+                setShowResultModal={setShowResultModal}
+                examResult={examResult}
+                navigate={navigate}
+            />
 
             {/* Pause Code Modal */}
             {showPauseCodeModal && (
