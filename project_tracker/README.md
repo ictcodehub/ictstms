@@ -12,6 +12,55 @@
 
 ---
 
+---
+
+## 🐛 [2026-01-08 | 21:52 - 22:14] Critical Navigation & Login Bug Fixes
+
+### Overview
+Fixed critical bugs causing navigation freezing and login hanging after multiple menu switches.
+
+### 🐛 Issues Fixed
+1. **Navigation Freeze**: After multiple rapid menu clicks, navigation stopped working
+2. **Login Hang**: After login, page would hang/blank requiring manual refresh
+3. **Performance Degradation**: Browser became slower over time
+
+### 🔧 Root Causes Identified
+- **Race Conditions**: Async operations in `AuthContext` not properly guarded with mounted flags
+- **Memory Leaks**: Event listeners in `DashboardLayout` not properly cleaned up
+- **Performance**: 5 simultaneous activity listeners firing on every mouse move/click without debouncing
+- **Async Blocking**: Firestore operations blocking navigation during rapid menu switches
+
+### ✅ Solutions Implemented
+1. **AuthContext.jsx**:
+   - Added `isMounted` flag to prevent state updates after unmount
+   - Proper cleanup of `onAuthStateChanged` subscription
+   - Debounced activity tracking (1 second delay)
+   - Passive event listeners for better scroll performance
+   - Cleanup timeout on unmount
+
+2. **DashboardLayout.jsx**:
+   - Added `isMounted` flag for async session checks
+   - AbortController for cancelling in-flight requests
+   - Increased check interval from 5s to 10s (reduced CPU usage)
+   - Proper guard checks before Firestore operations
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/contexts/AuthContext.jsx` | Added race condition guards, debounced activity tracking |
+| `src/layouts/DashboardLayout.jsx` | Added async operation guards, reduced check frequency |
+
+### 🧪 Verification
+- ✅ Login works smoothly without hanging
+- ✅ Rapid menu navigation (6 menus x 6 cycles = 36 clicks) works flawlessly
+- ✅ No memory leaks after extended use
+- ✅ Browser performance remains stable
+
+### 📦 Git Commits
+- `(pending)` - fix: critical navigation and login bugs
+
+---
+
 ## 🎯 [2026-01-08 | 21:40 - 21:49] ExamResults Table Enhancements
 
 ### Overview
