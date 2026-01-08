@@ -1413,59 +1413,71 @@ export default function ExamTaker() {
 
             </div >
 
-            {/* Custom Modal for Submission */}
+            {/* Custom Modal for Submission (Premium Design) */}
             {
                 showSubmitModal && (
-                    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-                        {/* Backdrop */}
-                        <div className="absolute inset-0 bg-slate-50/50 backdrop-blur-md" />
+                    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-md w-full"
+                        >
+                            {/* Header Banner */}
+                            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-center relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-xl"></div>
+                                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-8 -mb-8 blur-xl"></div>
 
-                        <div className="relative bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl shadow-2xl p-8 max-w-md w-full animate-in fade-in zoom-in duration-200">
-                            <div className="text-center">
-                                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Save className="h-8 w-8" />
+                                <div className="relative z-10">
+                                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ring-white/10">
+                                        <Save className="h-8 w-8 text-white" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white mb-1">
+                                        {unansweredCount > 0 ? 'Wait a Moment!' : 'Submit Exam?'}
+                                    </h3>
+                                    <p className="text-blue-100 text-sm">
+                                        {unansweredCount > 0 ? 'You have unanswered questions' : 'Ready to finalize your answers?'}
+                                    </p>
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-800 mb-2">
-                                    {unansweredCount > 0 ? 'Cannot Submit Exam' : 'Submit Exam?'}
-                                </h3>
+                            </div>
 
+                            <div className="p-8">
                                 {unansweredCount > 0 ? (
-                                    <div className="mb-6 bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-sm">
-                                        <p className="font-bold flex items-center justify-center gap-2 text-lg mb-2">
-                                            <XCircle className="h-6 w-6" />
-                                            Incomplete Answers
+                                    <div className="mb-8 bg-red-50 text-red-700 p-5 rounded-2xl border border-red-100 text-sm text-center">
+                                        <div className="bg-red-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-red-600">
+                                            <AlertCircle className="h-6 w-6" />
+                                        </div>
+                                        <p className="font-bold text-lg mb-1">
+                                            {unansweredCount} Missing Answers
                                         </p>
-                                        <p className="mt-1 text-slate-600">
-                                            You still have <span className="font-bold text-red-600 text-lg mx-1">{unansweredCount}</span> unanswered questions.
-                                        </p>
-                                        <p className="mt-2 font-medium">
-                                            Please complete all answers before submitting.
+                                        <p className="text-red-600/80">
+                                            Please complete all questions before submitting your exam.
                                         </p>
                                     </div>
                                 ) : (
-                                    <p className="text-slate-500 mb-6">
-                                        Are you sure you want to finish this exam? Answers cannot be changed after submission.
+                                    <p className="text-slate-600 mb-8 text-center leading-relaxed">
+                                        Are you sure you want to finish this exam? You <span className="font-bold text-slate-800">cannot change your answers</span> after submission.
                                     </p>
                                 )}
 
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => setShowSubmitModal(false)}
-                                        className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                                        className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
                                     >
-                                        {unansweredCount > 0 ? 'Go Back' : 'Cancel'}
+                                        {unansweredCount > 0 ? 'Review Answers' : 'Cancel'}
                                     </button>
                                     {unansweredCount === 0 && (
                                         <button
                                             onClick={() => confirmSubmit()}
-                                            className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-colors"
+                                            className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-colors"
                                         >
-                                            Yes, Submit
+                                            Submit Now
                                         </button>
                                     )}
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
                 )
             }
@@ -1804,52 +1816,56 @@ export default function ExamTaker() {
                 </div>
             )}
 
-            {/* Auto-Submit Modal */}
+            {/* Auto-Submit Modal (Premium Design) */}
             <AnimatePresence>
                 {showAutoSubmitModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl"
+                            className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-md w-full"
                         >
-                            <div className="text-center">
-                                {/* Icon */}
-                                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <XCircle className="h-12 w-12 text-red-600" />
+                            {/* Header - Red Gradient */}
+                            <div className="bg-gradient-to-br from-red-600 to-orange-700 p-6 text-center relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-xl"></div>
+                                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-8 -mb-8 blur-xl"></div>
+
+                                <div className="relative z-10">
+                                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 ring-4 ring-white/10">
+                                        <XCircle className="h-8 w-8 text-white" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white mb-1">
+                                        Exam Auto-Submitted
+                                    </h3>
+                                    <p className="text-red-100 text-sm font-medium">
+                                        {autoSubmitInfo.reason}
+                                    </p>
                                 </div>
+                            </div>
 
-                                {/* Title */}
-                                <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                                    Exam Auto-Submitted
-                                </h3>
-
-                                {/* Reason */}
-                                <p className="text-red-600 font-bold mb-6">
-                                    {autoSubmitInfo.reason}
-                                </p>
-
+                            <div className="p-8">
                                 {/* Score Info */}
-                                <div className="bg-slate-50 rounded-xl p-6 mb-6 space-y-4">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-slate-600">Your Score:</span>
-                                        <span className="text-3xl font-bold text-blue-600">
+                                <div className="bg-slate-50 rounded-2xl p-6 mb-6 border border-slate-100">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className="text-slate-500 font-medium text-sm uppercase tracking-wide">Final Score</span>
+                                        <span className="text-3xl font-black text-slate-800">
                                             {autoSubmitInfo.score}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-slate-600">Questions Answered:</span>
-                                        <span className="text-lg font-bold text-slate-800">
-                                            {autoSubmitInfo.answeredCount} / {autoSubmitInfo.totalQuestions}
+                                        <span className="text-slate-500 font-medium text-sm uppercase tracking-wide">Answered</span>
+                                        <span className="text-lg font-bold text-slate-700">
+                                            {autoSubmitInfo.answeredCount} <span className="text-slate-400 font-normal">/ {autoSubmitInfo.totalQuestions}</span>
                                         </span>
                                     </div>
                                 </div>
 
                                 {/* Warning */}
-                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-                                    <p className="text-sm text-amber-800">
-                                        <strong>⚠️ Note:</strong> This submission has been flagged for teacher review due to illegal exit.
+                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8 flex gap-3">
+                                    <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                                    <p className="text-sm text-amber-800 leading-relaxed">
+                                        <strong>Flagged:</strong> This exam was submitted automatically due to irregular activity. Your teacher has been notified.
                                     </p>
                                 </div>
 
@@ -1859,7 +1875,7 @@ export default function ExamTaker() {
                                         setShowAutoSubmitModal(false);
                                         navigate('/student/exams');
                                     }}
-                                    className="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg"
+                                    className="w-full px-6 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg text-lg"
                                 >
                                     Back to Exams
                                 </button>
