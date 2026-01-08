@@ -602,7 +602,6 @@ export default function Tasks() {
                                                             {/* Resources/Links Section */}
                                                             {task.resources && task.resources.length > 0 && (
                                                                 <div className="mb-6">
-                                                                    <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Resources & Links</h4>
                                                                     <div className="grid gap-2">
                                                                         {task.resources.map((resource, idx) => (
                                                                             <a

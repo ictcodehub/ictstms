@@ -222,12 +222,6 @@ export default function TasksMobile({
                                         {/* Resources/Links */}
                                         {task.resources && task.resources.length > 0 && (
                                             <div className="px-4 py-4 border-b border-slate-200">
-                                                <div className="flex items-center gap-2 mb-3">
-                                                    <Link2 className="h-4 w-4 text-blue-600" />
-                                                    <span className="text-sm font-bold text-slate-800">
-                                                        Resources & Links ({task.resources.length})
-                                                    </span>
-                                                </div>
                                                 <div className="space-y-2">
                                                     {task.resources.map((resource, idx) => (
                                                         <a
