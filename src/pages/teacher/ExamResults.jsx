@@ -5,7 +5,7 @@ import { doc, getDoc, collection, query, where, getDocs, updateDoc, orderBy, onS
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, User, Calendar, CheckCircle, XCircle, RefreshCw, FileText, Search, ChevronRight, Award, Trash2, Edit3, Save, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useAuth } from '../../contexts/AuthContext'; // Added useAuth
+import { useAuth } from '../../contexts/AuthContext';
 import { resetExamForAllClasses, resetExamForClass, resetExamForStudent } from '../../utils/examReset';
 import ActiveExamsMonitor from './ActiveExamsMonitor';
 
@@ -98,7 +98,6 @@ const GradingInterface = ({
                                                 </p>
                                             ) : (
                                                 <div className="text-slate-800 font-medium">
-                                                    {/* Helper logic inline for readability or extracted */}
                                                     {(() => {
                                                         if (!q.answer) return <span className="text-slate-400 italic">Tidak ada jawaban</span>;
 
@@ -479,117 +478,161 @@ export default function ExamResults() {
     if (loading) return <div className="flex justify-center py-12">Loading...</div>;
 
     // Detail View Component
-    const StudentDetailView = ({ student, onClose }) => (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <button
-                    onClick={onClose}
-                    className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-medium"
-                >
-                    <ArrowLeft className="h-5 w-5" />
-                    Kembali ke Daftar Siswa
-                </button>
+    const StudentDetailView = ({ student, onClose }) => {
+        const latestScore = student.latestAttempt?.score;
+        const bestScore = student.bestScore;
 
-                {student.attempts.length > 0 && (
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
                     <button
-                        onClick={() => handleResetStudent(student.id, student.name)}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors border border-red-200"
+                        onClick={onClose}
+                        className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-medium bg-white px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 shadow-sm"
                     >
-                        <Trash2 className="h-4 w-4" />
-                        Reset Ujian Siswa Ini
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Student List
                     </button>
-                )}
-            </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-                <div className="flex items-center gap-6 mb-8">
-                    <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-3xl">
-                        {student.name[0]}
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-800">{student.name}</h2>
-                        <p className="text-slate-500">{student.email}</p>
-                        <div className="flex gap-2 mt-2">
-                            <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold border border-slate-200">
-                                {student.attempts.length} Attempt
-                            </span>
-                            {student.bestScore !== undefined && (
-                                <span className="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-bold border border-green-200">
-                                    Tertinggi: {Math.round(student.bestScore)}
+                    {student.attempts.length > 0 && (
+                        <button
+                            onClick={() => handleResetStudent(student.id, student.name)}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors border border-red-200 text-sm"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            Reset Student Exam
+                        </button>
+                    )}
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                    <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8 mb-8">
+                        {/* Student Profile */}
+                        <div className="flex items-center gap-6">
+                            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-3xl shadow-inner">
+                                {student.name[0]}
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-800 mb-1">{student.name}</h2>
+                                <p className="text-slate-500 font-medium mb-3">{student.email}</p>
+                                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold border border-slate-200 uppercase tracking-wide">
+                                    {student.attempts.length} Attempt{student.attempts.length > 1 ? 's' : ''}
                                 </span>
+                            </div>
+                        </div>
+
+                        {/* Stat Cards */}
+                        <div className="flex flex-wrap gap-4 w-full xl:w-auto">
+                            {bestScore !== undefined && (
+                                <div className="flex-1 xl:flex-none min-w-[160px] bg-gradient-to-br from-emerald-50 to-teal-50 p-4 rounded-2xl border border-emerald-100 relative group overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -mr-8 -mt-8 pointer-events-none"></div>
+                                    <div className="flex items-center gap-2 mb-1 relative z-10">
+                                        <Award className="h-4 w-4 text-emerald-500" />
+                                        <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Highest Score</p>
+                                    </div>
+                                    <div className="flex items-baseline gap-1 relative z-10">
+                                        <span className="text-4xl font-black text-emerald-700">
+                                            {Math.round(bestScore)}
+                                        </span>
+                                        <span className="text-sm font-bold text-emerald-400">/100</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {latestScore !== undefined && (
+                                <div className="flex-1 xl:flex-none min-w-[160px] bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-100 relative group overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-8 -mt-8 pointer-events-none"></div>
+                                    <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1 relative z-10">Final Score</p>
+                                    <div className="flex items-baseline gap-1 relative z-10">
+                                        <span className="text-4xl font-black text-blue-700">
+                                            {Math.round(latestScore)}
+                                        </span>
+                                        <span className="text-sm font-bold text-blue-400">/100</span>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     </div>
-                </div>
 
-                <h3 className="font-bold text-lg text-slate-800 mb-4 border-b border-slate-100 pb-2">Riwayat Pengerjaan</h3>
+                    <div className="border-t border-slate-100 pt-8">
+                        <h3 className="font-bold text-lg text-slate-800 mb-6 flex items-center gap-2">
+                            <Calendar className="h-5 w-5 text-slate-400" />
+                            Attempt History
+                        </h3>
 
-                {student.attempts.length === 0 ? (
-                    <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
-                        <p className="text-slate-500">Siswa ini belum mengerjakan ujian.</p>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {student.attempts.map((attempt, idx) => (
-                            <div key={attempt.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-bold text-slate-700">Attempt {student.attempts.length - idx}</span>
-                                        {attempt.allowRetake ? (
-                                            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold border border-orange-200">
-                                                Remedial Active
-                                            </span>
-                                        ) : attempt.gradingStatus === 'pending' ? (
-                                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold border border-yellow-200 flex items-center gap-1">
-                                                <AlertCircle className="h-3 w-3" /> Butuh Penilaian
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold border border-green-200">
-                                                Selesai
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                                        <Calendar className="h-4 w-4" />
-                                        {attempt.submittedAt?.toDate().toLocaleString('id-ID')}
-                                    </div>
+                        {student.attempts.length === 0 ? (
+                            <div className="text-center py-16 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                                    <FileText className="h-8 w-8" />
                                 </div>
-
-                                <div className="flex items-center gap-4">
-                                    <div className="text-right">
-                                        <span className="block text-xs text-slate-400 font-bold uppercase">Nilai</span>
-                                        <span className={`text-2xl font-bold ${attempt.score >= 70 ? 'text-green-600' : 'text-slate-800'}`}>
-                                            {typeof attempt.score === 'number' ? Math.round(attempt.score) : '-'}
-                                        </span>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => handleOpenGrading(attempt)}
-                                            className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                                            title="Buka Penilaian"
-                                        >
-                                            <Edit3 className="h-5 w-5" />
-                                        </button>
-
-                                        {idx === 0 && !attempt.allowRetake && (
-                                            <button
-                                                onClick={() => handleAllowRetake(attempt.id)}
-                                                className="px-4 py-2 bg-white border border-slate-200 text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition-colors shadow-sm text-sm"
-                                            >
-                                                Izinkan Remedial
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
+                                <p className="text-slate-500 font-medium">Student has not taken the exam yet.</p>
                             </div>
-                        ))}
+                        ) : (
+                            <div className="space-y-4">
+                                {[...student.attempts]
+                                    .sort((a, b) => (a.submittedAt?.seconds || 0) - (b.submittedAt?.seconds || 0))
+                                    .map((attempt, idx) => (
+                                        <div key={attempt.id} className="bg-white rounded-xl border border-slate-200 hover:border-blue-300 transition-all p-4 group">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                <div className="flex items-start gap-4">
+                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 border ${attempt.score >= 70 ? 'bg-green-50 text-green-600 border-green-100' : 'bg-slate-50 text-slate-500 border-slate-100'}`}>
+                                                        <span className="text-sm">#{idx + 1}</span>
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-sm text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                                                                Attempt {idx + 1}
+                                                            </span>
+                                                            {attempt.allowRetake ? (
+                                                                <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold border border-orange-200 uppercase tracking-wide">
+                                                                    Remedial Active
+                                                                </span>
+                                                            ) : attempt.gradingStatus === 'pending' ? (
+                                                                <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold border border-yellow-200 uppercase tracking-wide flex items-center gap-1">
+                                                                    <AlertCircle className="h-3 w-3" /> Needs Grading
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold border border-green-200 uppercase tracking-wide">
+                                                                    Completed
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
+                                                            {attempt.submittedAt?.toDate().toLocaleString('en-US', {
+                                                                weekday: 'long', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-4 pl-4 md:pl-0 border-t md:border-t-0 border-slate-50 pt-4 md:pt-0">
+                                                    <button
+                                                        onClick={() => handleOpenGrading(attempt)}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition-colors text-sm"
+                                                    >
+                                                        <Edit3 className="h-4 w-4" />
+                                                        Review
+                                                    </button>
+
+                                                    {idx === 0 && !attempt.allowRetake && (
+                                                        <button
+                                                            onClick={() => handleAllowRetake(attempt.id)}
+                                                            className="p-2 bg-white border border-slate-200 text-slate-500 rounded-lg hover:text-blue-600 hover:border-blue-300 transition-colors"
+                                                            title="Allow Remedial"
+                                                        >
+                                                            <RefreshCw className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <>
@@ -625,12 +668,12 @@ export default function ExamResults() {
 
                     {/* Toolbar */}
                     <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                        <div className="flex items-center gap-4 w-full md:w-auto">
+                        <div className="flex items-center gap-4 w-full md:w-auto flex-wrap">
                             <div className="relative flex-1 md:w-64">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                                 <input
                                     type="text"
-                                    placeholder="Cari siswa..."
+                                    placeholder="Search student..."
                                     className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -638,11 +681,11 @@ export default function ExamResults() {
                             </div>
 
                             <select
-                                className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium text-slate-700"
                                 value={selectedClassId}
                                 onChange={(e) => setSelectedClassId(e.target.value)}
                             >
-                                <option value="all">Semua Kelas</option>
+                                <option value="all">All Classes</option>
                                 {uniqueClasses.map(cls => (
                                     <option key={cls.id} value={cls.id}>{cls.name}</option>
                                 ))}
@@ -652,10 +695,10 @@ export default function ExamResults() {
                         <div className="flex gap-2 w-full md:w-auto">
                             <button
                                 onClick={handleResetAll}
-                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors border border-red-200"
+                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors border border-red-200 text-sm"
                             >
                                 <Trash2 className="h-4 w-4" />
-                                Reset Semua
+                                Reset All
                             </button>
                         </div>
                     </div>
@@ -666,54 +709,49 @@ export default function ExamResults() {
                             {filteredStudents.map(student => (
                                 <motion.div
                                     key={student.id}
-                                    layout
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
                                     onClick={() => setSelectedStudentId(student.id)}
-                                    className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                                    className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
                                 >
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg group-hover:scale-110 transition-transform">
-                                            {student.name[0]}
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+
+                                    <div className="relative z-10 flex items-start justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-bold text-lg shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                                {student.name[0]}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">{student.name}</h3>
+                                                <p className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-md w-fit mt-1">
+                                                    {classMap[student.classId]?.name || 'Unknown Class'}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-bold text-slate-800 truncate">{student.name}</h3>
-                                            <p className="text-sm text-slate-500 truncate">{classMap[student.classId]?.name || 'Unknown Class'}</p>
-                                        </div>
-                                        <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
                                     </div>
 
-                                    <div className="border-t border-slate-100 pt-4 flex justify-between items-center">
-                                        <div className="flex flex-col">
-                                            <span className="text-xs text-slate-400 font-bold uppercase">Status</span>
-                                            {student.status === 'completed' && (
-                                                <span className="text-green-600 text-sm font-bold flex items-center gap-1">
-                                                    <CheckCircle className="h-4 w-4" /> Selesai
-                                                </span>
-                                            )}
-                                            {student.status === 'grading_pending' && (
-                                                <span className="text-yellow-600 text-sm font-bold flex items-center gap-1">
-                                                    <AlertCircle className="h-4 w-4" /> Butuh Nilai
-                                                </span>
-                                            )}
-                                            {student.status === 'remedial' && (
-                                                <span className="text-orange-600 text-sm font-bold flex items-center gap-1">
-                                                    <RefreshCw className="h-4 w-4" /> Remedial
-                                                </span>
-                                            )}
-                                            {student.status === 'pending' && (
-                                                <span className="text-slate-400 text-sm font-bold flex items-center gap-1">
-                                                    <minus className="h-4 w-4" /> Belum
-                                                </span>
-                                            )}
+                                    <div className="relative z-10 space-y-3">
+                                        <div className="flex justify-between items-center text-sm p-3 bg-slate-50 rounded-xl border border-slate-100 group-hover:bg-white group-hover:border-blue-100 transition-colors">
+                                            <span className="text-slate-500 font-medium">Status</span>
+                                            {student.status === 'completed' && <span className="text-green-600 font-bold flex items-center gap-1"><CheckCircle className="h-4 w-4" /> Completed</span>}
+                                            {student.status === 'grading_pending' && <span className="text-yellow-600 font-bold flex items-center gap-1"><AlertCircle className="h-4 w-4" /> Needs Grading</span>}
+                                            {student.status === 'remedial' && <span className="text-orange-600 font-bold flex items-center gap-1"><RefreshCw className="h-4 w-4" /> Remedial</span>}
+                                            {student.status === 'pending' && <span className="text-slate-400 font-bold flex items-center gap-1">Not Started</span>}
                                         </div>
 
-                                        <div className="text-right">
-                                            <span className="text-xs text-slate-400 font-bold uppercase">Highest</span>
-                                            <span className="block text-xl font-bold text-slate-800">
-                                                {student.bestScore !== undefined ? Math.round(student.bestScore) : '-'}
-                                            </span>
+                                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                                            <div className="text-center">
+                                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Attempts</p>
+                                                <p className="font-bold text-slate-700">{student.attempts.length}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Highest Score</p>
+                                                <p className="text-2xl font-black text-slate-800 group-hover:text-blue-600 transition-colors">
+                                                    {student.bestScore > 0 ? Math.round(student.bestScore) : '0'}
+                                                    <span className="text-xs text-slate-400 font-medium ml-0.5">/100</span>
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -722,8 +760,12 @@ export default function ExamResults() {
                     </div>
 
                     {filteredStudents.length === 0 && (
-                        <div className="text-center py-12 text-slate-500">
-                            Tidak ada siswa ditemukan
+                        <div className="text-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-slate-300">
+                                <Search className="h-8 w-8" />
+                            </div>
+                            <p className="text-slate-500 font-bold text-lg">No students found.</p>
+                            <p className="text-slate-400 text-sm">Try adjusting your search or filters.</p>
                         </div>
                     )}
                 </div>
@@ -739,8 +781,13 @@ export default function ExamResults() {
                             exit={{ opacity: 0, scale: 0.95 }}
                             className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
                         >
+                            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 mb-4">
+                                <AlertCircle className="h-6 w-6" />
+                            </div>
                             <h3 className="text-lg font-bold text-slate-800 mb-2">Izinkan Remedial?</h3>
-                            <p className="text-slate-600 mb-6">Siswa akan dapat mengerjakan ulang ujian ini. Nilai sebelumnya akan tetap tersimpan dalam riwayat.</p>
+                            <p className="text-slate-600 mb-6">
+                                Siswa akan dapat mengerjakan ujian ini kembali. Nilai sebelumnya akan tetap tersimpan di riwayat.
+                            </p>
                             <div className="flex justify-end gap-3">
                                 <button
                                     onClick={() => setConfirmModal({ isOpen: false, resultId: null })}
@@ -750,7 +797,7 @@ export default function ExamResults() {
                                 </button>
                                 <button
                                     onClick={confirmRemedialAction}
-                                    className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors"
+                                    className="px-4 py-2 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200"
                                 >
                                     Ya, Izinkan
                                 </button>
@@ -760,8 +807,7 @@ export default function ExamResults() {
                 )}
             </AnimatePresence>
 
-
-            {/* Reset Modal */}
+            {/* Reset Confirmation Modal */}
             <AnimatePresence>
                 {resetModal.isOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -801,4 +847,4 @@ export default function ExamResults() {
             </AnimatePresence>
         </>
     );
-}
+};

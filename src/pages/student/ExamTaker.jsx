@@ -10,7 +10,7 @@ import { createExamSession, getExamSession, updateSessionAnswers, completeExamSe
 import { saveAnswersOffline, getOfflineAnswers, markAsSynced } from '../../utils/offlineStorage';
 import ExamOfflineIndicator from '../../components/ExamOfflineIndicator';
 import ExamResultModal from './ExamResultModal';
-import ExamResultModal from './ExamResultModal';
+
 import { App as CapacitorApp } from '@capacitor/app';
 
 // Debounce hook for optimized auto-save
@@ -109,27 +109,33 @@ export default function ExamTaker() {
         if (!exam || !randomizedQuestions[currentQuestionIndex]) return null;
         const question = randomizedQuestions[currentQuestionIndex];
 
-        // Shuffle options for single_choice, true_false, and multiple_choice
+        // Shuffle options for single_choice, true_false, and multiple_choice AND matching
         if (exam.randomizeAnswers &&
             (question.type === 'single_choice' ||
                 question.type === 'true_false' ||
-                question.type === 'multiple_choice')) {
+                question.type === 'multiple_choice' ||
+                question.type === 'matching')) {
 
             // If resuming with existing session, use saved answer order
             if (existingSession?.answerOrders?.[question.id]) {
                 const savedOrder = existingSession.answerOrders[question.id];
                 return {
                     ...question,
-                    options: savedOrder.map(id =>
-                        question.options.find(opt => opt.id === id)
-                    ).filter(Boolean)
+                    options: savedOrder.map(id => {
+                        // Find original index for grading mapping
+                        const originalIndex = question.options.findIndex(opt => opt.id === id);
+                        const opt = question.options[originalIndex];
+                        return opt ? { ...opt, _originalIndex: originalIndex } : null;
+                    }).filter(Boolean)
                 };
             }
 
             // Otherwise shuffle
+            // Map with original index first to preserve grading mapping
+            const optionsWithIndex = question.options.map((opt, idx) => ({ ...opt, _originalIndex: idx }));
             return {
                 ...question,
-                options: shuffleArray(question.options)
+                options: shuffleArray(optionsWithIndex)
             };
         }
 
@@ -617,6 +623,8 @@ export default function ExamTaker() {
     const calculateExamStats = (answersToUse = null) => {
         const finalAnswers = answersToUse || answers;
         let autoPoints = 0;
+        let maxAutoPoints = 0;
+        let manualPoints = 0;
         let maxPoints = 0;
         let hasManualQuestions = false;
 
@@ -626,8 +634,12 @@ export default function ExamTaker() {
 
             if (q.type === 'essay' || q.type === 'short_answer') {
                 hasManualQuestions = true;
+                manualPoints += qPoints; // Track points waiting for manual grading
                 return;
             }
+
+            // For auto-graded questions, add to maxAutoPoints
+            maxAutoPoints += qPoints;
 
             const studentAnswer = finalAnswers[q.id];
             if (!studentAnswer) return;
@@ -685,7 +697,7 @@ export default function ExamTaker() {
             }
         });
 
-        return { autoPoints, maxPoints, hasManualQuestions };
+        return { autoPoints, maxAutoPoints, manualPoints, maxPoints, hasManualQuestions };
     };
 
     const calculateScore = (answersToUse = null) => {
@@ -892,6 +904,11 @@ export default function ExamTaker() {
 
                 setExamResult({
                     score: finalScore,
+                    autoPoints: stats.autoPoints,
+                    maxAutoPoints: stats.maxAutoPoints,
+                    manualPoints: stats.manualPoints,
+                    maxPoints: stats.maxPoints,
+                    gradingStatus: stats.hasManualQuestions ? 'pending' : 'complete',
                     totalQuestions: randomizedQuestions.length,
                     answeredQuestions: Object.keys(finalAnswers).length,
                     examTitle: exam.title,
@@ -1296,7 +1313,7 @@ export default function ExamTaker() {
                                                     // Get all currently selected values for this question
                                                     const currentAnswers = answers[currentQ.id] || {};
                                                     const selectedValues = Object.values(currentAnswers);
-                                                    const myValue = currentAnswers[idx] || "";
+                                                    const myValue = currentAnswers[pair._originalIndex ?? idx] || "";
 
                                                     return (
                                                         <div key={pair.id} className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center">
@@ -1306,7 +1323,7 @@ export default function ExamTaker() {
                                                             <div className="text-slate-400">⟶</div>
                                                             <select
                                                                 value={myValue}
-                                                                onChange={(e) => handleMatching(currentQ.id, idx, e.target.value)}
+                                                                onChange={(e) => handleMatching(currentQ.id, pair._originalIndex ?? idx, e.target.value)}
                                                                 className="p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none w-full bg-white transition-colors"
                                                             >
                                                                 <option value="">Select Match...</option>

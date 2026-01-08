@@ -437,14 +437,20 @@ export default function StudentExams() {
                                             {/* Score */}
                                             <div className="min-w-[60px] flex justify-center">
                                                 {exam.attempt && !exam.attempt.allowRetake ? (
-                                                    <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-bold border ${Math.round(exam.attempt.score) >= 90 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                                        Math.round(exam.attempt.score) >= 80 ? 'bg-teal-50 text-teal-600 border-teal-100' :
-                                                            Math.round(exam.attempt.score) >= 70 ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                                                                Math.round(exam.attempt.score) >= 60 ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                                    'bg-red-50 text-red-600 border-red-100'
-                                                        }`}>
-                                                        {Math.round(exam.attempt.score)}
-                                                    </span>
+                                                    exam.attempt.gradingStatus === 'pending' ? (
+                                                        <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                                            <Clock className="h-3 w-3 mr-1" /> Pending
+                                                        </span>
+                                                    ) : (
+                                                        <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-bold border ${Math.round(exam.attempt.score) >= 90 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                            Math.round(exam.attempt.score) >= 80 ? 'bg-teal-50 text-teal-600 border-teal-100' :
+                                                                Math.round(exam.attempt.score) >= 70 ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                                                    Math.round(exam.attempt.score) >= 60 ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                                        'bg-red-50 text-red-600 border-red-100'
+                                                            }`}>
+                                                            {Math.round(exam.attempt.score)}
+                                                        </span>
+                                                    )
                                                 ) : exam.attempt?.allowRetake ? (
                                                     <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-bold border ${Math.round(exam.attempt.score) >= 90 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                                                         Math.round(exam.attempt.score) >= 80 ? 'bg-teal-50 text-teal-600 border-teal-100' :
@@ -565,14 +571,21 @@ export default function StudentExams() {
                                         {exam.attempt && (
                                             <div className="mb-3">
                                                 {exam.attempt && !exam.attempt.allowRetake ? (
-                                                    <div className={`w-full py-3 px-4 border-2 rounded-xl flex items-center justify-center gap-2 ${Math.round(exam.attempt.score) >= 90 ? 'bg-emerald-100 border-emerald-200 text-emerald-700' :
-                                                        Math.round(exam.attempt.score) >= 80 ? 'bg-teal-100 border-teal-200 text-teal-700' :
-                                                            Math.round(exam.attempt.score) >= 70 ? 'bg-blue-100 border-blue-200 text-blue-700' :
-                                                                Math.round(exam.attempt.score) >= 60 ? 'bg-amber-100 border-amber-200 text-amber-700' :
-                                                                    'bg-red-100 border-red-200 text-red-700'
-                                                        }`}>
-                                                        <span className="text-sm font-bold">Score: {Math.round(exam.attempt.score)}</span>
-                                                    </div>
+                                                    exam.attempt.gradingStatus === 'pending' ? (
+                                                        <div className="w-full py-3 px-4 border-2 border-indigo-100 bg-indigo-50 text-indigo-700 rounded-xl flex items-center justify-center gap-2">
+                                                            <Clock className="h-4 w-4" />
+                                                            <span className="text-sm font-bold">Grading in Progress</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className={`w-full py-3 px-4 border-2 rounded-xl flex items-center justify-center gap-2 ${Math.round(exam.attempt.score) >= 90 ? 'bg-emerald-100 border-emerald-200 text-emerald-700' :
+                                                            Math.round(exam.attempt.score) >= 80 ? 'bg-teal-100 border-teal-200 text-teal-700' :
+                                                                Math.round(exam.attempt.score) >= 70 ? 'bg-blue-100 border-blue-200 text-blue-700' :
+                                                                    Math.round(exam.attempt.score) >= 60 ? 'bg-amber-100 border-amber-200 text-amber-700' :
+                                                                        'bg-red-100 border-red-200 text-red-700'
+                                                            }`}>
+                                                            <span className="text-sm font-bold">Score: {Math.round(exam.attempt.score)}</span>
+                                                        </div>
+                                                    )
                                                 ) : exam.attempt?.allowRetake && (
                                                     <div className={`w-full py-3 px-4 border-2 rounded-xl flex items-center justify-center gap-2 ${Math.round(exam.attempt.score) >= 90 ? 'bg-emerald-100 border-emerald-200 text-emerald-700' :
                                                         Math.round(exam.attempt.score) >= 80 ? 'bg-teal-100 border-teal-200 text-teal-700' :

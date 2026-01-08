@@ -576,6 +576,8 @@ export default function ExamEditor() {
         return <div className="flex h-screen items-center justify-center">Loading...</div>;
     }
 
+    const totalScore = questions.reduce((sum, q) => sum + (parseInt(q.points) || 0), 0);
+
     return (
         <div className="pb-20">
             {/* Top Bar */}
@@ -591,7 +593,8 @@ export default function ExamEditor() {
                         </span>
                     </div>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex items-center gap-3">
+
                     <button
                         onClick={() => setExamData(prev => ({ ...prev, status: prev.status === 'draft' ? 'published' : 'draft' }))}
                         className="border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-medium transition-all"
@@ -736,10 +739,17 @@ export default function ExamEditor() {
                                 onChange={handleExcelImport}
                             />
                         </label>
+                        <div className={`ml-auto flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold border transition-colors ${totalScore > 100 ? 'bg-red-50 text-red-700 border-red-200' :
+                                totalScore === 100 ? 'bg-green-50 text-green-700 border-green-200' :
+                                    'bg-slate-50 text-slate-700 border-slate-200'
+                            }`}>
+                            <span>Total Score: {totalScore}</span>
+                        </div>
+
                         {questions.length > 0 && (
                             <button
                                 onClick={deleteAllQuestions}
-                                className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg text-sm font-bold border border-red-200 transition-colors ml-auto"
+                                className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg text-sm font-bold border border-red-200 transition-colors"
                             >
                                 <Trash2 className="h-4 w-4" /> Hapus Semua
                             </button>

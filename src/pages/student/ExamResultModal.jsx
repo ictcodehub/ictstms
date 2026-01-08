@@ -1,9 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, Check, FileText } from 'lucide-react';
 
 const ExamResultModal = ({ showResultModal, setShowResultModal, examResult, navigate }) => {
     if (!showResultModal || !examResult) return null;
+
+    const isPending = examResult.gradingStatus === 'pending';
 
     return (
         <AnimatePresence>
@@ -13,12 +15,12 @@ const ExamResultModal = ({ showResultModal, setShowResultModal, examResult, navi
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-slate-50/50 backdrop-blur-md"
+                    className="absolute inset-0 bg-slate-50/90 backdrop-blur-sm"
                     onClick={() => setShowResultModal(false)}
                 />
 
                 {/* Confetti Particles (Only if passed and complete) */}
-                {(examResult.gradingStatus !== 'pending' && examResult.score >= 60) && [...Array(50)].map((_, i) => (
+                {(!isPending && examResult.score >= 60) && [...Array(50)].map((_, i) => (
                     <motion.div
                         key={i}
                         initial={{
@@ -48,136 +50,207 @@ const ExamResultModal = ({ showResultModal, setShowResultModal, examResult, navi
 
                 {/* Modal Content */}
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                    initial={{ opacity: 0, scale: 0.9, y: 30 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, y: 50 }}
-                    transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                    className="relative bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl shadow-2xl max-w-lg w-full p-8 text-center"
+                    exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                    className="relative bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-2xl w-full text-center overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    {/* Icon */}
-                    <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                        className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg ${examResult.gradingStatus === 'pending'
-                            ? 'bg-gradient-to-br from-indigo-500 to-purple-500' // Pending color
-                            : 'bg-gradient-to-br from-blue-500 to-cyan-500' // Normal color
-                            }`}
-                    >
-                        {examResult.gradingStatus === 'pending' ? (
-                            <Clock className="h-10 w-10 text-white" />
-                        ) : (
-                            <CheckCircle2 className="h-10 w-10 text-white" />
-                        )}
-                    </motion.div>
-
-                    {/* Title */}
-                    <motion.h2
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="text-2xl font-bold text-slate-800 mb-2"
-                    >
-                        {examResult.gradingStatus === 'pending' ? 'Submission Received' : 'Exam Completed!'}
-                    </motion.h2>
-
-                    {/* Status Message for Pending */}
-                    {examResult.gradingStatus === 'pending' && (
+                    {/* Header Banner */}
+                    {/* Header Banner */}
+                    <div className={`relative h-48 flex flex-col items-center justify-center overflow-hidden ${isPending
+                            ? 'bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800'
+                            : 'bg-gradient-to-br from-blue-600 via-cyan-600 to-blue-800'
+                        }`}>
+                        {/* Animated Background Shapes */}
                         <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6"
-                        >
-                            <div className="flex items-start gap-3 text-left">
-                                <div className="bg-indigo-100 p-2 rounded-lg">
-                                    <AlertCircle className="h-5 w-5 text-indigo-600" />
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-indigo-900 text-sm mb-1">Menunggu Penilaian</h4>
-                                    <p className="text-xs text-indigo-700 leading-relaxed">
-                                        Jawaban esai/isian singkat Anda menyusul untuk diperiksa oleh guru. Nilai akhir akan muncul setelah pemeriksaan selesai.
-                                    </p>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
+                            animate={{
+                                scale: [1, 1.2, 1],
+                                rotate: [0, 90, 0],
+                                opacity: [0.3, 0.5, 0.3]
+                            }}
+                            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                            className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"
+                        />
+                        <motion.div
+                            animate={{
+                                scale: [1, 1.5, 1],
+                                x: [0, -20, 0],
+                                opacity: [0.2, 0.4, 0.2]
+                            }}
+                            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                            className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"
+                        />
 
-                    {/* Score Display (Conditional - only show if NOT pending, or show partial/pending score specifically labeled) */}
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.4, type: 'spring' }}
-                        className="mb-6"
-                    >
-                        <div className={`text-6xl font-bold bg-clip-text text-transparent mb-2 ${examResult.gradingStatus === 'pending'
-                            ? 'bg-gradient-to-r from-indigo-600 to-purple-600'
-                            : 'bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600'
-                            }`}>
-                            {Math.round(examResult.score)}
+                        <div className="relative z-10 text-white flex flex-col items-center pt-2">
+                            <motion.div
+                                initial={{ scale: 0, rotate: -180 }}
+                                animate={{ scale: 1, rotate: 0 }}
+                                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                                className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mb-4 shadow-lg ring-4 ring-white/10"
+                            >
+                                <motion.div
+                                    animate={isPending ? {
+                                        rotate: [0, 360],
+                                        scale: [1, 1.1, 1]
+                                    } : {
+                                        scale: [1, 1.2, 1]
+                                    }}
+                                    transition={isPending ? {
+                                        rotate: { duration: 3, repeat: Infinity, ease: "linear" },
+                                        scale: { duration: 2, repeat: Infinity }
+                                    } : {
+                                        duration: 0.5, delay: 0.5
+                                    }}
+                                >
+                                    {isPending ? (
+                                        <Clock className="h-8 w-8 text-white drop-shadow-md" />
+                                    ) : (
+                                        <CheckCircle2 className="h-8 w-8 text-white drop-shadow-md" />
+                                    )}
+                                </motion.div>
+                            </motion.div>
+
+                            <motion.h2
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="text-3xl font-bold tracking-tight mb-2 drop-shadow-sm text-center px-4"
+                            >
+                                {isPending ? 'Submission Received' : 'Exam Completed!'}
+                            </motion.h2>
+
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.3 }}
+                                className="text-white/90 text-sm font-medium px-6 text-center leading-relaxed max-w-md"
+                            >
+                                {isPending ? 'Your answers have been saved securely.' : 'Congratulations on finishing the exam.'}
+                            </motion.p>
                         </div>
+                    </div>
 
-                        {/* Grade Badge or Pending Label */}
-                        {examResult.gradingStatus === 'pending' ? (
-                            <div className="inline-block px-4 py-2 rounded-full text-sm font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
-                                ⏳ Nilai Sementara (Otomatis)
+                    <div className="p-8">
+                        {/* Split View Content */}
+                        {isPending ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                                {/* Objective Score Card */}
+                                <motion.div
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="bg-green-50 border border-green-100 rounded-xl p-5 text-left relative overflow-hidden"
+                                >
+                                    <div className="absolute top-0 right-0 p-3 opacity-10">
+                                        <CheckCircle2 className="w-24 h-24 text-green-600 -mr-6 -mt-6" />
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="bg-green-100 p-1.5 rounded-lg">
+                                            <Check className="w-4 h-4 text-green-700" />
+                                        </div>
+                                        <span className="font-bold text-green-800 text-sm">Objective Score</span>
+                                    </div>
+                                    <div className="text-3xl font-bold text-green-700 mb-1">
+                                        {Math.round(examResult.autoPoints)} <span className="text-base font-normal text-green-600">/ {examResult.maxAutoPoints}</span>
+                                    </div>
+                                    <div className="text-xs text-green-600">
+                                        Multiple Choice & Matching
+                                    </div>
+                                </motion.div>
+
+                                {/* Essay Status Card */}
+                                <motion.div
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.4 }}
+                                    className="bg-amber-50 border border-amber-100 rounded-xl p-5 text-left relative overflow-hidden"
+                                >
+                                    <div className="absolute top-0 right-0 p-3 opacity-10">
+                                        <FileText className="w-24 h-24 text-amber-600 -mr-6 -mt-6" />
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="bg-amber-100 p-1.5 rounded-lg">
+                                            <Clock className="w-4 h-4 text-amber-700" />
+                                        </div>
+                                        <span className="font-bold text-amber-800 text-sm">Essay & Short Answer</span>
+                                    </div>
+                                    <div className="text-xl font-bold text-amber-700 mb-1 mt-1">
+                                        Pending Review
+                                    </div>
+                                    <div className="text-xs text-amber-600">
+                                        Worth up to <span className="font-bold">{examResult.manualPoints} points</span>
+                                    </div>
+                                </motion.div>
                             </div>
                         ) : (
-                            <div className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${examResult.score >= 90 ? 'bg-green-100 text-green-700' :
-                                examResult.score >= 75 ? 'bg-blue-100 text-blue-700' :
-                                    examResult.score >= 60 ? 'bg-yellow-100 text-yellow-700' :
-                                        'bg-red-100 text-red-700'
-                                }`}>
-                                {examResult.score >= 90 ? '🎉 Excellent!' :
-                                    examResult.score >= 75 ? '👍 Good Job!' :
-                                        examResult.score >= 60 ? '💪 Keep Trying!' :
-                                            '📚 Need Improvement'}
-                            </div>
+                            /* Standard Single Score View */
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.5 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.4, type: 'spring' }}
+                                className="mb-8"
+                            >
+                                <div className={`text-6xl font-black bg-clip-text text-transparent mb-2 bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600`}>
+                                    {Math.round(examResult.score)}
+                                </div>
+                                <div className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${examResult.score >= 90 ? 'bg-green-100 text-green-700' :
+                                    examResult.score >= 75 ? 'bg-blue-100 text-blue-700' :
+                                        examResult.score >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                                            'bg-red-100 text-red-700'
+                                    }`}>
+                                    {examResult.score >= 90 ? '🎉 Excellent!' :
+                                        examResult.score >= 75 ? '👍 Good Job!' :
+                                            examResult.score >= 60 ? '💪 Keep Trying!' :
+                                                '📚 Need Improvement'}
+                                </div>
+                            </motion.div>
                         )}
-                    </motion.div>
 
-                    {/* Statistics */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 }}
-                        className="grid grid-cols-2 gap-4 mb-8"
-                    >
-                        <div className="bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                            <div className="text-sm text-slate-500 mb-1">Time Taken</div>
-                            <div className="font-bold text-slate-800 text-lg">{examResult.timeTaken || '-'}</div>
-                        </div>
-                        <div className="bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                            <div className="text-sm text-slate-500 mb-1">Accuracy</div>
-                            <div className="font-bold text-slate-800 text-lg">
-                                {Math.round((examResult.score / 100) * examResult.totalQuestions)} / {examResult.totalQuestions}
+                        {/* Statistics Grid */}
+                        <div className="grid grid-cols-3 gap-3 mb-8">
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <div className="text-xs text-slate-500 uppercase font-semibold mb-1">Time</div>
+                                <div className="font-bold text-slate-800">{examResult.timeTaken || '-'}</div>
+                            </div>
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <div className="text-xs text-slate-500 uppercase font-semibold mb-1">Answered</div>
+                                <div className="font-bold text-slate-800">{examResult.answeredQuestions} / {examResult.totalQuestions}</div>
+                            </div>
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <div className="text-xs text-slate-500 uppercase font-semibold mb-1">Total Score</div>
+                                <div className="font-bold text-slate-800">
+                                    {isPending ? (
+                                        <span className="text-indigo-600 text-sm">Wait for Grade</span>
+                                    ) : (
+                                        <span>{Math.round(examResult.score)} / 100</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                        <div className="bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                            <div className="text-sm text-slate-500 mb-1">Answered</div>
-                            <div className="font-bold text-slate-800 text-lg">{examResult.answeredQuestions}</div>
-                        </div>
-                        <div className="bg-white/60 p-4 rounded-2xl border border-slate-100 shadow-sm">
-                            <div className="text-sm text-slate-500 mb-1">Score</div>
-                            <div className="font-bold text-blue-600 text-lg">{Math.round(examResult.score)}</div>
-                        </div>
-                    </motion.div>
 
-                    {/* Button */}
-                    <motion.button
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6 }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                            setShowResultModal(false);
-                            navigate('/student/exams');
-                        }}
-                        className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
-                    >
-                        Back to Exams
-                    </motion.button>
+                        {/* Actions */}
+                        <div className="space-y-3">
+                            {isPending && (
+                                <p className="text-xs text-slate-500 mb-4 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                                    Your final grade will be calculated once your teacher reviews your essay answers. You will see the update in your exam history.
+                                </p>
+                            )}
+
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                    setShowResultModal(false);
+                                    navigate('/student/exams');
+                                }}
+                                className="w-full px-6 py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg"
+                            >
+                                Back to Exams
+                            </motion.button>
+                        </div>
+                    </div>
                 </motion.div>
             </div>
         </AnimatePresence>
