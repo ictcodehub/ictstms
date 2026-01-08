@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Download, Edit, X, Save } from 'lucide-react';
+import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Download, Edit, X, Save, Link2, ExternalLink } from 'lucide-react';
 import { LinkifiedText } from '../../utils/linkify';
 
 export default function TasksMobile({
@@ -213,6 +213,38 @@ export default function TasksMobile({
                                                         >
                                                             <Download className="h-4 w-4 flex-shrink-0" />
                                                             <span className="truncate">{att.name}</span>
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Resources/Links */}
+                                        {task.resources && task.resources.length > 0 && (
+                                            <div className="px-4 py-4 border-b border-slate-200">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <Link2 className="h-4 w-4 text-blue-600" />
+                                                    <span className="text-sm font-bold text-slate-800">
+                                                        Resources & Links ({task.resources.length})
+                                                    </span>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {task.resources.map((resource, idx) => (
+                                                        <a
+                                                            key={idx}
+                                                            href={resource.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-2 p-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-all"
+                                                        >
+                                                            <div className="bg-blue-500 p-1.5 rounded">
+                                                                <Link2 className="h-3 w-3 text-white" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-xs font-bold text-blue-900 truncate">{resource.title || 'Link'}</p>
+                                                                <p className="text-[10px] text-blue-600 truncate">{resource.url}</p>
+                                                            </div>
+                                                            <ExternalLink className="h-3 w-3 text-blue-600 flex-shrink-0" />
                                                         </a>
                                                     ))}
                                                 </div>

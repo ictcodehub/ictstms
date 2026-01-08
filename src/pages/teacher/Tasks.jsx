@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query, where } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, X, GraduationCap, Calendar, Clock, FileText, AlertCircle, CheckCircle2, Users, Search, Filter, ArrowUpDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, GraduationCap, Calendar, Clock, FileText, AlertCircle, CheckCircle2, Users, Search, Filter, ArrowUpDown, Link } from 'lucide-react';
 import TaskDetail from './TaskDetail';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -35,7 +35,8 @@ export default function Tasks() {
         title: '',
         description: '',
         deadline: '',
-        assignedClasses: []
+        assignedClasses: [],
+        resources: []
     });
 
     useEffect(() => {
@@ -110,11 +111,12 @@ export default function Tasks() {
                 title: task.title,
                 description: task.description,
                 deadline: task.deadline,
-                assignedClasses: task.assignedClasses || []
+                assignedClasses: task.assignedClasses || [],
+                resources: task.resources || []
             });
         } else {
             setEditingTask(null);
-            setFormData({ title: '', description: '', deadline: '', assignedClasses: [] });
+            setFormData({ title: '', description: '', deadline: '', assignedClasses: [], resources: [] });
         }
         setShowModal(true);
     };
@@ -177,6 +179,29 @@ export default function Tasks() {
             assignedClasses: prev.assignedClasses.includes(classId)
                 ? prev.assignedClasses.filter(id => id !== classId)
                 : [...prev.assignedClasses, classId]
+        }));
+    };
+
+    const addResource = () => {
+        setFormData(prev => ({
+            ...prev,
+            resources: [...prev.resources, { title: '', url: '' }]
+        }));
+    };
+
+    const updateResource = (index, field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            resources: prev.resources.map((resource, i) =>
+                i === index ? { ...resource, [field]: value } : resource
+            )
+        }));
+    };
+
+    const removeResource = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            resources: prev.resources.filter((_, i) => i !== index)
         }));
     };
 
@@ -616,6 +641,52 @@ export default function Tasks() {
                                             value={formData.description}
                                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         />
+                                    </div>
+
+                                    {/* Resources/Links Section */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                            Resources & Links (Optional)
+                                        </label>
+                                        <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                            {formData.resources.map((resource, index) => (
+                                                <div key={index} className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Link className="h-4 w-4 text-blue-600" />
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Link title (e.g., Video Tutorial)"
+                                                            value={resource.title}
+                                                            onChange={(e) => updateResource(index, 'title', e.target.value)}
+                                                            className="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeResource(index)}
+                                                            className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                                            title="Remove link"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                    <input
+                                                        type="url"
+                                                        placeholder="URL (e.g., https://example.com)"
+                                                        value={resource.url}
+                                                        onChange={(e) => updateResource(index, 'url', e.target.value)}
+                                                        className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                    />
+                                                </div>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                onClick={addResource}
+                                                className="w-full py-2.5 border-2 border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all font-medium text-sm flex items-center justify-center gap-2"
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                                Add Link
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div>

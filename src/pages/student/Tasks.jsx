@@ -4,7 +4,7 @@ import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, 
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LinkifiedText } from '../../utils/linkify';
-import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Search, Filter, Hourglass, Pencil, X, Save, ChevronLeft, ChevronRight, Trophy, Upload, Download } from 'lucide-react';
+import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Search, Filter, Hourglass, Pencil, X, Save, ChevronLeft, ChevronRight, Trophy, Upload, Download, Link2, ExternalLink } from 'lucide-react';
 import ToastContainer from '../../components/ToastContainer';
 import { useToast } from '../../hooks/useToast';
 import TasksMobile from './TasksMobile';
@@ -598,6 +598,34 @@ export default function Tasks() {
                                                                     <LinkifiedText text={task.description} />
                                                                 </div>
                                                             </div>
+
+                                                            {/* Resources/Links Section */}
+                                                            {task.resources && task.resources.length > 0 && (
+                                                                <div className="mb-6">
+                                                                    <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Resources & Links</h4>
+                                                                    <div className="grid gap-2">
+                                                                        {task.resources.map((resource, idx) => (
+                                                                            <a
+                                                                                key={idx}
+                                                                                href={resource.url}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all group"
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                            >
+                                                                                <div className="bg-blue-500 p-2 rounded-lg">
+                                                                                    <Link2 className="h-4 w-4 text-white" />
+                                                                                </div>
+                                                                                <div className="flex-1 min-w-0">
+                                                                                    <p className="text-sm font-bold text-blue-900">{resource.title || 'Link'}</p>
+                                                                                    <p className="text-xs text-blue-600 truncate">{resource.url}</p>
+                                                                                </div>
+                                                                                <ExternalLink className="h-4 w-4 text-blue-600 group-hover:text-blue-700 flex-shrink-0" />
+                                                                            </a>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
 
                                                             {submission ? (
                                                                 editingTask === task.id ? (
