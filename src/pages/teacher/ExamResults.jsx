@@ -741,77 +741,129 @@ export default function ExamResults() {
                         </div>
                     </div>
 
-                    {/* Students Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <AnimatePresence>
-                            {filteredStudents.map(student => (
-                                <motion.div
-                                    key={student.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    onClick={() => setSelectedStudentId(student.id)}
-                                    className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
-                                >
-                                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                    {/* Students Table */}
+                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+                                    <tr className="text-xs uppercase tracking-wider text-slate-500">
+                                        <th className="px-6 py-4 font-bold">No</th>
+                                        <th className="px-6 py-4 font-bold">Student Name</th>
+                                        <th className="px-6 py-4 font-bold">Class</th>
+                                        <th className="px-6 py-4 font-bold">Status</th>
+                                        <th className="px-6 py-4 font-bold text-right">Attempts</th>
+                                        <th className="px-6 py-4 font-bold text-right">Highest Score</th>
+                                        <th className="px-6 py-4 font-bold text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    <AnimatePresence>
+                                        {filteredStudents.length > 0 ? (
+                                            filteredStudents.map((student, idx) => (
+                                                <motion.tr
+                                                    key={student.id}
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    exit={{ opacity: 0 }}
+                                                    onClick={() => setSelectedStudentId(student.id)}
+                                                    className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
+                                                >
+                                                    {/* No */}
+                                                    <td className="px-6 py-4 text-slate-500 font-medium">{idx + 1}</td>
 
-                                    <div className="relative z-10 flex items-start justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-bold text-lg shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                                {student.name[0]}
-                                            </div>
-                                            <div>
-                                                <h3 className="font-bold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">{student.name}</h3>
-                                                <p className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-md w-fit mt-1">
-                                                    {classMap[student.classId]?.name || 'Unknown Class'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                                    {/* Student Name */}
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                                                {student.name[0]}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{student.name}</p>
+                                                                <p className="text-xs text-slate-500">{student.email}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
 
-                                    <div className="relative z-10 space-y-3">
-                                        <div className="flex justify-between items-center text-sm p-3 bg-slate-50 rounded-xl border border-slate-100 group-hover:bg-white group-hover:border-blue-100 transition-colors">
-                                            <span className="text-slate-500 font-medium">Status</span>
-                                            {student.status === 'in_progress' && (
-                                                <span className="text-blue-600 font-bold flex items-center gap-1 animate-pulse">
-                                                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-ping" />
-                                                    In Progress
-                                                </span>
-                                            )}
-                                            {student.status === 'completed' && <span className="text-green-600 font-bold flex items-center gap-1"><CheckCircle className="h-4 w-4" /> Completed</span>}
-                                            {student.status === 'grading_pending' && <span className="text-yellow-600 font-bold flex items-center gap-1"><AlertCircle className="h-4 w-4" /> Needs Grading</span>}
-                                            {student.status === 'remedial' && <span className="text-orange-600 font-bold flex items-center gap-1"><RefreshCw className="h-4 w-4" /> Remedial</span>}
-                                            {student.status === 'pending' && <span className="text-slate-400 font-bold flex items-center gap-1">Not Started</span>}
-                                        </div>
+                                                    {/* Class */}
+                                                    <td className="px-6 py-4">
+                                                        <span className="inline-block px-3 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg">
+                                                            {classMap[student.classId]?.name || 'Unknown'}
+                                                        </span>
+                                                    </td>
 
-                                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                                            <div className="text-center">
-                                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Attempts</p>
-                                                <p className="font-bold text-slate-700">{student.attempts.length}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Highest Score</p>
-                                                <p className="text-2xl font-black text-slate-800 group-hover:text-blue-600 transition-colors">
-                                                    {student.bestScore > 0 ? Math.round(student.bestScore) : '0'}
-                                                    <span className="text-xs text-slate-400 font-medium ml-0.5">/100</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                    </div>
+                                                    {/* Status */}
+                                                    <td className="px-6 py-4">
+                                                        {student.status === 'in_progress' && (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                                <div className="w-2 h-2 bg-blue-600 rounded-full animate-ping" />
+                                                                In Progress
+                                                            </span>
+                                                        )}
+                                                        {student.status === 'completed' && (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+                                                                <CheckCircle className="h-3.5 w-3.5" />
+                                                                Completed
+                                                            </span>
+                                                        )}
+                                                        {student.status === 'grading_pending' && (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-yellow-50 text-yellow-700 border border-yellow-200">
+                                                                <AlertCircle className="h-3.5 w-3.5" />
+                                                                Needs Grading
+                                                            </span>
+                                                        )}
+                                                        {student.status === 'remedial' && (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                                <RefreshCw className="h-3.5 w-3.5" />
+                                                                Remedial
+                                                            </span>
+                                                        )}
+                                                        {student.status === 'pending' && (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                                                                <Clock className="h-3.5 w-3.5" />
+                                                                Not Started
+                                                            </span>
+                                                        )}
+                                                    </td>
 
-                    {filteredStudents.length === 0 && (
-                        <div className="text-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-slate-300">
-                                <Search className="h-8 w-8" />
-                            </div>
-                            <p className="text-slate-500 font-bold text-lg">No students found.</p>
-                            <p className="text-slate-400 text-sm">Try adjusting your search or filters.</p>
+                                                    {/* Attempts */}
+                                                    <td className="px-6 py-4 text-right">
+                                                        <span className="font-bold text-slate-700">{student.attempts.length}</span>
+                                                    </td>
+
+                                                    {/* Highest Score */}
+                                                    <td className="px-6 py-4 text-right">
+                                                        <span className="text-lg font-black text-slate-800 group-hover:text-blue-600 transition-colors">
+                                                            {student.bestScore > 0 ? Math.round(student.bestScore) : '0'}
+                                                        </span>
+                                                        <span className="text-xs text-slate-400 font-medium ml-0.5">/100</span>
+                                                    </td>
+
+                                                    {/* Action */}
+                                                    <td className="px-6 py-4 text-center">
+                                                        <button className="p-2 hover:bg-blue-100 rounded-lg transition-colors">
+                                                            <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-600" />
+                                                        </button>
+                                                    </td>
+                                                </motion.tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="7" className="px-6 py-20">
+                                                    <div className="text-center">
+                                                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-slate-300">
+                                                            <Search className="h-8 w-8" />
+                                                        </div>
+                                                        <p className="text-slate-500 font-bold text-lg">No students found.</p>
+                                                        <p className="text-slate-400 text-sm">Try adjusting your search or filters.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </AnimatePresence>
+                                </tbody>
+                            </table>
                         </div>
-                    )}
+                    </div>
                 </div>
             )}
 
