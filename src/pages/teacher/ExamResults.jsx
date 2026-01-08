@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, User, Calendar, CheckCircle, XCircle, RefreshCw, FileText, Search, ChevronRight, Award, Trash2, Edit3, Save, AlertCircle } from 'lucide-react';
+import { ArrowLeft, User, Calendar, CheckCircle, XCircle, RefreshCw, FileText, Search, ChevronRight, Award, Trash2, Edit3, Save, AlertCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { resetExamForAllClasses, resetExamForClass, resetExamForStudent } from '../../utils/examReset';
@@ -227,6 +227,8 @@ export default function ExamResults() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedClassId, setSelectedClassId] = useState('all'); // 'all' or specific classId
     const [selectedStatus, setSelectedStatus] = useState('all'); // 'all' or specific status
+    const [sortBy, setSortBy] = useState('name'); // 'name' | 'class' | 'status' | 'attempts' | 'score'
+    const [sortOrder, setSortOrder] = useState('asc'); // 'asc' | 'desc'
 
     // Selection state for Master-Detail view
     const [selectedStudentId, setSelectedStudentId] = useState(null);
@@ -372,7 +374,17 @@ export default function ExamResults() {
         processedList.sort((a, b) => a.name.localeCompare(b.name));
         setStudents(processedList);
 
-    }, [studentMap, results, sessions]);
+    }, [students, results, classMap, sessions]);
+
+    // Handle sorting
+    const handleSort = (column) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
 
     // State for custom confirmation modal
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, resultId: null });
@@ -480,14 +492,51 @@ export default function ExamResults() {
     // --- GRADING SYSTEM END ---
 
 
-    // Filtered list
-    const filteredStudents = students.filter(s => {
-        const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.email.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesClass = selectedClassId === 'all' || s.classId === selectedClassId;
-        const matchesStatus = selectedStatus === 'all' || s.status === selectedStatus;
-        return matchesSearch && matchesClass && matchesStatus;
-    });
+    // Filtered and sorted list
+    const filteredStudents = useMemo(() => {
+        const filtered = students.filter(s => {
+            const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                s.email.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesClass = selectedClassId === 'all' || s.classId === selectedClassId;
+            const matchesStatus = selectedStatus === 'all' || s.status === selectedStatus;
+            return matchesSearch && matchesClass && matchesStatus;
+        });
+
+        // Sort
+        return filtered.sort((a, b) => {
+            let compareA, compareB;
+
+            switch (sortBy) {
+                case 'name':
+                    compareA = a.name.toLowerCase();
+                    compareB = b.name.toLowerCase();
+                    break;
+                case 'class':
+                    compareA = classMap[a.classId]?.name || '';
+                    compareB = classMap[b.classId]?.name || '';
+                    break;
+                case 'status':
+                    const statusOrder = { 'in_progress': 0, 'grading_pending': 1, 'completed': 2, 'remedial': 3, 'pending': 4 };
+                    compareA = statusOrder[a.status] || 999;
+                    compareB = statusOrder[b.status] || 999;
+                    break;
+                case 'attempts':
+                    compareA = a.attempts.length;
+                    compareB = b.attempts.length;
+                    break;
+                case 'score':
+                    compareA = a.bestScore;
+                    compareB = b.bestScore;
+                    break;
+                default:
+                    return 0;
+            }
+
+            if (compareA < compareB) return sortOrder === 'asc' ? -1 : 1;
+            if (compareA > compareB) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [students, searchTerm, selectedClassId, selectedStatus, sortBy, sortOrder, classMap]);
 
     const uniqueClasses = useMemo(() => {
         const classIds = new Set();
@@ -748,11 +797,56 @@ export default function ExamResults() {
                                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                                     <tr className="text-xs uppercase tracking-wider text-slate-500">
                                         <th className="px-6 py-4 font-bold">No</th>
-                                        <th className="px-6 py-4 font-bold">Student Name</th>
-                                        <th className="px-6 py-4 font-bold">Class</th>
-                                        <th className="px-6 py-4 font-bold">Status</th>
-                                        <th className="px-6 py-4 font-bold text-right">Attempts</th>
-                                        <th className="px-6 py-4 font-bold text-right">Highest Score</th>
+                                        <th className="px-6 py-4 font-bold cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('name')}>
+                                            <div className="flex items-center gap-2">
+                                                Student Name
+                                                {sortBy === 'name' ? (
+                                                    sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                                                ) : (
+                                                    <ArrowUpDown className="h-4 w-4 opacity-30" />
+                                                )}
+                                            </div>
+                                        </th>
+                                        <th className="px-6 py-4 font-bold cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('class')}>
+                                            <div className="flex items-center gap-2">
+                                                Class
+                                                {sortBy === 'class' ? (
+                                                    sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                                                ) : (
+                                                    <ArrowUpDown className="h-4 w-4 opacity-30" />
+                                                )}
+                                            </div>
+                                        </th>
+                                        <th className="px-6 py-4 font-bold cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('status')}>
+                                            <div className="flex items-center gap-2">
+                                                Status
+                                                {sortBy === 'status' ? (
+                                                    sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                                                ) : (
+                                                    <ArrowUpDown className="h-4 w-4 opacity-30" />
+                                                )}
+                                            </div>
+                                        </th>
+                                        <th className="px-6 py-4 font-bold text-center cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('attempts')}>
+                                            <div className="flex items-center justify-center gap-2">
+                                                Attempts
+                                                {sortBy === 'attempts' ? (
+                                                    sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                                                ) : (
+                                                    <ArrowUpDown className="h-4 w-4 opacity-30" />
+                                                )}
+                                            </div>
+                                        </th>
+                                        <th className="px-6 py-4 font-bold text-center cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('score')}>
+                                            <div className="flex items-center justify-center gap-2">
+                                                Highest Score
+                                                {sortBy === 'score' ? (
+                                                    sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                                                ) : (
+                                                    <ArrowUpDown className="h-4 w-4 opacity-30" />
+                                                )}
+                                            </div>
+                                        </th>
                                         <th className="px-6 py-4 font-bold text-center">Action</th>
                                     </tr>
                                 </thead>
@@ -769,7 +863,7 @@ export default function ExamResults() {
                                                     className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
                                                 >
                                                     {/* No */}
-                                                    <td className="px-6 py-4 text-slate-500 font-medium">{idx + 1}</td>
+                                                    <td className="px-6 py-4 text-slate-500 text-sm">{idx + 1}</td>
 
                                                     {/* Student Name */}
                                                     <td className="px-6 py-4">
@@ -778,7 +872,7 @@ export default function ExamResults() {
                                                                 {student.name[0]}
                                                             </div>
                                                             <div>
-                                                                <p className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{student.name}</p>
+                                                                <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{student.name}</p>
                                                                 <p className="text-xs text-slate-500">{student.email}</p>
                                                             </div>
                                                         </div>
@@ -826,16 +920,16 @@ export default function ExamResults() {
                                                     </td>
 
                                                     {/* Attempts */}
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className="font-bold text-slate-700">{student.attempts.length}</span>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <span className="text-slate-700 text-sm">{student.attempts.length}</span>
                                                     </td>
 
                                                     {/* Highest Score */}
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className="text-lg font-black text-slate-800 group-hover:text-blue-600 transition-colors">
+                                                    <td className="px-6 py-4 text-center">
+                                                        <span className="text-slate-800 text-sm">
                                                             {student.bestScore > 0 ? Math.round(student.bestScore) : '0'}
                                                         </span>
-                                                        <span className="text-xs text-slate-400 font-medium ml-0.5">/100</span>
+                                                        <span className="text-slate-400 text-xs ml-0.5">/100</span>
                                                     </td>
 
                                                     {/* Action */}
