@@ -24,6 +24,8 @@ export default function Exams() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [examToDelete, setExamToDelete] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const examsPerPage = 10;
 
     useEffect(() => {
         if (!currentUser) return;
@@ -81,6 +83,17 @@ export default function Exams() {
         const matchesStatus = filterStatus === 'all' || exam.status === filterStatus;
         return matchesSearch && matchesStatus;
     });
+
+    // Pagination logic
+    const totalPages = Math.ceil(filteredExams.length / examsPerPage);
+    const startIndex = (currentPage - 1) * examsPerPage;
+    const endIndex = startIndex + examsPerPage;
+    const displayExams = filteredExams.slice(startIndex, endIndex);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, filterStatus]);
 
     return (
         <div className="space-y-6">
@@ -160,7 +173,7 @@ export default function Exams() {
 
                     {/* TABLE BODY */}
                     <div className="divide-y divide-slate-100">
-                        {filteredExams.map((exam, index) => (
+                        {displayExams.map((exam, index) => (
                             <motion.div
                                 key={exam.id}
                                 initial={{ opacity: 0, y: 10 }}
@@ -173,7 +186,7 @@ export default function Exams() {
                                 {/* Left Section: Number + Details */}
                                 <div className="flex items-center gap-6 flex-1">
                                     <span className="w-6 text-center text-sm text-slate-500 font-medium">
-                                        {index + 1}
+                                        {startIndex + index + 1}
                                     </span>
                                     <div className="max-w-md">
                                         <h3 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors mb-1 truncate">
