@@ -24,6 +24,8 @@ export default function Exams() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [examToDelete, setExamToDelete] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const examsPerPage = 10;
 
     useEffect(() => {
         if (!currentUser) return;
@@ -81,6 +83,17 @@ export default function Exams() {
         const matchesStatus = filterStatus === 'all' || exam.status === filterStatus;
         return matchesSearch && matchesStatus;
     });
+
+    // Pagination logic
+    const totalPages = Math.ceil(filteredExams.length / examsPerPage);
+    const startIndex = (currentPage - 1) * examsPerPage;
+    const endIndex = startIndex + examsPerPage;
+    const displayExams = filteredExams.slice(startIndex, endIndex);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, filterStatus]);
 
     return (
         <div className="space-y-6">
@@ -160,7 +173,7 @@ export default function Exams() {
 
                     {/* TABLE BODY */}
                     <div className="divide-y divide-slate-100">
-                        {filteredExams.map((exam, index) => (
+                        {displayExams.map((exam, index) => (
                             <motion.div
                                 key={exam.id}
                                 initial={{ opacity: 0, y: 10 }}
@@ -173,7 +186,7 @@ export default function Exams() {
                                 {/* Left Section: Number + Details */}
                                 <div className="flex items-center gap-6 flex-1">
                                     <span className="w-6 text-center text-sm text-slate-500 font-medium">
-                                        {index + 1}
+                                        {startIndex + index + 1}
                                     </span>
                                     <div className="max-w-md">
                                         <h3 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors mb-1 truncate">
@@ -245,6 +258,58 @@ export default function Exams() {
                                 </div>
                             </motion.div>
                         ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Pagination */}
+            {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 px-4 py-3 bg-white rounded-xl border border-slate-200">
+                    <div className="text-sm text-slate-600">
+                        Showing {startIndex + 1}-{Math.min(endIndex, filteredExams.length)} of {filteredExams.length} exams
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                        >
+                            Previous
+                        </button>
+                        <div className="flex gap-1">
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                let pageNum;
+                                if (totalPages <= 5) {
+                                    pageNum = i + 1;
+                                } else if (currentPage <= 3) {
+                                    pageNum = i + 1;
+                                } else if (currentPage >= totalPages - 2) {
+                                    pageNum = totalPages - 4 + i;
+                                } else {
+                                    pageNum = currentPage - 2 + i;
+                                }
+
+                                return (
+                                    <button
+                                        key={pageNum}
+                                        onClick={() => setCurrentPage(pageNum)}
+                                        className={`w-9 h-9 rounded-lg transition-all font-medium text-sm ${currentPage === pageNum
+                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                                            : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                            }`}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                        >
+                            Next
+                        </button>
                     </div>
                 </div>
             )}
