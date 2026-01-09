@@ -5,6 +5,32 @@
 **Commit:** 322ef62
 
 
+## 🎨 [2026-01-09 | 09:55 - 10:05] Grading Modal UI Refinements (Round 1)
+
+### Overview
+Refined the Grading Modal UI in `TaskDetail.jsx` to improve usability, enable scrolling, and translate text to English. Also applied clean-up requests from user.
+
+### ✅ Changes Implemented
+1.  **Layout Fixes**:
+    *   Enabled scrolling for both Student Answer (Left) and Grading Controls (Right) panels.
+    *   Ensured "Save" and "Cancel" buttons are always visible (sticky footer).
+    *   Removed empty header/border lines for a cleaner look.
+
+2.  **Visual & Text Updates**:
+    *   **Translation**: Translated all Indonesian labels to English ("Submitted At", "Last Revised", "Score", "Feedback", etc.).
+    *   **Typography**: Updated Student Answer text to be simpler (`text-sm font-normal font-sans`).
+    *   **Terminology**: Changed "Grade" to "Score" and "Save Grade" to "Save".
+    *   **Cleanup**: Removed redundant "Student Answer" header and "Submitted At" text label.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/TaskDetail.jsx` | Full UI refinement, flex layout fixes, text updates |
+
+### 📦 Git Commits
+- `feat: refine grading modal UI (english text, layout fixes, clean look)`
+
+
 
 ## 🐛 [2026-01-09 | 08:29 - 08:34] Fix: Question Duplication Focus
 
