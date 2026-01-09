@@ -4282,23 +4282,16 @@ For performance-related questions:
 - Ask in GitHub Discussions
 
 
-
-
----
-
-
-
-
-
-
----
-
-
 ## Changelog
 
 All notable changes to the ICT STMS project.
 
 ---
+
+### [2.0.2] - 2026-01-09
+
+#### Fixed
+- 🐛 Fixed `ExamEditor` issue where duplicating a question did not switch focus to the new question.
 
 ### [2.0.1] - 2025-12-11
 

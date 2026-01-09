@@ -5,6 +5,26 @@
 **Commit:** 322ef62
 
 
+
+## 🐛 [2026-01-09 | 08:29 - 08:34] Fix: Question Duplication Focus
+
+### Overview
+Fixed `ExamEditor` issue where duplicating a question did not switch focus to the new question.
+
+### ✅ Solutions Implemented
+1. **ExamEditor.jsx**:
+   - Added `setActiveQuestionId(newQuestion.id)` after adding duplication question to state
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/ExamEditor.jsx` | Added focus switch logic |
+
+### 📦 Git Commits
+- `Fix: Auto-switch focus to new question on duplicate`
+
+---
+
 ## 🐛 [2026-01-08 | 21:52 - 22:14] Critical Navigation & Login Bug Fixes
 
 ### Overview
