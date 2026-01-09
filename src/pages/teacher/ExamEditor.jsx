@@ -206,6 +206,7 @@ export default function ExamEditor() {
             text: question.text + ' (Copy)'
         };
         setQuestions([...questions, newQuestion]);
+        setActiveQuestionId(newQuestion.id);
     };
 
     // Attachment Handlers
@@ -740,8 +741,8 @@ export default function ExamEditor() {
                             />
                         </label>
                         <div className={`ml-auto flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold border transition-colors ${totalScore > 100 ? 'bg-red-50 text-red-700 border-red-200' :
-                                totalScore === 100 ? 'bg-green-50 text-green-700 border-green-200' :
-                                    'bg-slate-50 text-slate-700 border-slate-200'
+                            totalScore === 100 ? 'bg-green-50 text-green-700 border-green-200' :
+                                'bg-slate-50 text-slate-700 border-slate-200'
                             }`}>
                             <span>Total Score: {totalScore}</span>
                         </div>
