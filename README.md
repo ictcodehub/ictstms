@@ -4604,6 +4604,19 @@ MIT License - See LICENSE file for details
 
 ---
 
+## Changelog
+
+### [Latest Updates] - 2026-01-12
+#### Added
+- **Pink Revision Status**: Updated "Needs Revision" status badge to pink (`text-pink-700`, `bg-pink-50`) in both Teacher and Student dashboards for better visibility.
+- **Revision Alert**: Added a persistent pink alert box in the Student Task detail view (both View and Edit modes) when a revision is requested.
+
+#### Changed
+- **Grading Modal**: Refactored Teacher Grading Modal for a "Microsoft Fluent UI" look, removed scrollbars, and implemented a minimalist details panel.
+- **Status Prioritization**: Fixed logic in Student Tasks to prioritize "Revision Needed" status over "Submitted" date.
+
+---
+
 ### Acknowledgments
 
 - React Team - For the amazing library

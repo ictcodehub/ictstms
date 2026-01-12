@@ -153,22 +153,39 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                 status: 'graded'
             });
 
-            // Update local state
-            setSubmissions(prev => ({
-                ...prev,
-                [currentSubmission.student.uid || currentSubmission.student.id]: {
-                    ...prev[currentSubmission.student.uid || currentSubmission.student.id],
-                    grade: grade,
-                    feedback: gradeData.feedback,
-                    status: 'graded'
-                }
-            }));
-
+            // Update local state is handled by real-time listener, but for immediate UI feedback:
             setShowGradeModal(false);
             toast.success('Grade saved successfully!');
         } catch (error) {
             console.error('Error saving grade:', error);
             toast.error('Failed to save grade: ' + error.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleRequestRevision = async () => {
+        if (!currentSubmission?.submission) return;
+
+        if (!gradeData.feedback || gradeData.feedback.trim() === '') {
+            toast.error('Please provide feedback/instructions for revision');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            await updateDoc(doc(db, 'submissions', currentSubmission.submission.id), {
+                grade: null, // Clear any existing grade
+                feedback: gradeData.feedback,
+                status: 'needs_revision',
+                gradedAt: null // Clear graded timestamp
+            });
+
+            setShowGradeModal(false);
+            toast.success('Requested revision from student');
+        } catch (error) {
+            console.error('Error requesting revision:', error);
+            toast.error('Failed to request revision: ' + error.message);
         } finally {
             setSaving(false);
         }
@@ -199,6 +216,18 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                 bgColor: 'bg-red-50',
                 borderColor: 'border-red-200',
                 icon: XCircle
+            };
+        }
+
+        // Check for revision needed
+        if (submission.status === 'needs_revision') {
+            return {
+                status: 'needs_revision',
+                label: 'Needs Revision',
+                color: 'text-pink-700',
+                bgColor: 'bg-pink-50',
+                borderColor: 'border-pink-200',
+                icon: RefreshCw
             };
         }
 
@@ -553,7 +582,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                     const cls = classes.find(c => c.id === student.classId);
 
                                     // Highlight ungraded submissions
-                                    const isUngraded = submission && (submission.grade === undefined || submission.grade === null);
+                                    const isUngraded = submission && (submission.grade === undefined || submission.grade === null) && submission.status !== 'needs_revision';
                                     // Use solid yellow-50 for better visibility, but keep it subtle
                                     const rowBgClass = isUngraded ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-slate-50/50';
 
@@ -649,60 +678,68 @@ export default function TaskDetail({ task, classes = [], onBack }) {
             {createPortal(
                 <AnimatePresence>
                     {showGradeModal && currentSubmission && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                             <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
+                                initial={{ opacity: 0, scale: 0.98 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="bg-white rounded-2xl shadow-xl w-full max-w-7xl h-[90vh] overflow-hidden flex flex-col"
+                                exit={{ opacity: 0, scale: 0.98 }}
+                                className="bg-white rounded-lg shadow-2xl w-full max-w-7xl h-[90vh] overflow-hidden flex flex-col border border-slate-200"
                             >
-                                {/* Header */}
-                                <div className="bg-white px-6 py-4 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
-                                    <div className="flex items-center gap-4">
-                                        <div>
-                                            <h2 className="text-lg font-bold text-slate-800">Grade Submission</h2>
-                                            <div className="flex items-center gap-2 text-slate-500 text-sm mt-0.5">
-                                                <span className="font-medium text-slate-900">{currentSubmission.student.name}</span>
-                                                <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                                                <span className="opacity-80">{currentSubmission.student.email}</span>
+                                {/* Header - fluent style */}
+                                <div className="bg-white px-6 py-3 border-b border-slate-200 flex justify-between items-center flex-shrink-0 gap-4">
+                                    <div className="flex items-center gap-4 min-w-0">
+                                        <div className="min-w-0">
+                                            <h2 className="text-lg font-semibold text-slate-800 tracking-tight truncate">Grade Submission</h2>
+                                            <div className="flex items-center gap-2 text-slate-500 text-sm mt-0.5 min-w-0">
+                                                <span className="font-medium text-slate-700 truncate">{currentSubmission.student.name}</span>
+                                                <span className="text-slate-300 flex-shrink-0">•</span>
+                                                <span className="text-slate-500 truncate">{currentSubmission.student.email}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center bg-slate-50 rounded-lg p-1 border border-slate-200">
-                                            <button
-                                                onClick={handlePrevStudent}
-                                                disabled={sortedStudents.findIndex(s => s.id === currentSubmission.student.id) <= 0}
-                                                className="p-1.5 rounded-md hover:bg-white hover:shadow-sm text-slate-500 hover:text-slate-700 disabled:opacity-30 disabled:hover:bg-transparent disabled:shadow-none transition-all"
-                                                title="Previous Student"
-                                            >
-                                                <ChevronLeft className="h-5 w-5" />
-                                            </button>
-                                            <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                                            <button
-                                                onClick={handleNextStudent}
-                                                disabled={sortedStudents.findIndex(s => s.id === currentSubmission.student.id) >= sortedStudents.length - 1}
-                                                className="p-1.5 rounded-md hover:bg-white hover:shadow-sm text-slate-500 hover:text-slate-700 disabled:opacity-30 disabled:hover:bg-transparent disabled:shadow-none transition-all"
-                                                title="Next Student"
-                                            >
-                                                <ChevronRight className="h-5 w-5" />
+
+                                    <div className="flex items-center gap-4">
+                                        {/* Revision Status Badge */}
+                                        {currentSubmission.submission?.status === 'needs_revision' && (
+                                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-50 text-pink-700 rounded-md border border-pink-100">
+                                                <RefreshCw className="h-3.5 w-3.5" />
+                                                <span className="text-xs font-semibold whitespace-nowrap">Revision Requested</span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                            <div className="flex items-center bg-white rounded-md border border-slate-200 shadow-sm">
+                                                <button
+                                                    onClick={handlePrevStudent}
+                                                    disabled={sortedStudents.findIndex(s => s.id === currentSubmission.student.id) <= 0}
+                                                    className="p-1.5 hover:bg-slate-50 text-slate-500 disabled:opacity-30 transition-colors border-r border-slate-100"
+                                                    title="Previous Student"
+                                                >
+                                                    <ChevronLeft className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={handleNextStudent}
+                                                    disabled={sortedStudents.findIndex(s => s.id === currentSubmission.student.id) >= sortedStudents.length - 1}
+                                                    className="p-1.5 hover:bg-slate-50 text-slate-500 disabled:opacity-30 transition-colors"
+                                                    title="Next Student"
+                                                >
+                                                    <ChevronRight className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                            <button onClick={() => setShowGradeModal(false)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all">
+                                                <X className="h-5 w-5" />
                                             </button>
                                         </div>
-                                        <div className="w-px h-8 bg-slate-100 mx-1"></div>
-                                        <button onClick={() => setShowGradeModal(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
-                                            <X className="h-6 w-6" />
-                                        </button>
                                     </div>
                                 </div>
 
                                 {/* Main Grid Layout */}
-                                <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                                <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
 
-                                    {/* Left Side: Answer Viewer (Scrollable) */}
-                                    <div className="md:col-span-2 flex flex-col h-full min-h-0 bg-white">
+                                    {/* Left Side: Answer Viewer */}
+                                    <div className="lg:col-span-2 flex flex-col h-full min-h-0 bg-white">
                                         <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
                                             <div className="min-h-full">
-
                                                 {currentSubmission.submission?.content ? (
                                                     <div className="prose prose-slate max-w-none">
                                                         <div className="whitespace-pre-wrap text-slate-800 leading-normal text-sm font-normal break-words font-sans">
@@ -710,78 +747,97 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                                                        <FileText className="h-16 w-16 mb-4 opacity-20" />
-                                                        <p className="text-lg font-medium">No text answer provided.</p>
-                                                        <p className="text-sm">Check attachments below if available.</p>
+                                                    <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                                                        <FileText className="h-12 w-12 mb-3 opacity-20" />
+                                                        <p>No content submitted</p>
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Right Side: Grading Controls (Fixed) */}
-                                    <div className="bg-slate-50 flex flex-col h-full min-h-0 right-panel-shadow z-10 relative border-l border-slate-100">
-                                        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-200">
-                                            <div className="space-y-8">
-                                                {/* Submission Meta */}
-                                                <div className="space-y-4">
-                                                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Submission Info</h4>
+                                    {/* Right Side: Professional Grading Panel */}
+                                    <div className="bg-slate-50/50 flex flex-col h-full min-h-0 lg:w-96 border-l border-slate-200">
 
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`p-2 rounded-lg ${getSubmissionTimeStyle(currentSubmission.submission?.submittedAt, task.deadline).split(' ')[0]}`}>
-                                                            <Clock className={`h-4 w-4 ${getSubmissionTimeStyle(currentSubmission.submission?.submittedAt, task.deadline).split(' ')[1]}`} />
+                                        <div className="flex-1 flex flex-col min-h-0 p-6">
+
+                                            {/* Minimalist Details Section */}
+                                            <div className="flex-shrink-0 mb-6 space-y-4">
+                                                <div>
+                                                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Submission Details</h3>
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        <div className="flex justify-between items-center group">
+                                                            <span className="text-sm text-slate-500 font-medium">Status</span>
+                                                            {(() => {
+                                                                const isRevised = currentSubmission.submission?.status === 'needs_revision';
+                                                                const isGraded = currentSubmission.submission?.grade !== undefined && currentSubmission.submission?.grade !== null;
+                                                                const isLate = new Date(currentSubmission.submission?.submittedAt) > new Date(task.deadline);
+
+                                                                let statusColor = 'bg-blue-100 text-blue-700 border-blue-200';
+                                                                let statusText = 'Submitted';
+
+                                                                if (isRevised) {
+                                                                    statusColor = 'bg-pink-100 text-pink-700 border-pink-200';
+                                                                    statusText = 'Needs Revision';
+                                                                } else if (isGraded) {
+                                                                    statusColor = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                                                                    statusText = 'Graded';
+                                                                } else if (isLate) {
+                                                                    statusColor = 'bg-red-100 text-red-700 border-red-200';
+                                                                    statusText = 'Late Submission';
+                                                                }
+
+                                                                return (
+                                                                    <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${statusColor}`}>
+                                                                        {statusText}
+                                                                    </span>
+                                                                );
+                                                            })()}
                                                         </div>
-                                                        <div>
-                                                            <p className="text-sm font-medium text-slate-900">{formatDate(currentSubmission.submission?.submittedAt)}</p>
-                                                            <p className="text-xs text-slate-500 mt-0.5">Submitted Date</p>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-sm text-slate-500 font-medium">Date</span>
+                                                            <span className="text-sm font-semibold text-slate-700 truncate">
+                                                                {formatDate(currentSubmission.submission?.submittedAt)}
+                                                            </span>
                                                         </div>
+                                                        {currentSubmission.submission?.revisedAt && (
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-sm text-slate-500 font-medium">Revised</span>
+                                                                <span className="text-sm font-semibold text-orange-600 truncate">
+                                                                    {formatDate(currentSubmission.submission?.revisedAt)}
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </div>
+                                                </div>
+                                                <div className="w-full h-px bg-slate-200"></div>
+                                            </div>
 
-                                                    {currentSubmission.submission?.revisedAt && (
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="p-2 rounded-lg bg-orange-50">
-                                                                <Edit2 className="h-4 w-4 text-orange-600" />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-sm font-medium text-slate-900">{formatDate(currentSubmission.submission?.revisedAt)}</p>
-                                                                <p className="text-xs text-slate-500 mt-0.5">Last Revised</p>
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                            {/* Grading Inputs */}
+                                            <div className="flex-1 flex flex-col min-h-0 gap-5">
+                                                <div className="flex-shrink-0">
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                                        Grade <span className="text-slate-400 font-normal normal-case">/ 100</span>
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        className="w-full px-3 py-2.5 rounded-md border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-sm font-semibold text-slate-900 bg-white placeholder-slate-400"
+                                                        placeholder="0"
+                                                        value={gradeData.grade}
+                                                        onChange={(e) => setGradeData({ ...gradeData, grade: e.target.value })}
+                                                    />
                                                 </div>
 
-                                                <div className="border-t border-slate-200/60"></div>
-
-                                                {/* Grade Input */}
-                                                <div>
-                                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                                        Score <span className="text-red-500">*</span>
-                                                    </label>
-                                                    <div className="relative">
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            max="100"
-                                                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-sm font-medium text-slate-900 placeholder-slate-300 bg-white shadow-sm"
-                                                            placeholder="0"
-                                                            value={gradeData.grade}
-                                                            onChange={(e) => setGradeData({ ...gradeData, grade: e.target.value })}
-                                                        />
-                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">
-                                                            /100
-                                                        </div>
+                                                <div className="flex-1 flex flex-col min-h-0">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Feedback</label>
+                                                        <span className="text-[10px] text-slate-400 bg-white border border-slate-200 px-1.5 py-0.5 rounded">Markdown</span>
                                                     </div>
-                                                </div>
-
-                                                {/* Feedback Input */}
-                                                <div>
-                                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                                        Feedback
-                                                    </label>
                                                     <textarea
-                                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white min-h-[120px] resize-none text-sm text-slate-800 placeholder-slate-400 shadow-sm"
-                                                        placeholder="Write your feedback here..."
+                                                        className="w-full flex-1 min-h-0 px-4 py-3 rounded-md border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white text-sm text-slate-700 placeholder-slate-400 resize-none leading-relaxed"
+                                                        placeholder="Write detailed feedback..."
                                                         value={gradeData.feedback}
                                                         onChange={(e) => setGradeData({ ...gradeData, feedback: e.target.value })}
                                                     />
@@ -790,40 +846,38 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                         </div>
 
                                         {/* Footer Actions */}
-                                        <div className="p-4 border-t border-slate-200/60 bg-slate-50 flex-shrink-0">
-                                            <div className="flex gap-3 justify-end">
+                                        <div className="p-6 pt-4 bg-white border-t border-slate-200 flex-shrink-0 z-20">
+                                            <div className="grid grid-cols-2 gap-3">
                                                 <button
                                                     type="button"
-                                                    onClick={() => setShowGradeModal(false)}
-                                                    className="px-5 py-2.5 rounded-xl text-slate-500 font-medium hover:text-slate-700 hover:bg-slate-100 transition-all text-sm"
+                                                    onClick={handleRequestRevision}
+                                                    disabled={saving || !gradeData.feedback}
+                                                    className="px-4 py-2.5 rounded-md text-orange-700 font-semibold bg-orange-50 hover:bg-orange-100 border border-orange-200 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
-                                                    Cancel
+                                                    <RefreshCw className="h-4 w-4" />
+                                                    Ask Revision
                                                 </button>
+
                                                 <button
+                                                    type="button"
                                                     onClick={handleSaveGrade}
                                                     disabled={saving}
-                                                    className="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-medium shadow-sm hover:bg-black hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 text-sm"
+                                                    className="px-4 py-2.5 bg-blue-600 text-white rounded-md font-semibold text-sm hover:bg-blue-700 transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
                                                 >
                                                     {saving ? (
-                                                        <>
-                                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                            Saving...
-                                                        </>
+                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                                     ) : (
-                                                        <>
-                                                            <Save className="h-4 w-4" />
-                                                            Save
-                                                        </>
+                                                        <Save className="h-4 w-4" />
                                                     )}
+                                                    Save Grade
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </motion.div >
-                        </div >
-                    )
-                    }
+                            </motion.div>
+                        </div>
+                    )}
                 </AnimatePresence>,
                 document.body
             )}

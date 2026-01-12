@@ -199,7 +199,8 @@ export default function Tasks() {
                 revisedAt: serverTimestamp(),
                 revisionCount: increment(1),
                 // We update submittedAt to current time to reflect the "latest" submission time for deadline checks
-                submittedAt: serverTimestamp()
+                submittedAt: serverTimestamp(),
+                status: 'submitted' // Reset status so teacher sees it as a new submission
             });
 
             showSuccess('Submission updated successfully!');
@@ -237,6 +238,9 @@ export default function Tasks() {
         const isOverdue = task.deadline ? new Date(task.deadline) < new Date() : false;
 
         if (submission) {
+            if (submission.status === 'needs_revision') {
+                return { label: 'Revision Needed', color: 'bg-pink-50 text-pink-700 border border-pink-100', icon: AlertCircle, type: 'revision' };
+            }
             if (submission.grade !== null && submission.grade !== undefined) {
                 return { label: 'Completed', color: 'bg-emerald-50 text-emerald-700 border border-emerald-100', icon: CheckCircle, type: 'graded' };
             }
@@ -253,7 +257,7 @@ export default function Tasks() {
             task.description.toLowerCase().includes(searchTerm.toLowerCase());
 
         let matchesFilter = true;
-        if (filterStatus === 'pending') matchesFilter = status.type === 'pending' || status.type === 'overdue';
+        if (filterStatus === 'pending') matchesFilter = status.type === 'pending' || status.type === 'overdue' || status.type === 'revision';
         if (filterStatus === 'submitted') matchesFilter = status.type === 'submitted';
         if (filterStatus === 'graded') matchesFilter = status.type === 'graded';
 
@@ -404,8 +408,13 @@ export default function Tasks() {
                                         // Graded -> White (Default)
                                         statusColor = "bg-white hover:bg-slate-50";
                                     } else if (submission) {
-                                        // Submitted -> White (Default, considered done by user)
-                                        statusColor = "bg-white hover:bg-slate-50";
+                                        if (submission.status === 'needs_revision') {
+                                            // Badges will be pink, keep row neutral or very subtle
+                                            statusColor = "bg-white hover:bg-slate-50";
+                                        } else {
+                                            // Submitted -> White (Default, considered done by user)
+                                            statusColor = "bg-white hover:bg-slate-50";
+                                        }
                                     } else {
                                         // Not Submitted
                                         statusColor = isOverdue ? "bg-red-50/70 hover:bg-red-50" : "bg-blue-50/70 hover:bg-blue-50";
@@ -427,7 +436,21 @@ export default function Tasks() {
                                     let infoDisplay = null;
                                     const deadlineDate = task.deadline ? new Date(task.deadline) : null;
 
-                                    if (submission && submission.submittedAt && deadlineDate) {
+                                    if (submission && submission.status === 'needs_revision') {
+                                        // Revision needed - PRIORITY CHECK
+                                        statusDisplay = (
+                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-pink-50 border border-pink-100">
+                                                <AlertCircle className="h-3.5 w-3.5 text-pink-600" />
+                                                <span className="text-xs font-bold text-pink-700">Revision</span>
+                                            </div>
+                                        );
+                                        infoDisplay = (
+                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-pink-50 border border-pink-100">
+                                                <Pencil className="h-3.5 w-3.5 text-pink-600" />
+                                                <span className="text-xs font-bold text-pink-700">Action Req.</span>
+                                            </div>
+                                        );
+                                    } else if (submission && submission.submittedAt && deadlineDate) {
                                         const submittedDate = submission.submittedAt.toDate();
                                         const diffMs = deadlineDate - submittedDate;
                                         const diffDays = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
@@ -634,6 +657,20 @@ export default function Tasks() {
                                                                             <Pencil className="h-4 w-4 text-blue-500" />
                                                                             Edit Answer
                                                                         </h4>
+
+                                                                        {/* Revision Request Alert - Edit Mode */}
+                                                                        {submission.status === 'needs_revision' && (
+                                                                            <div className="bg-pink-50 border border-pink-200 rounded-xl p-4 mb-4">
+                                                                                <div className="flex items-start gap-3">
+                                                                                    <AlertCircle className="h-5 w-5 text-pink-600 flex-shrink-0 mt-0.5" />
+                                                                                    <div>
+                                                                                        <h5 className="font-bold text-pink-900 text-sm mb-1">Teacher requested revision</h5>
+                                                                                        <p className="text-pink-800 text-sm whitespace-pre-wrap">{submission.feedback || 'Please revise your answer based on task requirements.'}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
                                                                         <textarea
                                                                             value={submissionText}
                                                                             onChange={(e) => setSubmissionText(e.target.value)}
@@ -672,6 +709,20 @@ export default function Tasks() {
                                                                     // VIEW MODE
                                                                     <>
                                                                         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+
+                                                                            {/* Revision Request Alert - View Mode (Top) */}
+                                                                            {!submission.grade && submission.status === 'needs_revision' && (
+                                                                                <div className="bg-pink-50 border border-pink-200 rounded-xl p-4 mb-5">
+                                                                                    <div className="flex items-start gap-3">
+                                                                                        <AlertCircle className="h-5 w-5 text-pink-600 flex-shrink-0 mt-0.5" />
+                                                                                        <div>
+                                                                                            <h5 className="font-bold text-pink-900 text-sm mb-1">Teacher requested revision</h5>
+                                                                                            <p className="text-pink-800 text-sm whitespace-pre-wrap">{submission.feedback || 'Please revise your answer based on task requirements.'}</p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+
                                                                             <div className="flex items-center gap-2 mb-3">
                                                                                 <CheckCircle className="h-5 w-5 text-green-500" />
                                                                                 <p className="text-sm font-bold text-slate-700">Your Answer</p>
@@ -702,11 +753,13 @@ export default function Tasks() {
                                                                                         </div>
                                                                                         <span className="text-sm font-bold text-emerald-700">Grade: {submission.grade}</span>
                                                                                     </div>
-                                                                                    {submission.teacherComment && (
-                                                                                        <p className="text-slate-600 text-sm italic">"{submission.teacherComment}"</p>
+                                                                                    {submission.feedback && (
+                                                                                        <p className="text-slate-600 text-sm italic">"{submission.feedback}"</p>
                                                                                     )}
                                                                                 </div>
                                                                             )}
+
+
                                                                         </div>
 
                                                                         {!submission.grade && (

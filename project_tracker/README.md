@@ -1,9 +1,29 @@
 # Project Tracker
 
-**Last Updated:** 2026-01-08  
-**Current Task:** ✅ Realtime Exam Status Implementation (Completed)  
-**Commit:** 322ef62
+## 🚀 [2026-01-12 | 12:15 - 12:30] Feature: Task Revision Workflow
 
+### Overview
+Implemented a "Request Revision" workflow allowing teachers to return assignments to students for feedback without grading them.
+
+### ✅ Key Features
+1.  **Teacher Side (`TaskDetail.jsx`)**:
+    *   Added "Request Revision" button in Grading Modal.
+    *   Added visual indicator for "Needs Revision" status in student list.
+    *   Logic to set `status: 'needs_revision'` and `grade: null`.
+
+2.  **Student Side (`Tasks.jsx`)**:
+    *   Added "Revision Needed" status badge.
+    *   Display teacher's feedback prominently in an alert box.
+    *   Logic to reset status to `'submitted'` when student updates their answer, ensuring teacher knows it's ready for re-review.
+
+3.  **Data Consistency**:
+    *   Standardized on `feedback` field (Student view now reads `feedback` instead of legacy `teacherComment`).
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/TaskDetail.jsx` | Added Revision UI & Logic, cleaned up modal footer |
+| `src/pages/student/Tasks.jsx` | Added Revision Badge, Feedback Alert, Status Reset on Update |
 
 ## 🎨 [2026-01-09 | 11:15 - 11:20] Grading Modal: Clean Look & Navigation
 
