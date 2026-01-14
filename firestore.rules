@@ -50,21 +50,19 @@ service cloud.firestore {
       allow delete: if request.auth != null && getUserRole() == 'teacher';
     }
     
-    // Exams collection - authenticated read, teacher write
+    // Exams collection - public read for guests
     match /exams/{examId} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow create: if request.auth != null && getUserRole() == 'teacher';
       allow update, delete: if request.auth != null && 
         getUserRole() == 'teacher' &&
         resource.data.createdBy == request.auth.uid;
     }
     
-    // Exam results collection - authenticated read, student write own
+    // Exam results collection - public create for guests
     match /exam_results/{resultId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null && 
-        getUserRole() == 'student' &&
-        request.resource.data.studentId == request.auth.uid;
+      allow create: if true;
       allow update: if request.auth != null && (
         (getUserRole() == 'student' && resource.data.studentId == request.auth.uid) ||
         (getUserRole() == 'teacher')
@@ -72,14 +70,11 @@ service cloud.firestore {
       allow delete: if request.auth != null && getUserRole() == 'teacher';
     }
     
-    // Exam sessions collection - authenticated read/write
+    // Exam sessions collection - public read/write for guests
     match /exam_sessions/{sessionId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && 
-        getUserRole() == 'student' &&
-        request.resource.data.studentId == request.auth.uid;
-      allow update: if request.auth != null && 
-        resource.data.studentId == request.auth.uid;
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
       allow delete: if request.auth != null && getUserRole() == 'teacher';
     }
   }

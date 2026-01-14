@@ -337,7 +337,8 @@ export default function ExamResults() {
 
     // 3. Merge & Process Data (Derived State)
     useEffect(() => {
-        const processedList = Object.values(studentMap).map(student => {
+        // 1. Process Registered Students
+        const processedRegistered = Object.values(studentMap).map(student => {
             // Find results for this student
             const studentResults = results.filter(r => r.studentId === student.id);
 
@@ -366,15 +367,85 @@ export default function ExamResults() {
                 latestAttempt: latest,
                 bestScore,
                 status,
-                activeSession // Pass it down if needed
+                activeSession,
+                isGuest: false
             };
         });
 
-        // Sort by Name
-        processedList.sort((a, b) => a.name.localeCompare(b.name));
-        setStudents(processedList);
+        // 2. Process Guests (Orphaned Results & Sessions)
+        const registeredIds = new Set(Object.keys(studentMap));
+        const guestMap = {};
 
-    }, [students, results, classMap, sessions]);
+        // Collect guests from Results
+        results.forEach(res => {
+            if (!registeredIds.has(res.studentId)) {
+                if (!guestMap[res.studentId]) {
+                    guestMap[res.studentId] = {
+                        id: res.studentId,
+                        name: res.guestName || 'Guest User',
+                        email: res.guestClass || 'Guest', // Display class as secondary info
+                        classId: 'guest',
+                        role: 'guest',
+                        isGuest: true,
+                        attempts: [],
+                        activeSession: null
+                    };
+                }
+                guestMap[res.studentId].attempts.push(res);
+            }
+        });
+
+        // Collect guests from Active Sessions (if no result yet)
+        sessions.forEach(sess => {
+            if (!registeredIds.has(sess.studentId)) {
+                if (!guestMap[sess.studentId]) {
+                    guestMap[sess.studentId] = {
+                        id: sess.studentId,
+                        name: sess.studentName || 'Guest User',
+                        email: 'Taking Exam...',
+                        classId: 'guest',
+                        role: 'guest',
+                        isGuest: true,
+                        attempts: [],
+                        activeSession: null
+                    };
+                }
+                guestMap[sess.studentId].activeSession = sess;
+            }
+        });
+
+        const processedGuests = Object.values(guestMap).map(guest => {
+            // Sort attempts
+            guest.attempts.sort((a, b) => (b.submittedAt?.toMillis() || 0) - (a.submittedAt?.toMillis() || 0));
+
+            const latest = guest.attempts[0];
+            const bestScore = guest.attempts.reduce((max, curr) => Math.max(max, curr.score), 0);
+
+            // Status Logic
+            let status = 'pending';
+            if (guest.activeSession) {
+                status = 'in_progress';
+            } else if (latest) {
+                if (latest.allowRetake) status = 'remedial';
+                else if (latest.gradingStatus === 'pending') status = 'grading_pending';
+                else status = 'completed';
+            }
+
+            return {
+                ...guest,
+                latestAttempt: latest,
+                bestScore,
+                status
+            };
+        });
+
+        const combinedList = [...processedRegistered, ...processedGuests];
+
+        // Sort by Name
+        combinedList.sort((a, b) => a.name.localeCompare(b.name));
+        setStudents(combinedList);
+
+    }, [results, classMap, sessions, studentMap]);
 
     // Handle sorting
     const handleSort = (column) => {
@@ -875,7 +946,14 @@ export default function ExamResults() {
                                                                 {student.name[0]}
                                                             </div>
                                                             <div>
-                                                                <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{student.name}</p>
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{student.name}</p>
+                                                                    {student.isGuest && (
+                                                                        <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-bold border border-purple-200 uppercase tracking-wide">
+                                                                            GUEST
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                                 <p className="text-xs text-slate-500">{student.email}</p>
                                                             </div>
                                                         </div>
@@ -884,7 +962,7 @@ export default function ExamResults() {
                                                     {/* Class */}
                                                     <td className="px-6 py-4">
                                                         <span className="inline-block px-3 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg">
-                                                            {classMap[student.classId]?.name || 'Unknown'}
+                                                            {classMap[student.classId]?.name || (student.isGuest ? 'Guest Access' : 'Unknown')}
                                                         </span>
                                                     </td>
 

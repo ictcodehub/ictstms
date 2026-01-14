@@ -44,7 +44,8 @@ export default function ExamEditor() {
         status: 'draft',
         randomizeQuestions: false,
         randomizeAnswers: false,
-        showResultToStudents: false
+        showResultToStudents: false,
+        isGuestAllowed: false
     });
 
     const [questions, setQuestions] = useState([]);
@@ -87,7 +88,8 @@ export default function ExamEditor() {
                         status: data.status,
                         randomizeQuestions: data.randomizeQuestions || false,
                         randomizeAnswers: data.randomizeAnswers || false,
-                        showResultToStudents: data.showResultToStudents || false
+                        showResultToStudents: data.showResultToStudents || false,
+                        isGuestAllowed: data.isGuestAllowed || false
                     });
                     setQuestions(data.questions || []);
                     if (data.questions && data.questions.length > 0) {
@@ -693,6 +695,49 @@ export default function ExamEditor() {
                                         className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                                     />
                                 </label>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-200">
+                                <h4 className="text-sm font-semibold text-slate-700 mb-2">Guest Access</h4>
+                                <label className="flex items-center justify-between p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <div>
+                                        <span className="text-sm font-medium text-slate-700">Enable Guest Access</span>
+                                        <p className="text-xs text-slate-500 mt-0.5">Allow students to take exam without login</p>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={examData.isGuestAllowed}
+                                        onChange={(e) => setExamData({ ...examData, isGuestAllowed: e.target.checked })}
+                                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </label>
+
+                                {examData.isGuestAllowed && id && (
+                                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                        <p className="text-xs font-semibold text-blue-700 mb-1">Public Guest Link:</p>
+                                        <div className="flex items-center gap-2">
+                                            <code className="text-xs bg-white px-2 py-1 rounded border border-blue-200 text-slate-600 flex-1 truncate">
+                                                {`${window.location.origin}/exam/guest/${id}`}
+                                            </code>
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(`${window.location.origin}/exam/guest/${id}`);
+                                                    toast.success("Link copied!");
+                                                }}
+                                                className="p-1 hover:bg-blue-100 rounded text-blue-600"
+                                                title="Copy Link"
+                                            >
+                                                <Copy className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                {examData.isGuestAllowed && !id && (
+                                    <p className="text-xs text-amber-600 mt-2 px-1">
+                                        <AlertCircle className="inline w-3 h-3 mr-1" />
+                                        Save exam first to generate guest link
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>

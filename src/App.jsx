@@ -17,6 +17,8 @@ const ExamReview = lazy(() => import('./pages/student/ExamReview'));
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const GuestExamEntry = lazy(() => import('./pages/guest/GuestExamEntry'));
+const ExamTaker = lazy(() => import('./pages/student/ExamTaker'));
 
 // Loading component for lazy loaded routes - matches auth loading screen
 const LoadingFallback = () => (
@@ -133,6 +135,10 @@ function AppContent({ splashMinTimeComplete, showSplash, setShowSplash }) {
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
+
+                  {/* Guest Routes */}
+                  <Route path="/exam/guest/:examId" element={<GuestExamEntry />} />
+                  <Route path="/exam/guest/:examId/start" element={<ExamTaker isGuest={true} />} />
 
                   {/* Teacher Routes */}
                   <Route path="/teacher/*" element={

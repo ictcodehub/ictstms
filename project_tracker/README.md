@@ -1,5 +1,41 @@
 # Project Tracker
 
+## 🚀 [2026-01-14 | 07:00 - 08:00] Feature: Guest Exam Access (Ujian Tamu)
+
+### Overview
+Implemented the "Guest Exam" feature, allowing students to take exams without logging in. This involves a new public entry point, guest session management, and modifications to the teacher dashboard to support guest results.
+
+### ✅ Key Features
+1.  **Teacher Side (`ExamEditor.jsx`, `ExamResults.jsx`)**:
+    *   **Enable Guest Access**: Toggle in Exam Editor settings.
+    *   **Public Link**: Generates a shareable public link (`/exam/guest/:id`).
+    *   **Guest Results**: Exam Results table now supports displaying guest submissions with a distinctive "GUEST" badge.
+
+2.  **Student/Guest Side (`GuestExamEntry.jsx`, `ExamTaker.jsx`)**:
+    *   **Guest Entry Page**: Public landing page to input Name and optional Class.
+    *   **Session Management**: Uses `localStorage` to persist guest sessions (resume support) without authentication.
+    *   **Isolation**: Exam Taker logic updated to strictly separate guest vs. authenticated user queries.
+
+3.  **Backend & Security**:
+    *   **Firestore Rules**: Updated `firestore.rules` to allow public read access for exams and public write access for sessions/results.
+    *   **Firebase Config**: Updated `firebase.json` to properly target firestore rules.
+
+### 🐛 Bug Fixes
+*   **Access Denied**: Fixed by deploying updated Firestore Rules.
+*   **"Failed to load exam"**: Fixed race condition in `ExamTaker.jsx` where guest users triggered authenticated verification queries.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/ExamEditor.jsx` | Added Guest Access toggle & Link generation |
+| `src/pages/teacher/ExamResults.jsx` | Added logic to display guest results & guest badges |
+| `src/pages/guest/GuestExamEntry.jsx` | [NEW] Public landing page for guests |
+| `src/pages/student/ExamTaker.jsx` | Refactored `loadExam` for guest isolation |
+| `firestore.rules` | Allowed public access for guest exams |
+| `src/App.jsx` | Added public routes |
+
+---
+
 ## 🚀 [2026-01-12 | 12:15 - 12:30] Feature: Task Revision Workflow
 
 ### Overview

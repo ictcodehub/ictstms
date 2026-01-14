@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,10 +27,18 @@ const useDebounce = (callback, delay) => {
     }, [callback, delay]);
 };
 
-export default function ExamTaker() {
+export default function ExamTaker({ isGuest = false }) {
     const { currentUser } = useAuth();
     const { examId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Guest User State
+    const [guestUser, setGuestUser] = useState(location.state?.guestUser || null);
+
+    // Determine Student ID and Name
+    const studentId = isGuest ? guestUser?.guestId : currentUser?.uid;
+    const studentName = isGuest ? guestUser?.name : (currentUser?.displayName || currentUser?.email);
 
     const [exam, setExam] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -158,16 +166,66 @@ export default function ExamTaker() {
     }, [currentQuestionWithShuffledOptions]);
 
     useEffect(() => {
+        // Guest Session Recovery
+        if (isGuest && !guestUser) {
+            const stored = localStorage.getItem(`guest_session_${examId}`);
+            if (stored) {
+                setGuestUser(JSON.parse(stored));
+            } else {
+                navigate(`/exam/guest/${examId}`);
+                return;
+            }
+        }
+
         const loadExam = async () => {
+            // For guest, wait for guestUser. For authenticated user, wait for studentId (uid)
+            if (isGuest && !guestUser) return;
+            if (!isGuest && !studentId) return;
+
             try {
                 const docRef = doc(db, 'exams', examId);
                 const docSnap = await getDoc(docRef);
+
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     setExam({ id: docSnap.id, ...data });
 
+                    // GUEST LOGIC
+                    if (isGuest) {
+                        // Check for existing session using guestId
+                        let session = null;
+                        if (guestUser?.guestId) {
+                            session = await getExamSession(examId, guestUser.guestId);
+                        }
+
+                        if (session) {
+                            // Resume logic similar to logged in user
+                            const remaining = calculateRemainingTime(session.expiresAt);
+                            if (remaining > 0) {
+                                setExistingSession(session);
+                                setSessionId(session.id);
+                                setAnswers(session.answers || {});
+                                setTimeLeft(remaining);
+                                setExpiresAt(session.expiresAt);
+                                setShowResumeModal(true);
+                            } else {
+                                // Expired
+                                setExistingSession(session);
+                                setSessionId(session.id);
+                                setAnswers(session.answers || {});
+                                setExpiresAt(session.expiresAt);
+                                setTimeUp(true);
+                            }
+                        } else {
+                            // Fresh start for guest
+                            setTimeLeft(data.duration * 60);
+                        }
+                        return; // Exit here for guest
+                    }
+
+                    // AUTHENTICATED USER LOGIC (Original Flow)
                     // Check for existing session
-                    const session = await getExamSession(examId, currentUser.uid);
+                    const session = await getExamSession(examId, studentId);
 
                     if (session) {
                         // Session exists - check if expired
@@ -194,7 +252,7 @@ export default function ExamTaker() {
                         const resultsQuery = query(
                             collection(db, 'exam_results'),
                             where('examId', '==', examId),
-                            where('studentId', '==', currentUser.uid)
+                            where('studentId', '==', studentId)
                         );
                         const resultsSnap = await getDocs(resultsQuery);
 
@@ -223,7 +281,7 @@ export default function ExamTaker() {
                                 });
                             }
 
-                            // Redirect to exams list after a short delay
+                            // Redirect
                             setTimeout(() => {
                                 navigate('/student/exams');
                             }, showAutoSubmitNotif ? 3000 : 1000);
@@ -234,7 +292,7 @@ export default function ExamTaker() {
                     }
                 } else {
                     toast.error("Exam not found");
-                    navigate('/student/exams');
+                    isGuest ? navigate(`/exam/guest/${examId}`) : navigate('/student/exams');
                 }
             } catch (error) {
                 console.error("Error loading exam:", error);
@@ -245,7 +303,7 @@ export default function ExamTaker() {
         };
 
         loadExam();
-    }, [examId, navigate, currentUser]);
+    }, [examId, navigate, currentUser, isGuest, studentId, guestUser]);
 
     // Auto-enter fullscreen when page loads
     useEffect(() => {
@@ -540,8 +598,8 @@ export default function ExamTaker() {
 
                 const newSessionId = await createExamSession(
                     examId,
-                    currentUser.uid,
-                    currentUser.displayName || currentUser.email, // Student name for teacher monitoring
+                    studentId,
+                    studentName, // Student name for teacher monitoring
                     exam.duration,
                     questionOrder,
                     answerOrders
@@ -769,7 +827,7 @@ export default function ExamTaker() {
             console.log('Exam paused successfully. New code generated:', newPauseCode);
             toast.success('Exam paused successfully!');
             exitFullscreen();
-            navigate('/student/exams');
+            isGuest ? navigate(`/exam/guest/${examId}`) : navigate('/student/exams');
         } catch (error) {
             console.error('Error pausing exam:', error);
             setPauseCodeError('Failed to pause exam. Please try again.');
@@ -793,7 +851,7 @@ export default function ExamTaker() {
             // Save result with violation flag
             await addDoc(collection(db, 'exam_results'), {
                 examId: exam.id,
-                studentId: currentUser.uid,
+                studentId: studentId,
                 answers: answers,
                 score: finalScore, // Current score (auto-graded only)
                 autoGradedScore: stats.autoPoints,
@@ -876,7 +934,9 @@ export default function ExamTaker() {
             console.log('Adding exam result to database');
             await addDoc(collection(db, 'exam_results'), {
                 examId: exam.id,
-                studentId: currentUser.uid,
+                studentId: studentId,
+                guestName: isGuest ? guestUser?.name : null,
+                guestClass: isGuest ? guestUser?.className : null,
                 answers: finalAnswers,
                 score: finalScore,
                 autoGradedScore: stats.autoPoints,
@@ -1014,7 +1074,7 @@ export default function ExamTaker() {
                         <button
                             onClick={() => {
                                 exitFullscreen();
-                                navigate('/student/exams');
+                                isGuest ? navigate(`/exam/guest/${examId}`) : navigate('/student/exams');
                             }}
                             className="px-6 py-4 border-2 border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition-all"
                         >
@@ -1056,7 +1116,7 @@ export default function ExamTaker() {
                         </div>
 
                         <button
-                            onClick={() => navigate('/student/exams')}
+                            onClick={() => isGuest ? navigate(`/exam/guest/${examId}`) : navigate('/student/exams')}
                             className="w-full py-4 bg-slate-600 hover:bg-slate-700 text-white rounded-xl font-bold shadow-lg transition-all text-lg"
                         >
                             Back to Exams
@@ -1106,7 +1166,7 @@ export default function ExamTaker() {
                     </button>
 
                     <button
-                        onClick={() => navigate('/student/exams')}
+                        onClick={() => isGuest ? navigate(`/exam/guest/${examId}`) : navigate('/student/exams')}
                         className="text-slate-400 font-medium hover:text-slate-600"
                     >
                         Cancel
