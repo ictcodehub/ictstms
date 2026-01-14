@@ -66,7 +66,7 @@ export default function Login() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
-                        className="bg-white/80 backdrop-blur-xl p-6 sm:p-7 xl:p-10 rounded-3xl shadow-2xl w-full max-w-md xl:max-w-lg 2xl:max-w-xl mb-2 sm:mb-3 xl:mb-6 relative z-10 border border-white/50"
+                        className="bg-white/80 backdrop-blur-xl p-6 sm:p-7 xl:p-10 rounded-3xl shadow-2xl w-full max-w-md xl:max-w-lg 2xl:max-w-xl mb-6 sm:mb-8 xl:mb-12 relative z-10 border border-white/50"
                     >
                         <div className="text-center mb-3 sm:mb-4 xl:mb-7">
                             <motion.img
