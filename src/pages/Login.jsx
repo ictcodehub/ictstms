@@ -55,7 +55,7 @@ export default function Login() {
     return (
         <div className="h-screen w-full overflow-hidden">
             <PullToRefresh onRefresh={() => window.location.reload()}>
-                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-blue-100 pt-16 pb-24 px-4 relative">
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-blue-100 py-3 sm:py-4 xl:py-8 px-4 relative">
                     {/* Decorative Background Elements */}
                     <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
                         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/20 rounded-full blur-3xl"></div>
@@ -66,28 +66,28 @@ export default function Login() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
-                        className="bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl w-full max-w-md relative z-10 border border-white/50"
+                        className="bg-white/80 backdrop-blur-xl p-6 sm:p-7 xl:p-10 rounded-3xl shadow-2xl w-full max-w-md xl:max-w-lg 2xl:max-w-xl mb-2 sm:mb-3 xl:mb-6 relative z-10 border border-white/50"
                     >
-                        <div className="text-center mb-8">
+                        <div className="text-center mb-3 sm:mb-4 xl:mb-7">
                             <motion.img
                                 src="/favicon.png"
                                 alt="Logo"
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
-                                className="w-24 h-24 mx-auto mb-6 rounded-xl"
+                                className="w-14 h-14 sm:w-16 sm:h-16 xl:w-24 xl:h-24 mx-auto mb-2 sm:mb-3 xl:mb-5 rounded-xl"
                             />
-                            <h2 className="text-3xl font-bold text-slate-800 mb-2">ICT Codehub</h2>
-                            <p className="text-slate-500">Learning Management System</p>
+                            <h2 className="text-xl sm:text-2xl xl:text-3xl font-bold text-slate-800 mb-1">ICT Codehub</h2>
+                            <p className="text-xs sm:text-sm xl:text-base text-slate-500">Learning Management System</p>
                         </div>
 
-                        <form onSubmit={handleLogin} className="space-y-6">
+                        <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4 xl:space-y-6">
                             {/* Inline validation error (Domain check) */}
                             {error && (
                                 <motion.div
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-red-50 text-red-600 p-3 rounded-xl flex items-center gap-2 text-sm border border-red-100"
+                                    className="bg-red-50 text-red-600 p-3 xl:p-4 rounded-xl flex items-center gap-2 text-sm xl:text-base border border-red-100"
                                 >
                                     <AlertCircle className="h-5 w-5 flex-shrink-0" />
                                     <p>{error}</p>
@@ -95,7 +95,7 @@ export default function Login() {
                             )}
 
                             <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-700 ml-1">Email</label>
+                                <label className="text-sm xl:text-base font-semibold text-gray-700 ml-1">Email</label>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                         <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -103,7 +103,7 @@ export default function Login() {
                                     <input
                                         type="email"
                                         required
-                                        className={`w-full pl-11 pr-4 py-3 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all group-hover:bg-white ${error ? 'border-red-300 focus:ring-red-200' : 'border-gray-200'}`}
+                                        className={`w-full pl-11 pr-4 py-3 xl:py-4 text-sm xl:text-base bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all group-hover:bg-white ${error ? 'border-red-300 focus:ring-red-200' : 'border-gray-200'}`}
                                         placeholder="email@mutiarabangsa.sch.id"
                                         value={email}
                                         onChange={(e) => {
@@ -120,7 +120,7 @@ export default function Login() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-700 ml-1">Password</label>
+                                <label className="text-sm xl:text-base font-semibold text-gray-700 ml-1">Password</label>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                         <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
@@ -128,7 +128,7 @@ export default function Login() {
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         required
-                                        className="w-full pl-11 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all group-hover:bg-white"
+                                        className="w-full pl-11 pr-12 py-3 xl:py-4 text-sm xl:text-base bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all group-hover:bg-white"
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
@@ -154,9 +154,9 @@ export default function Login() {
                                         checked={rememberMe}
                                         onChange={(e) => setRememberMe(e.target.checked)}
                                     />
-                                    <span className="text-sm text-slate-600 font-medium group-hover:text-blue-600 transition-colors">Remember Me</span>
+                                    <span className="text-sm xl:text-base text-slate-600 font-medium group-hover:text-blue-600 transition-colors">Remember Me</span>
                                 </label>
-                                <Link to="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline">
+                                <Link to="/forgot-password" className="text-sm xl:text-base font-medium text-blue-600 hover:text-blue-700 hover:underline">
                                     Forgot Password?
                                 </Link>
                             </div>
@@ -165,7 +165,7 @@ export default function Login() {
                                 disabled={isSubmitting}
                                 type="submit"
                                 style={{ backgroundColor: '#2563eb', color: 'white' }}
-                                className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                                className="w-full bg-blue-600 text-white py-3 xl:py-4 text-base xl:text-lg rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
                             >
                                 {isSubmitting ? (
                                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -177,7 +177,7 @@ export default function Login() {
                             </button>
                         </form>
 
-                        <div className="mt-8 text-center text-sm">
+                        <div className="mt-4 sm:mt-5 xl:mt-7 text-center text-sm xl:text-base">
                             <p className="text-gray-500">
                                 Don't have an account?{' '}
                                 <Link to="/register" className="font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors">
