@@ -40,6 +40,21 @@ Added explicit feedback when a teacher extends a deadline for an expired task, c
 |------|---------|
 | `src/pages/teacher/Tasks.jsx` | Added logic to detect deadline extension and show custom toast |
 
+## 🐛 [2026-01-14 | 08:40 - 08:45] Fix: Student Query Consistency
+
+### Overview
+Resolved a critical issue where students assigned via the new Multi-Class system (`classIds`) were not appearing in Task Detail or Class Statistics.
+
+### ✅ Key Fixes
+- **TaskDetail.jsx**: Updated student fetching logic to query both legacy `classId` and modern `classIds` array, ensuring all students are loaded.
+- **Classes.jsx**: Fixed the student count indicator in the sidebar to correctly count unique students from both fields.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/TaskDetail.jsx` | Implemented dual-query strategy for student list |
+| `src/pages/teacher/Classes.jsx` | Updated statistics calculation to support multi-class students |
+
 ---
 
 ## 🚀 [2026-01-14 | 07:00 - 08:00] Feature: Guest Exam Access (Ujian Tamu)

@@ -68,17 +68,39 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                     return;
                 }
 
-                // Get all students from assigned classes (one-time load)
-                const studentsQuery = query(
+                // Get all students from assigned classes (Legacy: classId field)
+                const legacyQuery = query(
                     collection(db, 'users'),
                     where('role', '==', 'student'),
                     where('classId', 'in', task.assignedClasses)
                 );
-                const studentsSnap = await getDocs(studentsQuery);
-                const studentsList = studentsSnap.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
+
+                // Get all students from assigned classes (Modern: classIds array)
+                const modernQuery = query(
+                    collection(db, 'users'),
+                    where('role', '==', 'student'),
+                    where('classIds', 'array-contains-any', task.assignedClasses)
+                );
+
+                const [legacySnap, modernSnap] = await Promise.all([
+                    getDocs(legacyQuery),
+                    getDocs(modernQuery)
+                ]);
+
+                // Merge results by ID to remove duplicates
+                const studentsMap = new Map();
+
+                legacySnap.docs.forEach(doc => {
+                    studentsMap.set(doc.id, { id: doc.id, ...doc.data() });
+                });
+
+                modernSnap.docs.forEach(doc => {
+                    if (!studentsMap.has(doc.id)) {
+                        studentsMap.set(doc.id, { id: doc.id, ...doc.data() });
+                    }
+                });
+
+                const studentsList = Array.from(studentsMap.values());
                 setStudents(studentsList);
 
                 // Setup real-time listener for submissions

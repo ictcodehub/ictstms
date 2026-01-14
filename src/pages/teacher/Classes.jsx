@@ -51,9 +51,25 @@ export default function Classes() {
             const stats = {};
             for (const cls of classesList) {
                 // Count students
-                const studentsSnap = await getDocs(
-                    query(collection(db, 'users'), where('role', '==', 'student'), where('classId', '==', cls.id))
-                );
+                // Count students (Support both legacy classId and new classIds)
+                const studentsLegacyQuery = query(collection(db, 'users'), where('role', '==', 'student'), where('classId', '==', cls.id));
+                const studentsModernQuery = query(collection(db, 'users'), where('role', '==', 'student'), where('classIds', 'array-contains', cls.id));
+
+                const [studentsLegacySnap, studentsModernSnap] = await Promise.all([
+                    getDocs(studentsLegacyQuery),
+                    getDocs(studentsModernQuery)
+                ]);
+
+                // Merge unique students
+                const uniqueStudentIds = new Set();
+                const studentsDocs = [];
+
+                [...studentsLegacySnap.docs, ...studentsModernSnap.docs].forEach(doc => {
+                    if (!uniqueStudentIds.has(doc.id)) {
+                        uniqueStudentIds.add(doc.id);
+                        studentsDocs.push(doc);
+                    }
+                });
 
                 // Count tasks - only tasks created by current teacher
                 const tasksSnap = await getDocs(
@@ -76,7 +92,7 @@ export default function Classes() {
                     const sub = subDoc.data();
                     if (sub.grade !== null && sub.grade !== undefined) {
                         // Check if student is in this class
-                        studentsSnap.forEach(studentDoc => {
+                        studentsDocs.forEach(studentDoc => {
                             if (studentDoc.data().uid === sub.studentId) {
                                 totalGrade += sub.grade;
                                 gradedCount++;
@@ -86,7 +102,7 @@ export default function Classes() {
                 });
 
                 stats[cls.id] = {
-                    studentCount: studentsSnap.size,
+                    studentCount: uniqueStudentIds.size,
                     taskCount: tasksSnap.size,
                     avgGrade: gradedCount > 0 ? (totalGrade / gradedCount).toFixed(1) : 0
                 };
