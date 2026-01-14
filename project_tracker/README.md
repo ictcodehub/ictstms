@@ -27,6 +27,19 @@ Refined the visual indicators for Exam types and implemented consistent paginati
 | `src/pages/teacher/Overview.jsx` | Added pagination logic & UI, updated exam activity icons |
 | `src/pages/teacher/Tasks.jsx` | Refactored pagination to match standard UI, localized text |
 
+## 🚀 [2026-01-14 | 08:31 - 08:35] Enhancement: Task Reactivation UX
+
+### Overview
+Added explicit feedback when a teacher extends a deadline for an expired task, confirming that the task has been reactivated.
+
+### ✅ Key Features
+- **Reactivation Notification**: When editing an overdue task and setting a future deadline, a specific success toast ("Task berhasil diperpanjang dan kembali Aktif! 🚀") appears instead of the generic save message.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/Tasks.jsx` | Added logic to detect deadline extension and show custom toast |
+
 ---
 
 ## 🚀 [2026-01-14 | 07:00 - 08:00] Feature: Guest Exam Access (Ujian Tamu)

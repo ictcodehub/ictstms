@@ -133,23 +133,31 @@ export default function Tasks() {
         setLoading(true);
         try {
             if (editingTask) {
+                // Check if task was overdue and is now being reactivated
+                const wasOverdue = isOverdue(editingTask.deadline);
+                const newDeadline = new Date(formData.deadline);
+                const isNowFuture = newDeadline > new Date();
+
                 await updateDoc(doc(db, 'tasks', editingTask.id), {
                     ...formData,
                     updatedAt: serverTimestamp()
                 });
+
+                if (wasOverdue && isNowFuture) {
+                    toast.success('Task berhasil diperpanjang dan kembali Aktif! 🚀');
+                } else {
+                    toast.success('Task berhasil diperbarui');
+                }
             } else {
                 await addDoc(collection(db, 'tasks'), {
                     ...formData,
                     createdBy: currentUser.uid,
                     createdAt: serverTimestamp()
                 });
+                toast.success('Task berhasil dibuat');
             }
             setShowModal(false);
             loadData();
-            toast.success('Task saved successfully!');
-        } catch (error) {
-            console.error('Error saving task:', error);
-            toast.error('Failed to save task');
         } finally {
             setLoading(false);
         }
