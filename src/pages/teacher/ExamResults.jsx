@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, User, Calendar, CheckCircle, XCircle, RefreshCw, FileText, Search, ChevronRight, Award, Trash2, Edit3, Save, AlertCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowLeft, User, Calendar, CheckCircle, XCircle, RefreshCw, FileText, Search, ChevronRight, Award, Trash2, Edit3, Save, AlertCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown, School, Hash } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { resetExamForAllClasses, resetExamForClass, resetExamForStudent } from '../../utils/examReset';
@@ -383,10 +383,12 @@ export default function ExamResults() {
                     guestMap[res.studentId] = {
                         id: res.studentId,
                         name: res.guestName || 'Guest User',
-                        email: res.guestClass || 'Guest', // Display class as secondary info
+                        email: res.guestClass || 'Guest', // Fallback
                         classId: 'guest',
                         role: 'guest',
                         isGuest: true,
+                        guestClass: res.guestClass,
+                        guestAbsen: res.guestAbsen,
                         attempts: [],
                         activeSession: null
                     };
@@ -406,6 +408,8 @@ export default function ExamResults() {
                         classId: 'guest',
                         role: 'guest',
                         isGuest: true,
+                        guestClass: sess.guestClass,
+                        guestAbsen: sess.guestAbsen, // Session might not have this unless we add it
                         attempts: [],
                         activeSession: null
                     };
@@ -658,7 +662,22 @@ export default function ExamResults() {
                             </div>
                             <div>
                                 <h2 className="text-2xl font-bold text-slate-800 mb-1">{student.name}</h2>
-                                <p className="text-slate-500 font-medium mb-3">{student.email}</p>
+                                {student.isGuest ? (
+                                    <div className="flex items-center gap-3 mb-3 text-slate-500 font-medium">
+                                        <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 text-sm">
+                                            <School className="w-3.5 h-3.5" />
+                                            {student.guestClass || 'Unknown Class'}
+                                        </span>
+                                        {student.guestAbsen && (
+                                            <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 text-sm">
+                                                <Hash className="w-3.5 h-3.5" />
+                                                Absen: {student.guestAbsen}
+                                            </span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p className="text-slate-500 font-medium mb-3">{student.email}</p>
+                                )}
                                 <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold border border-slate-200 uppercase tracking-wide">
                                     {student.attempts.length} Attempt{student.attempts.length > 1 ? 's' : ''}
                                 </span>

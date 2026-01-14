@@ -931,12 +931,30 @@ export default function ExamTaker({ isGuest = false }) {
                 await completeExamSession(sessionId, finalAnswers, finalScore);
             }
 
+            // GUEST SECURITY: Log attempt and lock browser
+            if (isGuest && guestUser) {
+                console.log('Logging guest attempt...');
+                await addDoc(collection(db, 'guest_attempts'), {
+                    examId: exam.id,
+                    name: guestUser.name.toLowerCase(),
+                    className: guestUser.className.toLowerCase(),
+                    absen: parseInt(guestUser.absen || 0),
+                    score: finalScore,
+                    submittedAt: serverTimestamp(),
+                    userAgent: navigator.userAgent
+                });
+
+                // Set browser lock
+                localStorage.setItem(`guest_completed_${exam.id}`, 'true');
+            }
+
             console.log('Adding exam result to database');
             await addDoc(collection(db, 'exam_results'), {
                 examId: exam.id,
                 studentId: studentId,
                 guestName: isGuest ? guestUser?.name : null,
                 guestClass: isGuest ? guestUser?.className : null,
+                guestAbsen: isGuest ? guestUser?.absen : null, // Add absen to result too
                 answers: finalAnswers,
                 score: finalScore,
                 autoGradedScore: stats.autoPoints,

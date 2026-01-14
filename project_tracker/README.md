@@ -55,6 +55,24 @@ Resolved a critical issue where students assigned via the new Multi-Class system
 | `src/pages/teacher/TaskDetail.jsx` | Implemented dual-query strategy for student list |
 | `src/pages/teacher/Classes.jsx` | Updated statistics calculation to support multi-class students |
 
+## 🛡️ [2026-01-14 | 08:50 - 09:00] Feature: Guest Exam Security (Triple Lock)
+
+### Overview
+Implemented a robust 3-layer security mechanism to prevent Guest students from submitting the same exam multiple times.
+
+### ✅ Security Layers
+1.  **Browser Lock**: Uses `localStorage` to flag device after submission. Blocks re-entry from the same browser.
+2.  **Identity Lock**: Checks `guest_attempts` database to see if "Name + Class" combination has already submitted.
+3.  **Anti-Spoof Lock**: Checks `guest_attempts` to see if "Absen Number + Class" is already used, preventing users from slightly altering their name to bypass checks.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `firestore.rules` | Added `guest_attempts` collection with public create/read but NO update/delete rules (Immutable). |
+| `src/pages/guest/GuestExamEntry.jsx` | Added Absen Dropdown and implemented the 3-layer pre-flight check logic. |
+| `src/pages/student/ExamTaker.jsx` | Updated submission logic to log attempts to `guest_attempts` and set local browser lock. |
+| `src/utils/examReset.js` | Updated reset logic to also delete `guest_attempts` records, allowing guests to retake exams after reset. |
+
 ---
 
 ## 🚀 [2026-01-14 | 07:00 - 08:00] Feature: Guest Exam Access (Ujian Tamu)

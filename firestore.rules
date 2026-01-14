@@ -77,5 +77,13 @@ service cloud.firestore {
       allow update: if true;
       allow delete: if request.auth != null && getUserRole() == 'teacher';
     }
+
+    // Guest attempts collection - Public Create/Read, No Update/Delete (Immutable Log)
+    match /guest_attempts/{attemptId} {
+      allow read: if true; // Public read to check for existing attempts
+      allow create: if true; // Public create to log new attempt
+      allow update: if false; // Immutable
+      allow delete: if request.auth != null && getUserRole() == 'teacher'; // Only teacher can reset
+    }
   }
 }
