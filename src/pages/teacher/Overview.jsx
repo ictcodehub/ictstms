@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { Users, BookOpen, ClipboardList, AlertCircle, Calendar, CheckCircle, Clock, UserPlus, Plus, ClipboardCheck } from 'lucide-react';
+import { Users, BookOpen, ClipboardList, AlertCircle, Calendar, CheckCircle, Clock, UserPlus, Plus, ClipboardCheck, Globe, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function TeacherOverview() {
     const { currentUser } = useAuth();
@@ -18,6 +18,8 @@ export default function TeacherOverview() {
     });
     const [recentActivities, setRecentActivities] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         if (currentUser) {
@@ -240,6 +242,7 @@ export default function TeacherOverview() {
                         timestamp: createdAt,
                         examTitle: exam.title,
                         examId: doc.id,
+                        isGuestAllowed: exam.isGuestAllowed,
                         initial: '📝'
                     });
                 }
@@ -248,8 +251,7 @@ export default function TeacherOverview() {
             // Sort all activities by timestamp (most recent first) and limit to 10
             const sortedActivities = allActivities
                 .filter(activity => activity.timestamp) // Filter out activities without timestamp
-                .sort((a, b) => b.timestamp - a.timestamp)
-                .slice(0, 10);
+                .sort((a, b) => b.timestamp - a.timestamp);
 
             setStats({
                 totalStudents: studentsSnap.size,
@@ -396,14 +398,28 @@ export default function TeacherOverview() {
                 );
             case 'new_exam':
                 return (
-                    <span className="text-xs bg-pink-100 text-pink-700 px-1.5 py-0.5 rounded font-semibold">
-                        Ujian
-                    </span>
+                    <div className="flex gap-1" title={activity.isGuestAllowed ? "Guest Access" : "Class Access"}>
+                        {activity.isGuestAllowed ? (
+                            <span className="p-1 bg-indigo-100 text-indigo-700 rounded-full">
+                                <Globe className="h-3 w-3" />
+                            </span>
+                        ) : (
+                            <span className="p-1 bg-pink-100 text-pink-700 rounded-full">
+                                <Users className="h-3 w-3" />
+                            </span>
+                        )}
+                    </div>
                 );
             default:
                 return null;
         }
     };
+
+    // Pagination Logic
+    const totalPages = Math.ceil(recentActivities.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentActivities = recentActivities.slice(startIndex, endIndex);
 
     return (
         <div className="space-y-8">
@@ -469,7 +485,7 @@ export default function TeacherOverview() {
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    {recentActivities.map((activity) => (
+                                    {currentActivities.map((activity) => (
                                         <motion.div
                                             key={activity.id}
                                             initial={{ opacity: 0, x: -20 }}
@@ -506,6 +522,60 @@ export default function TeacherOverview() {
                                             </div>
                                         </motion.div>
                                     ))}
+
+                                    {/* Pagination UI */}
+                                    {totalPages > 1 && (
+                                        <div className="pt-6 mt-4 border-t border-slate-100 flex items-center justify-between">
+                                            <div className="text-sm text-slate-500">
+                                                Showing <span className="font-bold text-slate-800">{startIndex + 1}</span> - <span className="font-bold text-slate-800">{Math.min(endIndex, recentActivities.length)}</span> of <span className="font-bold text-slate-800">{recentActivities.length}</span> activities
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                                    disabled={currentPage === 1}
+                                                    className="px-4 py-2 border border-slate-200 rounded-xl hover:bg-white hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm font-medium text-slate-600 bg-white"
+                                                >
+                                                    <ChevronLeft className="h-4 w-4" />
+                                                    Previous
+                                                </button>
+                                                <div className="flex items-center gap-1">
+                                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                                        let pageNum;
+                                                        if (totalPages <= 5) {
+                                                            pageNum = i + 1;
+                                                        } else if (currentPage <= 3) {
+                                                            pageNum = i + 1;
+                                                        } else if (currentPage >= totalPages - 2) {
+                                                            pageNum = totalPages - 4 + i;
+                                                        } else {
+                                                            pageNum = currentPage - 2 + i;
+                                                        }
+
+                                                        return (
+                                                            <button
+                                                                key={pageNum}
+                                                                onClick={() => setCurrentPage(pageNum)}
+                                                                className={`w-10 h-10 rounded-xl transition-all font-medium text-sm ${currentPage === pageNum
+                                                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                                                                    : 'text-slate-600 hover:bg-white bg-white hover:shadow-sm border border-slate-200'
+                                                                    }`}
+                                                            >
+                                                                {pageNum}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <button
+                                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                                    disabled={currentPage === totalPages}
+                                                    className="px-4 py-2 border border-slate-200 rounded-xl hover:bg-white hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm font-medium text-slate-600 bg-white"
+                                                >
+                                                    Next
+                                                    <ChevronRight className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

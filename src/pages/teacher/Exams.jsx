@@ -10,7 +10,9 @@ import {
     ClipboardCheck,
     Clock,
     Edit2,
-    Trash2
+    Trash2,
+    Globe,
+    Users
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -164,6 +166,7 @@ export default function Exams() {
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Detail Ujian</span>
                         </div>
                         <div className="flex items-center gap-8 pl-4">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[80px] text-center">Akses</span>
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[90px] text-center">Durasi</span>
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Status</span>
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[80px] text-center">Soal</span>
@@ -205,6 +208,19 @@ export default function Exams() {
 
                                 {/* Right Section: Info Columns */}
                                 <div className="flex items-center gap-8 pl-4">
+                                    {/* Access Badge Column */}
+                                    <div className="min-w-[80px] flex justify-center">
+                                        {exam.isGuestAllowed ? (
+                                            <div className="p-2 bg-indigo-50 rounded-full text-indigo-600 border border-indigo-100" title="Akses Tamu (Publik)">
+                                                <Globe className="h-4 w-4" />
+                                            </div>
+                                        ) : (
+                                            <div className="p-2 bg-pink-50 rounded-full text-pink-600 border border-pink-100" title="Akses Kelas (Siswa Terdaftar)">
+                                                <Users className="h-4 w-4" />
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {/* Duration */}
                                     <div className="min-w-[90px] text-center">
                                         <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600">

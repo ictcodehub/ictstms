@@ -1,5 +1,34 @@
 # Project Tracker
 
+## 🚀 [2026-01-14 | 08:00 - 08:30] Enhancement: Dashboard UI & Pagination
+
+### Overview
+Refined the visual indicators for Exam types and implemented consistent pagination across Teacher Dashboard pages (Overview and Tasks) to match the Students page design.
+
+### ✅ Key Features & Changes
+1.  **Icon-Only Badges (`Overview.jsx`, `Exams.jsx`)**:
+    *   Replaced text-based badges with clean icon-only indicators.
+    *   **Globe Icon (Indigo)**: Guest Exam (Public Access).
+    *   **Users Icon (Pink)**: Class Exam (Registered Students Only).
+    *   Added tooltips for clarity on hover.
+
+2.  **Pagination Implementation**:
+    *   **Overview Page**: Added pagination for "Recent Activities" list. Now shows all historical activities instead of just the latest 10.
+    *   **Tasks Page**: Implemented standard pagination (10 items/page) matching the design of the Students page, replacing the old standalone implementation.
+    *   **UI Consistency**: Unified the look and feel of pagination controls (Previous/Next buttons, page numbers, status text) across Students, Tasks, and Overview pages.
+
+3.  **Localization**:
+    *   Standardized pagination text to Indonesian ("Showing ... dari ...") to be consistent with the rest of the application.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/Exams.jsx` | Replaced text badges with Globe/Users icons in "Akses" column |
+| `src/pages/teacher/Overview.jsx` | Added pagination logic & UI, updated exam activity icons |
+| `src/pages/teacher/Tasks.jsx` | Refactored pagination to match standard UI, localized text |
+
+---
+
 ## 🚀 [2026-01-14 | 07:00 - 08:00] Feature: Guest Exam Access (Ujian Tamu)
 
 ### Overview
@@ -74,7 +103,7 @@ Complete visual overhaul of the Grading Modal to a "Clean Look" (SaaS-style mini
     *   **Typography**: Adjusted font sizes (Score input `text-sm`) for a professional dense feel.
 
 2.  **Navigation System**:
-    *   Added **Next/Previous** buttons in the modal header.
+    *   **Next/Previous** buttons in the modal header.
     *   Allows seamless switching between students without closing the modal.
     *   Respects current table sort/filter logic.
 
@@ -449,6 +478,81 @@ const sessionsQuery = query(
 2. **Start with** scoring logic in ExamTaker (`calculateScore()`)
 3. **Then** update submission logic (`confirmSubmit()`)
 4. **Finally** implement manual grading UI in ExamResults
+
+---
+
+## 💡 Key Design Decisions
+
+### Data Structure for Essay Answers
+
+```javascript
+// Question in exam
+{
+  type: 'essay',
+  text: "Explain...",
+  expectedAnswer: "Sample answer...",
+  points: 10,
+  options: []  // Empty for essay
+}
+
+// Student submission
+{
+  answers: [
+    {
+      questionId: "q1",
+      textAnswer: "Student's essay...",
+      score: null,  // Pending grading
+      maxScore: 10,
+      feedback: "",
+      gradedBy: null,
+      gradedAt: null
+    }
+  ],
+  autoGradedScore: 70,    // From MC questions
+  manualGradedScore: 0,   // Pending
+  totalScore: 70,
+  gradingStatus: 'pending'  // pending | partial | complete
+}
+```
+
+### Grading Workflow
+
+```
+Student submits exam
+  ↓
+Auto-grade MC/TF/Matching
+  ↓
+Essay questions marked as "Pending"
+  ↓
+Teacher opens ExamResults
+  ↓
+Manual grading interface appears
+  ↓
+Teacher enters score + feedback
+  ↓
+Total score updated
+  ↓
+Status changes to "complete"
+```
+
+---
+
+## ⚠️ Important Notes
+
+1. **Essay questions CANNOT be auto-graded** - always require manual teacher review
+2. **Partial scoring enabled by default** for MC questions (teachers can disable)
+3. **Expected Answer is optional** but highly recommended for consistency
+4. **showResultToStudents** controls whether students see expected answers after submission
+5. **Character limits** are enforced client-side (default: 500 for short answer)
+
+---
+
+## 🔗 Related Features (Future)
+
+- [ ] AI-Assisted Grading (using Gemini API)
+- [ ] Rubric-based scoring
+- [ ] Bulk grading interface
+- [ ] Export grades to Excel
 
 ---
 
