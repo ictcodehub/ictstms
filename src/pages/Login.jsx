@@ -99,7 +99,7 @@ export default function Login() {
                         <div
                             className="text-center"
                             style={{
-                                marginBottom: 'clamp(1rem, 3vh, 2.5rem)'
+                                marginBottom: 'clamp(1.25rem, 4vh, 3rem)' // More breathing room
                             }}
                         >
                             <motion.img
@@ -110,15 +110,15 @@ export default function Login() {
                                 transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
                                 className="mx-auto rounded-xl"
                                 style={{
-                                    width: 'clamp(56px, 12vw, 96px)',
-                                    height: 'clamp(56px, 12vw, 96px)',
-                                    marginBottom: 'clamp(0.5rem, 2vh, 1.5rem)'
+                                    width: 'clamp(72px, 15vw, 104px)', // 72px mobile → 104px desktop (reduced from 120px)
+                                    height: 'clamp(72px, 15vw, 104px)',
+                                    marginBottom: 'clamp(0.75rem, 2.5vh, 2rem)'
                                 }}
                             />
                             <h2
                                 className="font-bold text-slate-800 mb-1"
                                 style={{
-                                    fontSize: 'clamp(1.25rem, 4vw, 2rem)',
+                                    fontSize: 'clamp(1.75rem, 5vw, 2.5rem)', // Bigger: 28px → 40px (was 20px → 32px)
                                     lineHeight: '1.2'
                                 }}
                             >
@@ -127,7 +127,7 @@ export default function Login() {
                             <p
                                 className="text-slate-500"
                                 style={{
-                                    fontSize: 'clamp(0.75rem, 2vw, 1rem)'
+                                    fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)' // Bigger: 14px → 18px (was 12px → 16px)
                                 }}
                             >
                                 Learning Management System

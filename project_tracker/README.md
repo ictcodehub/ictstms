@@ -21,7 +21,13 @@ Complete refactor of login page to achieve **truly responsive** design that adap
    - Form gap: `clamp(0.75rem, 2.5vh, 1.5rem)` - vertical spacing scales smoothly
    - Section margins: `clamp(1rem, 3vh, 2.5rem)` - prevents crowding on any screen
 
-#### 3. **Adaptive Card Sizing**:
+#### 3. **Optimized Header Sizing**:
+   - **Logo**: `clamp(72px, 15vw, 104px)` - prominent on mobile, proportional on desktop
+   - **Title**: `clamp(1.75rem, 5vw, 2.5rem)` - 28px to 40px, bold and impactful
+   - **Subtitle**: `clamp(0.875rem, 2.5vw, 1.125rem)` - 14px to 18px, more readable
+   - **Spacing**: Increased margins for better visual hierarchy
+
+#### 4. **Adaptive Card Sizing**:
    - Card width: `clamp(320px, 90vw, 600px)` - never too small or too large
    - Card bottom margin: `clamp(3rem, 8vh, 5rem)` - balanced footer spacing
    - Maximum width adapts to viewport, not fixed breakpoints
