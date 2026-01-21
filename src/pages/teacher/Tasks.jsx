@@ -498,7 +498,7 @@ export default function Tasks() {
                                             </td>
                                             <td className="pl-1 pr-6 py-4">
                                                 <div className="max-w-md">
-                                                    <h3 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors mb-1">
+                                                    <h3 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors mb-1 truncate">
                                                         {task.title}
                                                     </h3>
                                                     <p className="text-xs text-slate-500 line-clamp-1 mb-2">
