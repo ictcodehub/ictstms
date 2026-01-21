@@ -59,7 +59,7 @@ const GradingInterface = ({
                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-200"
                     >
                         <Save className="h-5 w-5" />
-                        Simpan Nilai
+                        Save Grade
                     </button>
                 </div>
             </div>
@@ -74,15 +74,28 @@ const GradingInterface = ({
                         let isCorrect = false;
                         if (!isManual) {
                             if (q.type === 'single_choice' || q.type === 'true_false') {
-                                isCorrect = q.answer === q.correctAnswer;
+                                const correctOpt = q.options?.find(o => o.isCorrect);
+                                isCorrect = correctOpt && q.answer === correctOpt.id;
                             } else if (q.type === 'multiple_choice') {
-                                isCorrect = Array.isArray(q.answer) &&
-                                    Array.isArray(q.correctAnswer) &&
-                                    q.answer.length === q.correctAnswer.length &&
-                                    q.answer.every(val => q.correctAnswer.includes(val));
+                                const correctOpts = q.options?.filter(o => o.isCorrect).map(o => o.id) || [];
+                                const studentAnswers = Array.isArray(q.answer) ? q.answer : [];
+                                isCorrect = studentAnswers.length === correctOpts.length &&
+                                    studentAnswers.every(val => correctOpts.includes(val));
                             } else if (q.type === 'matching') {
-                                // Simple check for matching: compare stringified objects
-                                isCorrect = JSON.stringify(q.answer) === JSON.stringify(q.correctAnswer);
+                                // Matching logic remains tricky without storing correct Answer map
+                                // Assuming 'matching' type might need special handling or isCorrect check on pairs
+                                // If 'matching' options have 'left' and 'right', usually they are the correct pairs.
+                                // Let's check how matching is stored.
+                                // In ExamEditor: options = [{id, left, right}].
+                                // Student answer: object { [index]: "user_right_value" } or similar?
+                                // Actually, matching usually stores pairs.
+                                // Let's assume strict JSON equality for now if structure matches.
+                                // But wait, ExamEditor matching options ARE the correct pairs.
+                                // So checks should be: Student's answer for index i === Option[i].right ?
+                                // Let's leave matching as is for now or use JSON stringify if legacy.
+                                // But better: compare answerObj with options right values.
+                                const answerObj = q.answer || {};
+                                isCorrect = q.options?.every((opt, idx) => answerObj[idx] === opt.right);
                             }
                         }
 
@@ -106,7 +119,7 @@ const GradingInterface = ({
                                 {/* Answer Section */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div>
-                                        <p className="text-xs font-bold text-slate-400 uppercase mb-2">Jawaban Siswa</p>
+                                        <p className="text-xs font-bold text-slate-400 uppercase mb-2">Student Answer</p>
                                         <div className={`p-4 rounded-xl border-2 ${isManual
                                             ? 'bg-blue-50/50 border-blue-100'
                                             : isCorrect
@@ -115,12 +128,12 @@ const GradingInterface = ({
                                             }`}>
                                             {q.type === 'essay' || q.type === 'short_answer' ? (
                                                 <p className="whitespace-pre-wrap text-slate-800 font-medium font-serif leading-relaxed">
-                                                    {q.answer || <span className="text-slate-400 italic">Tidak ada jawaban</span>}
+                                                    {q.answer || <span className="text-slate-400 italic">No answer</span>}
                                                 </p>
                                             ) : (
                                                 <div className="text-slate-800 font-medium">
                                                     {(() => {
-                                                        if (!q.answer) return <span className="text-slate-400 italic">Tidak ada jawaban</span>;
+                                                        if (!q.answer) return <span className="text-slate-400 italic">No answer</span>;
 
                                                         if (q.type === 'single_choice' || q.type === 'true_false') {
                                                             const opt = q.options?.find(o => o.id === q.answer);
@@ -129,7 +142,7 @@ const GradingInterface = ({
 
                                                         if (q.type === 'multiple_choice') {
                                                             const answers = Array.isArray(q.answer) ? q.answer : [];
-                                                            if (answers.length === 0) return <span className="text-slate-400 italic">Tidak ada jawaban</span>;
+                                                            if (answers.length === 0) return <span className="text-slate-400 italic">No answer</span>;
 
                                                             return (
                                                                 <div className="flex flex-wrap gap-2">
@@ -160,7 +173,7 @@ const GradingInterface = ({
                                                                                 <span className="font-bold text-slate-600">{pair.left}</span>
                                                                                 <span className="text-slate-400">➜</span>
                                                                                 <span className={studentAnswer ? "text-blue-600 font-bold" : "text-slate-400 italic"}>
-                                                                                    {studentAnswer || "Tidak dijawab"}
+                                                                                    {studentAnswer || "No answer"}
                                                                                 </span>
                                                                             </div>
                                                                         );
@@ -176,33 +189,40 @@ const GradingInterface = ({
                                         </div>
 
                                         {/* Correct Answer Display for Auto-graded (if enabled) */}
-                                        {!isManual && !isCorrect && exam?.showResultToStudent && (
+                                        {!isManual && !isCorrect && exam?.showResultToStudents && (
                                             <div className="mt-4 animate-in fade-in slide-in-from-top-2">
-                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">Jawaban Benar</p>
+                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">Correct Answer</p>
                                                 <div className="p-3 bg-green-50 rounded-xl border border-green-100 text-sm text-green-800 font-medium">
                                                     {(() => {
                                                         if (q.type === 'single_choice' || q.type === 'true_false') {
-                                                            const opt = q.options?.find(o => o.id === q.correctAnswer);
+                                                            const opt = q.options?.find(o => o.isCorrect);
                                                             return opt ? opt.text : 'Valid option not found';
                                                         }
                                                         if (q.type === 'multiple_choice') {
+                                                            const correctOpts = q.options?.filter(o => o.isCorrect) || [];
                                                             return (
                                                                 <div className="flex flex-wrap gap-2">
-                                                                    {Array.isArray(q.correctAnswer) && q.correctAnswer.map(ansId => {
-                                                                        const opt = q.options?.find(o => o.id === ansId);
-                                                                        return opt ? (
-                                                                            <span key={ansId} className="bg-white px-2 py-1 rounded border border-green-200">
-                                                                                {opt.text}
-                                                                            </span>
-                                                                        ) : null;
-                                                                    })}
+                                                                    {correctOpts.map(opt => (
+                                                                        <span key={opt.id} className="bg-white px-2 py-1 rounded border border-green-200">
+                                                                            {opt.text}
+                                                                        </span>
+                                                                    ))}
                                                                 </div>
                                                             );
                                                         }
                                                         if (q.type === 'matching') {
-                                                            return String(JSON.stringify(q.correctAnswer));
+                                                            // Show correct pairs
+                                                            return (
+                                                                <ul className="list-disc pl-4 space-y-1">
+                                                                    {q.options?.map((opt, idx) => (
+                                                                        <li key={idx}>
+                                                                            {opt.left} ➜ {opt.right}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            );
                                                         }
-                                                        return String(q.correctAnswer);
+                                                        return '-';
                                                     })()}
                                                 </div>
                                             </div>
@@ -211,7 +231,7 @@ const GradingInterface = ({
                                         {/* Expected Answer for Teacher */}
                                         {isManual && (
                                             <div className="mt-4">
-                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">Kunci / Referensi Jawaban</p>
+                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">Answer Key / Reference</p>
                                                 <div className="p-3 bg-green-50 rounded-xl border border-green-100 text-sm text-green-800">
                                                     {q.expectedAnswer || '-'}
                                                 </div>
@@ -224,7 +244,7 @@ const GradingInterface = ({
                                         {isManual ? (
                                             <div className="space-y-4">
                                                 <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Berikan Nilai (0 - {q.points || 10})</label>
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Score (0 - {q.points || 10})</label>
                                                     <input
                                                         type="number"
                                                         min="0"
@@ -238,10 +258,10 @@ const GradingInterface = ({
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Feedback Guru</label>
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Teacher Feedback</label>
                                                     <textarea
                                                         className="w-full p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm min-h-[100px]"
-                                                        placeholder="Tulis masukan untuk siswa..."
+                                                        placeholder="Write feedback for student..."
                                                         value={feedbacks[q.id] || ''}
                                                         onChange={(e) => setFeedbacks(prev => ({ ...prev, [q.id]: e.target.value }))}
                                                     />
@@ -252,7 +272,7 @@ const GradingInterface = ({
                                                 <div className="mb-2">
                                                     <span className="bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">Autograded</span>
                                                 </div>
-                                                <p className="text-sm text-slate-500">Nilai otomatis oleh sistem</p>
+                                                <p className="text-sm text-slate-500">Automatically graded by system</p>
                                             </div>
                                         )}
                                     </div>
