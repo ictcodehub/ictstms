@@ -58,6 +58,13 @@ export default function Tasks() {
         }
     }, [location.state, tasks]);
 
+    // Reset view when clicking "Tasks" in sidebar (navigation without state)
+    useEffect(() => {
+        if (!location.state?.selectedTaskId) {
+            setSelectedTask(null);
+        }
+    }, [location]);
+
     const loadData = async () => {
         setLoading(true);
         try {

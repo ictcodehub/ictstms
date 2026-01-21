@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +13,7 @@ import TaskDetail from './TaskDetail';
 
 export default function Students() {
     const { currentUser } = useAuth();
+    const location = useLocation();
     const [students, setStudents] = useState([]);
     const [classesMap, setClassesMap] = useState({}); // id -> name mapping
     const [classesList, setClassesList] = useState([]); // full class objects for dropdown
@@ -40,6 +42,14 @@ export default function Students() {
             loadData();
         }
     }, [currentUser]);
+
+    // Reset view when clicking "Students" in sidebar
+    useEffect(() => {
+        if (!location.state?.selectedStudentId) {
+            setSelectedStudent(null);
+            setSelectedTask(null);
+        }
+    }, [location]);
 
     const loadData = async () => {
         setLoading(true);

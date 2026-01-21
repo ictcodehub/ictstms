@@ -136,6 +136,13 @@ export default function Classes() {
         }
     }, [location.state, classes]);
 
+    // Reset view when clicking "Classes" in sidebar
+    useEffect(() => {
+        if (!location.state?.selectedClassId) {
+            setSelectedClass(null);
+        }
+    }, [location]);
+
     const handleOpenModal = (cls = null) => {
         if (cls) {
             setEditingClass(cls);
