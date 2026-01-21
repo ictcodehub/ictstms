@@ -70,6 +70,22 @@ const GradingInterface = ({
                     {gradedQuestions.map((q, idx) => {
                         const isManual = q.type === 'essay' || q.type === 'short_answer';
 
+                        // Calculate correctness for auto-graded
+                        let isCorrect = false;
+                        if (!isManual) {
+                            if (q.type === 'single_choice' || q.type === 'true_false') {
+                                isCorrect = q.answer === q.correctAnswer;
+                            } else if (q.type === 'multiple_choice') {
+                                isCorrect = Array.isArray(q.answer) &&
+                                    Array.isArray(q.correctAnswer) &&
+                                    q.answer.length === q.correctAnswer.length &&
+                                    q.answer.every(val => q.correctAnswer.includes(val));
+                            } else if (q.type === 'matching') {
+                                // Simple check for matching: compare stringified objects
+                                isCorrect = JSON.stringify(q.answer) === JSON.stringify(q.correctAnswer);
+                            }
+                        }
+
                         return (
                             <div key={q.id} className={`bg-white rounded-2xl shadow-sm border-2 p-6 ${isManual ? 'border-blue-100' : 'border-slate-100'}`}>
                                 {/* Question Header */}
@@ -91,7 +107,12 @@ const GradingInterface = ({
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div>
                                         <p className="text-xs font-bold text-slate-400 uppercase mb-2">Jawaban Siswa</p>
-                                        <div className={`p-4 rounded-xl border-2 ${isManual ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
+                                        <div className={`p-4 rounded-xl border-2 ${isManual
+                                            ? 'bg-blue-50/50 border-blue-100'
+                                            : isCorrect
+                                                ? 'bg-green-50 border-green-100'
+                                                : 'bg-red-50 border-red-100'
+                                            }`}>
                                             {q.type === 'essay' || q.type === 'short_answer' ? (
                                                 <p className="whitespace-pre-wrap text-slate-800 font-medium font-serif leading-relaxed">
                                                     {q.answer || <span className="text-slate-400 italic">Tidak ada jawaban</span>}
@@ -153,6 +174,39 @@ const GradingInterface = ({
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* Correct Answer Display for Auto-graded (if enabled) */}
+                                        {!isManual && !isCorrect && exam?.showResultToStudent && (
+                                            <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                                                <p className="text-xs font-bold text-slate-400 uppercase mb-2">Jawaban Benar</p>
+                                                <div className="p-3 bg-green-50 rounded-xl border border-green-100 text-sm text-green-800 font-medium">
+                                                    {(() => {
+                                                        if (q.type === 'single_choice' || q.type === 'true_false') {
+                                                            const opt = q.options?.find(o => o.id === q.correctAnswer);
+                                                            return opt ? opt.text : 'Valid option not found';
+                                                        }
+                                                        if (q.type === 'multiple_choice') {
+                                                            return (
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {Array.isArray(q.correctAnswer) && q.correctAnswer.map(ansId => {
+                                                                        const opt = q.options?.find(o => o.id === ansId);
+                                                                        return opt ? (
+                                                                            <span key={ansId} className="bg-white px-2 py-1 rounded border border-green-200">
+                                                                                {opt.text}
+                                                                            </span>
+                                                                        ) : null;
+                                                                    })}
+                                                                </div>
+                                                            );
+                                                        }
+                                                        if (q.type === 'matching') {
+                                                            return String(JSON.stringify(q.correctAnswer));
+                                                        }
+                                                        return String(q.correctAnswer);
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* Expected Answer for Teacher */}
                                         {isManual && (
