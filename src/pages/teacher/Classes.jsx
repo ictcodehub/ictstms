@@ -136,12 +136,13 @@ export default function Classes() {
         }
     }, [location.state, classes]);
 
-    // Reset view when clicking "Classes" in sidebar
+    // Reset view when clicking "Classes" in sidebar - Select first class
     useEffect(() => {
-        if (!location.state?.selectedClassId) {
-            setSelectedClass(null);
+        if (!location.state?.selectedClassId && classes.length > 0) {
+            const sorted = sortClasses(classes);
+            setSelectedClass(sorted[0]);
         }
-    }, [location]);
+    }, [location, classes]);
 
     const handleOpenModal = (cls = null) => {
         if (cls) {
