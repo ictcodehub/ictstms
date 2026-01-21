@@ -175,9 +175,32 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                 status: 'graded'
             });
 
-            // Update local state is handled by real-time listener, but for immediate UI feedback:
-            setShowGradeModal(false);
             toast.success('Grade saved successfully!');
+
+            // Auto-navigate to next student needing grade
+            setTimeout(() => {
+                // Find students that need grading (submitted but not graded)
+                const needsGrading = sortedStudents.filter(s => {
+                    const submission = submissions[s.uid] || submissions[s.id];
+                    return submission && (submission.grade === undefined || submission.grade === null) && submission.status !== 'needs_revision';
+                });
+
+                // Get current student index in needsGrading array
+                const currentIndex = needsGrading.findIndex(s => s.id === currentSubmission.student.id);
+                const nextStudent = currentIndex >= 0 && currentIndex < needsGrading.length - 1
+                    ? needsGrading[currentIndex + 1]
+                    : null;
+
+                if (nextStudent) {
+                    // Auto-navigate to next student
+                    handleGradeClick(nextStudent);
+                    toast.success(`Moving to ${nextStudent.name}`, { duration: 2000 });
+                } else {
+                    // No more students to grade
+                    toast.success("All students graded! 🎉", { icon: '✅' });
+                    setShowGradeModal(false); // Close modal
+                }
+            }, 500);
         } catch (error) {
             console.error('Error saving grade:', error);
             toast.error('Failed to save grade: ' + error.message);

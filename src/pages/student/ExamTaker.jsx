@@ -1345,7 +1345,7 @@ export default function ExamTaker({ isGuest = false }) {
                                     <div className="flex-1 space-y-3">
                                         {/* Render Options based on Type */}
                                         {currentQ.type === 'single_choice' || currentQ.type === 'true_false' ? (
-                                            currentQ.options.map((opt, idx) => (
+                                            currentQ.options.filter(opt => opt.text && opt.text.trim() !== '').map((opt, idx) => (
                                                 <button
                                                     key={opt.id}
                                                     onClick={() => handleSingleChoice(currentQ.id, opt.id)}
@@ -1364,7 +1364,7 @@ export default function ExamTaker({ isGuest = false }) {
                                                 </button>
                                             ))
                                         ) : currentQ.type === 'multiple_choice' ? (
-                                            currentQ.options.map((opt, idx) => {
+                                            currentQ.options.filter(opt => opt.text && opt.text.trim() !== '').map((opt, idx) => {
                                                 const isSelected = (answers[currentQ.id] || []).includes(opt.id);
                                                 return (
                                                     <button

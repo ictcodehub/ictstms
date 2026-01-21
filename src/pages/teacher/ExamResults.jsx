@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, orderBy, onSnapshot, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, User, Calendar, CheckCircle, XCircle, RefreshCw, FileText, Search, ChevronRight, Award, Trash2, Edit3, Save, AlertCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown, School, Hash } from 'lucide-react';
+import { ArrowLeft, User, Calendar, CheckCircle, XCircle, RefreshCw, FileText, Search, ChevronRight, Award, Trash2, Edit3, Save, AlertCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown, School, Hash, CheckSquare, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { resetExamForAllClasses, resetExamForClass, resetExamForStudent } from '../../utils/examReset';
@@ -494,6 +494,21 @@ export default function ExamResults() {
         studentIds: null
     });
 
+    // Delete Modal State
+    const [deleteModal, setDeleteModal] = useState({
+        isOpen: false,
+        resultId: null,
+        resultIds: null, // For batch delete
+        studentName: null,
+        attemptNumber: null,
+        isBatch: false,
+        count: 0
+    });
+
+    // Batch Delete State
+    const [isBatchMode, setIsBatchMode] = useState(false);
+    const [selectedResults, setSelectedResults] = useState(new Set());
+
     const handleResetAll = () => setResetModal({
         isOpen: true, type: 'all', targetId: null, targetName: `semua kelas (${students.length} siswa)`, studentIds: null
     });
@@ -523,6 +538,48 @@ export default function ExamResults() {
         } catch (error) {
             console.error('Error resetting exam:', error);
             toast.error('Gagal reset ujian');
+        }
+    };
+
+    // Delete Single Result Handler
+    const handleDeleteResult = (resultId, studentName, attemptNum) => {
+        setDeleteModal({
+            isOpen: true,
+            resultId,
+            studentName,
+            attemptNumber: attemptNum
+        });
+    };
+
+    const confirmDeleteResult = async () => {
+        if (deleteModal.isBatch) {
+            // Batch delete
+            try {
+                const deletePromises = deleteModal.resultIds.map(id =>
+                    deleteDoc(doc(db, 'exam_results', id))
+                );
+                await Promise.all(deletePromises);
+
+                toast.success(`${deleteModal.count} hasil ujian berhasil dihapus`);
+                setDeleteModal({ isOpen: false, resultId: null, resultIds: null, studentName: null, attemptNumber: null, isBatch: false, count: 0 });
+                setSelectedResults(new Set());
+                setIsBatchMode(false);
+            } catch (error) {
+                console.error('Error batch deleting results:', error);
+                toast.error('Gagal menghapus beberapa hasil ujian');
+            }
+        } else {
+            // Single delete
+            if (!deleteModal.resultId) return;
+
+            try {
+                await deleteDoc(doc(db, 'exam_results', deleteModal.resultId));
+                toast.success('Hasil ujian berhasil dihapus');
+                setDeleteModal({ isOpen: false, resultId: null, resultIds: null, studentName: null, attemptNumber: null, isBatch: false, count: 0 });
+            } catch (error) {
+                console.error('Error deleting result:', error);
+                toast.error('Gagal menghapus hasil ujian');
+            }
         }
     };
 
@@ -777,6 +834,17 @@ export default function ExamResults() {
                                                         Review
                                                     </button>
 
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteResult(attempt.id, student.name, idx + 1);
+                                                        }}
+                                                        className="p-2 bg-white border border-red-200 text-red-500 rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors"
+                                                        title="Delete this attempt"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+
                                                     {idx === 0 && !attempt.allowRetake && (
                                                         <button
                                                             onClick={() => handleAllowRetake(attempt.id)}
@@ -874,6 +942,20 @@ export default function ExamResults() {
 
                         <div className="flex gap-2 w-full md:w-auto">
                             <button
+                                onClick={() => {
+                                    setIsBatchMode(!isBatchMode);
+                                    setSelectedResults(new Set());
+                                }}
+                                className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 font-bold rounded-xl transition-colors border text-sm ${isBatchMode
+                                    ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <CheckSquare className="h-4 w-4" />
+                                {isBatchMode ? 'Cancel Selection' : 'Batch Delete'}
+                            </button>
+
+                            <button
                                 onClick={handleResetAll}
                                 className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors border border-red-200 text-sm"
                             >
@@ -889,6 +971,23 @@ export default function ExamResults() {
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-slate-50 border-b border-slate-200">
                                     <tr className="text-xs uppercase tracking-wider text-slate-500">
+                                        {isBatchMode && (
+                                            <th className="px-6 py-4 font-bold">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedResults.size === filteredStudents.filter(s => s.latestAttempt).length && selectedResults.size > 0}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            const allIds = new Set(filteredStudents.filter(s => s.latestAttempt).map(s => s.latestAttempt.id));
+                                                            setSelectedResults(allIds);
+                                                        } else {
+                                                            setSelectedResults(new Set());
+                                                        }
+                                                    }}
+                                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                />
+                                            </th>
+                                        )}
                                         <th className="px-6 py-4 font-bold">No</th>
                                         <th className="px-6 py-4 font-bold cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('name')}>
                                             <div className="flex items-center gap-2">
@@ -955,6 +1054,28 @@ export default function ExamResults() {
                                                     onClick={() => setSelectedStudentId(student.id)}
                                                     className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
                                                 >
+                                                    {/* Checkbox */}
+                                                    {isBatchMode && (
+                                                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                                            {student.latestAttempt && (
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedResults.has(student.latestAttempt.id)}
+                                                                    onChange={(e) => {
+                                                                        const newSelected = new Set(selectedResults);
+                                                                        if (e.target.checked) {
+                                                                            newSelected.add(student.latestAttempt.id);
+                                                                        } else {
+                                                                            newSelected.delete(student.latestAttempt.id);
+                                                                        }
+                                                                        setSelectedResults(newSelected);
+                                                                    }}
+                                                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                                />
+                                                            )}
+                                                        </td>
+                                                    )}
+
                                                     {/* No */}
                                                     <td className="px-6 py-4 text-slate-500 text-sm">{idx + 1}</td>
 
@@ -1133,6 +1254,118 @@ export default function ExamResults() {
                             </div>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+
+            {/* Delete Confirmation Modal - Consistent with System Style */}
+            <AnimatePresence>
+                {deleteModal.isOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-lg max-w-md w-full shadow-2xl overflow-hidden"
+                        >
+                            {/* Red Header */}
+                            <div className="bg-red-600 px-6 py-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Trash2 className="h-5 w-5 text-white" />
+                                    <h3 className="text-lg font-bold text-white">
+                                        {deleteModal.isBatch
+                                            ? `Delete ${deleteModal.count} Exam Result${deleteModal.count > 1 ? 's' : ''}?`
+                                            : 'Delete Exam Result?'
+                                        }
+                                    </h3>
+                                </div>
+                                <button
+                                    onClick={() => setDeleteModal({ isOpen: false, resultId: null, resultIds: null, studentName: null, attemptNumber: null, isBatch: false, count: 0 })}
+                                    className="text-white hover:bg-red-700 p-1 rounded transition-colors"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-6">
+                                {/* WARNING Section */}
+                                <div className="mb-4">
+                                    <p className="text-red-600 font-bold text-sm mb-2">WARNING:</p>
+                                    <p className="text-gray-700 text-sm leading-relaxed mb-2">
+                                        {deleteModal.isBatch
+                                            ? `You are about to delete ${deleteModal.count} exam result${deleteModal.count > 1 ? 's' : ''} from multiple students.`
+                                            : `You are about to delete Attempt ${deleteModal.attemptNumber} from "${deleteModal.studentName}".`
+                                        }
+                                    </p>
+                                    <p className="text-gray-600 text-sm">
+                                        All student submissions for {deleteModal.isBatch ? 'these exams' : 'this exam'} will also be permanently deleted.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="px-6 pb-6 flex items-center justify-end gap-3">
+                                <button
+                                    onClick={() => setDeleteModal({ isOpen: false, resultId: null, resultIds: null, studentName: null, attemptNumber: null, isBatch: false, count: 0 })}
+                                    className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDeleteResult}
+                                    className="px-6 py-2.5 text-sm font-bold text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors shadow-sm flex items-center gap-2"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Yes, Delete
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Floating Action Bar for Batch Delete */}
+            <AnimatePresence>
+                {isBatchMode && selectedResults.size > 0 && (
+                    <motion.div
+                        initial={{ y: 100, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 100, opacity: 0 }}
+                        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+                    >
+                        <div className="bg-white rounded-full shadow-2xl border border-gray-200 px-6 py-4 flex items-center gap-6">
+                            <div className="flex items-center gap-2">
+                                <CheckCircle className="h-5 w-5 text-blue-600" />
+                                <span className="font-semibold text-gray-900">
+                                    {selectedResults.size} selected
+                                </span>
+                            </div>
+                            <div className="h-6 w-px bg-gray-300"></div>
+                            <button
+                                onClick={() => setSelectedResults(new Set())}
+                                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                            >
+                                Clear
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setDeleteModal({
+                                        isOpen: true,
+                                        isBatch: true,
+                                        resultIds: Array.from(selectedResults),
+                                        count: selectedResults.size,
+                                        resultId: null,
+                                        studentName: null,
+                                        attemptNumber: null
+                                    });
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full font-semibold transition-colors shadow-lg"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                                Delete Selected
+                            </button>
+                        </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </>

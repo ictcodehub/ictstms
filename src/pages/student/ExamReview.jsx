@@ -169,8 +169,8 @@ export default function ExamReview() {
                                             <div className="flex-shrink-0 ml-4">
                                                 {manualScore !== undefined ? (
                                                     <span className={`px-2 py-1 rounded-lg text-xs font-bold ${parseFloat(manualScore) >= (question.points || 10) / 2
-                                                            ? 'bg-green-50 text-green-700 border border-green-200'
-                                                            : 'bg-red-50 text-red-700 border border-red-200'
+                                                        ? 'bg-green-50 text-green-700 border border-green-200'
+                                                        : 'bg-red-50 text-red-700 border border-red-200'
                                                         }`}>
                                                         {manualScore} / {question.points || 10} Pts
                                                     </span>
@@ -245,7 +245,7 @@ export default function ExamReview() {
                                 {/* SINGLE / TRUE_FALSE */}
                                 {(question.type === 'single_choice' || question.type === 'true_false') && (
                                     <div className="space-y-2">
-                                        {question.options.map(opt => {
+                                        {question.options.filter(opt => opt.text && opt.text.trim() !== '').map(opt => {
                                             const isSelected = answer === opt.id;
                                             const isCorrect = opt.isCorrect;
 
@@ -276,7 +276,7 @@ export default function ExamReview() {
                                 {/* MULTIPLE CHOICE */}
                                 {question.type === 'multiple_choice' && (
                                     <div className="space-y-2">
-                                        {question.options.map(opt => {
+                                        {question.options.filter(opt => opt.text && opt.text.trim() !== '').map(opt => {
                                             const studentAnswers = Array.isArray(answer) ? answer : [];
                                             const isSelected = studentAnswers.includes(opt.id);
                                             const isCorrect = opt.isCorrect;
