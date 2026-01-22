@@ -1,5 +1,34 @@
 # Project Tracker
 
+
+## 🚀 [2026-01-21 | 14:00 - 18:00] Improvements: Grading UI & Navigation Fixes
+
+### Overview
+Focused on improving the Exam Grading experience with better visual feedback and auto-navigation. Also addressed several navigation and UI bugs in the sidebar and task list.
+
+### ✅ Key Features & Changes
+1. **Exam Grading Enhancements**:
+   - **Visual Feedback**: Added clear indicators for correct/incorrect answers during grading.
+   - **Auto-Navigation**: Smoother transitions between students/questions during grading.
+   - **Batch Delete**: Ability to delete multiple exams at once.
+   - **Localization**: Translated Grading Interface UI text to English.
+
+2. **UI/UX Fixes**:
+   - **Sidebar Navigation**:
+     - Fixed issue where navigation didn't reset correctly when clicking Students/Classes pages.
+     - Auto-selects the first class by default when clicking sidebar nav.
+   - **Task Titles**: Truncated long task titles to a single line to prevent layout breakage.
+
+### 📦 Git Commits
+- `700f113` - Refactor: Translate Grading Interface UI text to English
+- `3c3fd06` - Feat: Add visual feedback for correct/incorrect answers in Exam Grading
+- `56a1741` - Fix: Truncate long Task Titles to one line
+- `c6b1a7b` - Fix: Auto-select first class on sidebar nav click
+- `b452e29` - Fix: Navigation reset on sidebar click for Students and Classes pages
+- `7f30925` - Feat: Task Grading Auto-Nav & Exam Batch Delete
+
+---
+
 ## 🎨 [2026-01-15 | 10:35 - 11:00] Enhancement: Truly Responsive Login Page (Refactored)
 
 ### Overview
