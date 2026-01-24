@@ -9,6 +9,7 @@ import {
     Clock, Award, FileText, Filter, Ban, RefreshCw, X, Save, Edit2, Calendar, BookOpen, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, Paperclip, Download
 } from "lucide-react";
 import { LinkifiedText } from '../../utils/linkify';
+import DOMPurify from 'dompurify';
 
 export default function TaskDetail({ task, classes = [], onBack }) {
     const [students, setStudents] = useState([]);
@@ -787,9 +788,10 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                             <div className="min-h-full">
                                                 {currentSubmission.submission?.content ? (
                                                     <div className="prose prose-slate max-w-none">
-                                                        <div className="whitespace-pre-wrap text-slate-800 leading-normal text-sm font-normal break-words font-sans">
-                                                            <LinkifiedText text={currentSubmission.submission.content} />
-                                                        </div>
+                                                        <div
+                                                            className="text-slate-800 leading-relaxed text-sm break-words px-0 [&_ol]:!list-decimal [&_ul]:!list-disc [&_ol]:!pl-5 [&_ul]:!pl-5 [&_li]:!pl-1"
+                                                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentSubmission.submission.content) }}
+                                                        />
                                                     </div>
                                                 ) : (
                                                     <div className="flex flex-col items-center justify-center h-64 text-slate-400">

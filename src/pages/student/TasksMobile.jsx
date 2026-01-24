@@ -2,7 +2,23 @@ import { useState } from 'react';
 import FileUpload from '../../components/FileUpload';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Download, Edit, X, Save, Link2, ExternalLink, Upload, Video } from 'lucide-react';
-import { LinkifiedText } from '../../utils/linkify';
+// import { LinkifiedText } from '../../utils/linkify'; // No longer needed for HTML content
+import RichTextEditor from '../../components/RichTextEditor';
+import DOMPurify from 'dompurify';
+
+// Simplified Toolbar for Mobile
+const mobileModules = {
+    toolbar: [
+        ['bold', 'italic', 'underline'],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+        ['clean']
+    ],
+};
+
+const mobileFormats = [
+    'bold', 'italic', 'underline',
+    'list', 'bullet'
+];
 
 export default function TasksMobile({
     tasks,
@@ -35,17 +51,20 @@ export default function TasksMobile({
     };
 
     const onUpdate = async (taskId, submissionId) => {
-        // Pass editContent directly to handleUpdate to avoid dependency on parent state 'submissionText'
-        // We need to modify handleUpdate in Tasks.jsx to accept 'specificContent' OR use a separate mobile handler
-        // But since Tasks.jsx uses 'submissionText' state, we might have a conflict if we call it directly without updating that state
-        // ACTUALLY: handleUpdate in Tasks.jsx uses `submissionText` state.
-        // Option A: TasksMobile updates parent `submissionText` -> but TasksMobile has its own text.
-        // Option B: Update handleUpdate to accept optional content argument.
-
-        // Let's assume I will update Tasks.jsx handleUpdate as well to support this.
         await handleUpdate(taskId, submissionId, editContent);
         setEditingId(null);
         setEditContent('');
+    };
+
+    // Safe HTML Renderer
+    const SafeHTML = ({ content, className = "" }) => {
+        const sanitizedContent = DOMPurify.sanitize(content);
+        return (
+            <div
+                className={`prose prose - sm max - w - none text - slate - 700 leading - relaxed ql - editor px - 0[& _ol]: !list - decimal[& _ul]: !list - disc[& _ol]: !pl - 5[& _ul]: !pl - 5[& _li]: !pl - 1 ${className} `}
+                dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+            />
+        );
     };
 
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -107,7 +126,7 @@ export default function TasksMobile({
                 return (
                     <div key={task.id} className="space-y-4">
                         {/* Card Header */}
-                        <div className={`${cardBgColor} rounded-2xl border border-slate-200 shadow-sm`}>
+                        <div className={`${cardBgColor} rounded - 2xl border border - slate - 200 shadow - sm`}>
                             <div
                                 onClick={() => toggleExpand(task.id)}
                                 className="p-4 cursor-pointer active:bg-slate-50/50 transition-colors"
@@ -120,10 +139,10 @@ export default function TasksMobile({
                                     {statusBadge}
                                 </div>
 
-                                {/* Description - Clamped preview */}
+                                {/* Description - Clamped preview (Strip HTML for preview) */}
                                 {task.description && (
                                     <p className="text-xs text-slate-600 mb-3 line-clamp-2">
-                                        {task.description}
+                                        {task.description.replace(/<[^>]+>/g, '')}
                                     </p>
                                 )}
 
@@ -190,8 +209,8 @@ export default function TasksMobile({
                                                     <FileText className="h-4 w-4 text-blue-600" />
                                                     <span className="text-sm font-bold text-slate-800">Task Description</span>
                                                 </div>
-                                                <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed max-h-[300px] overflow-y-auto scrollbar-hide">
-                                                    <LinkifiedText text={task.description} />
+                                                <div className="text-sm text-slate-700 bg-white p-3 rounded-xl border border-slate-100">
+                                                    <SafeHTML content={task.description} />
                                                 </div>
                                             </div>
                                         )}
@@ -229,9 +248,9 @@ export default function TasksMobile({
                                                                     rel="noopener noreferrer"
                                                                     className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50"
                                                                 >
-                                                                    <div className={`p-2 rounded-lg flex-shrink-0 ${att.type === 'video' ? 'bg-pink-100 text-pink-600' :
+                                                                    <div className={`p - 2 rounded - lg flex - shrink - 0 ${att.type === 'video' ? 'bg-pink-100 text-pink-600' :
                                                                         'bg-orange-100 text-orange-600'
-                                                                        }`}>
+                                                                        } `}>
                                                                         {att.type === 'video' ? <Video className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
@@ -309,7 +328,7 @@ export default function TasksMobile({
                                                                 Last revised: {submission.revisedAt.toDate().toLocaleDateString('en-US', {
                                                                     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
                                                                 })}
-                                                                {submission.revisionCount > 0 && ` • Revised ${submission.revisionCount} time${submission.revisionCount > 1 ? 's' : ''}`}
+                                                                {submission.revisionCount > 0 && ` • Revised ${submission.revisionCount} time${submission.revisionCount > 1 ? 's' : ''} `}
                                                             </p>
                                                         )}
                                                     </div>
@@ -317,12 +336,15 @@ export default function TasksMobile({
 
                                                 {editingId === submission.id ? (
                                                     <div className="space-y-3">
-                                                        <textarea
-                                                            value={editContent}
-                                                            onChange={(e) => setEditContent(e.target.value)}
-                                                            className="w-full p-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                                            rows="4"
-                                                        />
+                                                        <div className="bg-white rounded-lg overflow-hidden border border-slate-300">
+                                                            <RichTextEditor
+                                                                value={editContent}
+                                                                onChange={setEditContent}
+                                                                placeholder="Update answer..."
+                                                                height={350}
+                                                                isMobile={true}
+                                                            />
+                                                        </div>
                                                         <div className="flex items-center gap-2">
                                                             <button
                                                                 onClick={() => onUpdate(task.id, submission.id)}
@@ -350,8 +372,8 @@ export default function TasksMobile({
                                                         {submission.content && (
                                                             <>
                                                                 <p className="text-xs font-semibold text-slate-700 mb-1">Answer:</p>
-                                                                <div className="text-xs text-slate-700 bg-white rounded-lg p-3 leading-relaxed whitespace-pre-wrap border border-slate-100 shadow-sm">
-                                                                    <LinkifiedText text={submission.content} />
+                                                                <div className="text-xs text-slate-700 bg-white rounded-lg p-3 leading-relaxed border border-slate-100 shadow-sm">
+                                                                    <SafeHTML content={submission.content} />
                                                                 </div>
                                                             </>
                                                         )}
@@ -388,12 +410,12 @@ export default function TasksMobile({
                                                     <div className="mt-3 pt-3 border-t border-emerald-200">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs font-semibold text-slate-700">Grade:</span>
-                                                            <span className={`text-base font-bold ${submission.grade >= 90 ? 'text-emerald-600' :
+                                                            <span className={`text - base font - bold ${submission.grade >= 90 ? 'text-emerald-600' :
                                                                 submission.grade >= 80 ? 'text-teal-600' :
                                                                     submission.grade >= 70 ? 'text-blue-600' :
                                                                         submission.grade >= 60 ? 'text-amber-600' :
                                                                             'text-red-600'
-                                                                }`}>
+                                                                } `}>
                                                                 {submission.grade}
                                                             </span>
                                                         </div>
@@ -430,14 +452,14 @@ export default function TasksMobile({
                                                     <div className="mb-2">
                                                         <input
                                                             type="file"
-                                                            id={`mobile-file-upload-${task.id}`}
+                                                            id={`mobile - file - upload - ${task.id} `}
                                                             className="hidden"
                                                             onChange={(e) => setFile(e.target.files[0])}
                                                         />
 
                                                         {!file ? (
                                                             <label
-                                                                htmlFor={`mobile-file-upload-${task.id}`}
+                                                                htmlFor={`mobile - file - upload - ${task.id} `}
                                                                 className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-600 text-sm font-bold hover:bg-slate-50 cursor-pointer transition-all shadow-sm w-full"
                                                             >
                                                                 <Upload className="h-4 w-4 text-slate-500" />
@@ -460,16 +482,16 @@ export default function TasksMobile({
                                                         )}
                                                     </div>
 
-                                                    <textarea
-                                                        placeholder="Add a comment (optional)"
-                                                        value={comment}
-                                                        onChange={(e) => setComment(e.target.value)}
-                                                        className="w-full p-3 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white resize-none"
-                                                        rows="3"
-                                                        disabled={isSubmitting}
-                                                    />
-
-
+                                                    <div className="bg-white rounded-lg overflow-hidden border border-slate-300">
+                                                        <RichTextEditor
+                                                            value={comment}
+                                                            onChange={setComment}
+                                                            placeholder="Add a comment or answer..."
+                                                            height={350}
+                                                            disabled={isSubmitting}
+                                                            isMobile={true}
+                                                        />
+                                                    </div>
 
                                                     <button
                                                         onClick={() => handleSubmit(task.id)}

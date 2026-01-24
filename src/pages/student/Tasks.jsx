@@ -11,6 +11,7 @@ import { useToast } from '../../hooks/useToast';
 import TasksMobile from './TasksMobile';
 import Pagination from '../../components/Pagination';
 import FileUpload from '../../components/FileUpload';
+import StudentTaskModal from './StudentTaskModal';
 
 export default function Tasks() {
     const { currentUser } = useAuth();
@@ -20,7 +21,8 @@ export default function Tasks() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(null);
     const [submissionText, setSubmissionText] = useState('');
-    const [expandedTask, setExpandedTask] = useState(null);
+
+    const [selectedTask, setSelectedTask] = useState(null);
     const [editingTask, setEditingTask] = useState(null); // Track which task is being edited
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
@@ -43,6 +45,20 @@ export default function Tasks() {
     const [file, setFile] = useState(null);
 
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+    // Sync selectedTask with real-time updates
+    useEffect(() => {
+        if (selectedTask) {
+            const updatedTask = tasks.find(t => t.id === selectedTask.id);
+            if (updatedTask) {
+                // Update selectedTask with the fresh object from the new tasks array
+                setSelectedTask(updatedTask);
+            } else {
+                // Task might have been deleted or unassigned
+                // Optional: handleCloseTask();
+            }
+        }
+    }, [tasks]);
 
     useEffect(() => {
         let unsubscribeSubmissions = null;
@@ -201,7 +217,13 @@ export default function Tasks() {
             setComment(''); // Clear mobile input too
             setFile(null);
             setSubmitting(null);
-            setExpandedTask(null);
+            setComment(''); // Clear mobile input too
+            setFile(null);
+            setSubmitting(null);
+            if (selectedTask && selectedTask.id === taskId) {
+                // Keep modal open or close? User usually expects to see result.
+                // Let's keep it open in "View Mode" as the logic handles render.
+            }
         } catch (error) {
             console.error('Error submitting task:', error);
             showError('Failed to submit task: ' + error.message);
@@ -250,13 +272,24 @@ export default function Tasks() {
         setSubmissionText('');
     };
 
-    const toggleExpand = (taskId) => {
-        if (expandedTask === taskId) {
-            setExpandedTask(null);
-        } else {
-            setExpandedTask(taskId);
-            setSubmissionText('');
+    const handleOpenTask = (task) => {
+        setSelectedTask(task);
+        // Pre-fill existing submission text if any
+        const submission = submissions[task.id];
+        if (submission && !submission.grade) {
+            // If they are revisiting a submitted task (not graded), maybe they want to see/edit it.
+            // But usually we just show view mode. Edit mode is triggered by button.
         }
+        setSubmissionText('');
+        setFile(null);
+        setEditingTask(null);
+    };
+
+    const handleCloseTask = () => {
+        setSelectedTask(null);
+        setSubmissionText('');
+        setFile(null);
+        setEditingTask(null);
     };
 
     const getTaskStatus = (task) => {
@@ -423,7 +456,7 @@ export default function Tasks() {
                                     const status = getTaskStatus(task);
                                     const submission = submissions[task.id];
                                     const isOverdue = task.deadline ? new Date(task.deadline) < new Date() : false;
-                                    const isExpanded = expandedTask === task.id;
+
                                     const isSubmitting = submitting === task.id;
 
                                     // Row background color based on status
@@ -584,7 +617,7 @@ export default function Tasks() {
                                     return (
                                         <div key={task.id} className="group">
                                             <div
-                                                onClick={() => toggleExpand(task.id)}
+                                                onClick={() => handleOpenTask(task)}
                                                 className={`flex items-center justify-between py-4 px-6 cursor-pointer transition-all ${statusColor}`}
                                             >
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -628,337 +661,33 @@ export default function Tasks() {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    {isExpanded ? <ChevronUp className="h-5 w-5 text-slate-400" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
+                                                    <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-slate-400" />
                                                 </div>
                                             </div>
-
-                                            <AnimatePresence>
-                                                {isExpanded && (
-                                                    <motion.div
-                                                        initial={{ height: 0, opacity: 0 }}
-                                                        animate={{ height: 'auto', opacity: 1 }}
-                                                        exit={{ height: 0, opacity: 0 }}
-                                                        className="bg-slate-50/50 border-t border-slate-100"
-                                                    >
-                                                        <div className="p-6 md:pl-[4.5rem]">
-                                                            <div className="mb-6">
-                                                                <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Description</h4>
-                                                                <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
-                                                                    <LinkifiedText text={task.description} />
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Resources/Links Section */}
-                                                            {task.resources && task.resources.length > 0 && (
-                                                                <div className="mb-6">
-                                                                    <div className="grid gap-2">
-                                                                        {task.resources.map((resource, idx) => (
-                                                                            <a
-                                                                                key={idx}
-                                                                                href={resource.url}
-                                                                                target="_blank"
-                                                                                rel="noopener noreferrer"
-                                                                                className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all group"
-                                                                                onClick={(e) => e.stopPropagation()}
-                                                                            >
-                                                                                <div className="bg-blue-500 p-2 rounded-lg">
-                                                                                    <Link2 className="h-4 w-4 text-white" />
-                                                                                </div>
-                                                                                <div className="flex-1 min-w-0">
-                                                                                    <p className="text-sm font-bold text-blue-900">{resource.title || 'Link'}</p>
-                                                                                    <p className="text-xs text-blue-600 truncate">{resource.url}</p>
-                                                                                </div>
-                                                                                <ExternalLink className="h-4 w-4 text-blue-600 group-hover:text-blue-700 flex-shrink-0" />
-                                                                            </a>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Teacher Attachments Section */}
-                                                            {/* Teacher Attachments Section - Updated for Inline Images */}
-                                                            {task.attachments && task.attachments.length > 0 && (
-                                                                <div className="mb-6">
-                                                                    <div className="grid gap-2">
-                                                                        {task.attachments.map((att, idx) => (
-                                                                            <div key={idx} className="group">
-                                                                                {att.type === 'image' ? (
-                                                                                    <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden mb-2">
-                                                                                        <div className="bg-slate-100 p-2 flex justify-center">
-                                                                                            <img
-                                                                                                src={att.url}
-                                                                                                alt={att.name}
-                                                                                                className="w-full md:w-auto md:max-w-2xl h-auto max-h-[400px] object-contain rounded-lg shadow-sm"
-                                                                                            />
-                                                                                        </div>
-                                                                                        <div className="px-3 py-2 bg-white border-t border-slate-100 flex justify-between items-center">
-                                                                                            <span className="text-xs font-bold text-slate-500 truncate">{att.name}</span>
-                                                                                            <a href={att.url} download target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-600 transition-colors" title="Download Image">
-                                                                                                <Download className="h-4 w-4" />
-                                                                                            </a>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    <a
-                                                                                        href={att.url}
-                                                                                        target="_blank"
-                                                                                        rel="noopener noreferrer"
-                                                                                        className="flex items-center gap-3 p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all group shadow-sm"
-                                                                                        onClick={(e) => e.stopPropagation()}
-                                                                                    >
-                                                                                        <div className={`p-2 rounded-lg ${att.type === 'video' ? 'bg-pink-100 text-pink-600' :
-                                                                                            'bg-orange-100 text-orange-600'
-                                                                                            }`}>
-                                                                                            {att.type === 'video' ? <Video className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
-                                                                                        </div>
-                                                                                        <div className="flex-1 min-w-0">
-                                                                                            <p className="text-sm font-bold text-slate-700">{att.name}</p>
-                                                                                            <div className="flex items-center gap-2">
-                                                                                                <span className="text-[10px] uppercase font-bold text-slate-500">{att.type || 'FILE'}</span>
-                                                                                                {att.size && <span className="text-[10px] text-slate-400">({(att.size / 1024).toFixed(0)} KB)</span>}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        <Download className="h-4 w-4 text-slate-400 group-hover:text-blue-600 flex-shrink-0 transition-colors" />
-                                                                                    </a>
-                                                                                )}
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            {submission ? (
-                                                                editingTask === task.id ? (
-                                                                    // EDIT MODE
-                                                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-                                                                        <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
-                                                                            <Pencil className="h-4 w-4 text-blue-500" />
-                                                                            Edit Answer
-                                                                        </h4>
-
-                                                                        {/* Revision Request Alert - Edit Mode */}
-                                                                        {submission.status === 'needs_revision' && (
-                                                                            <div className="bg-pink-50 border border-pink-200 rounded-xl p-4 mb-4">
-                                                                                <div className="flex items-start gap-3">
-                                                                                    <AlertCircle className="h-5 w-5 text-pink-600 flex-shrink-0 mt-0.5" />
-                                                                                    <div>
-                                                                                        <h5 className="font-bold text-pink-900 text-sm mb-1">Teacher requested revision</h5>
-                                                                                        <p className="text-pink-800 text-sm whitespace-pre-wrap">{submission.feedback || 'Please revise your answer based on task requirements.'}</p>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        )}
-
-                                                                        <textarea
-                                                                            value={submissionText}
-                                                                            onChange={(e) => setSubmissionText(e.target.value)}
-                                                                            placeholder="Update your answer..."
-                                                                            className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all min-h-[150px] text-sm mb-4"
-                                                                        />
-                                                                        <div className="flex justify-end gap-3">
-                                                                            <button
-                                                                                onClick={cancelEditing}
-                                                                                disabled={isSubmitting}
-                                                                                className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors flex items-center gap-2"
-                                                                            >
-                                                                                <X className="h-4 w-4" />
-                                                                                Cancel
-                                                                            </button>
-                                                                            <button
-                                                                                onClick={() => handleUpdate(task.id, submission.id)}
-                                                                                disabled={isSubmitting || !submissionText.trim()}
-                                                                                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                                                            >
-                                                                                {isSubmitting ? (
-                                                                                    <>
-                                                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                                                        Saving...
-                                                                                    </>
-                                                                                ) : (
-                                                                                    <>
-                                                                                        <Save className="h-4 w-4" />
-                                                                                        Save Revision
-                                                                                    </>
-                                                                                )}
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                ) : (
-                                                                    // VIEW MODE
-                                                                    <>
-                                                                        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-
-                                                                            {/* Revision Request Alert - View Mode (Top) */}
-                                                                            {!submission.grade && submission.status === 'needs_revision' && (
-                                                                                <div className="bg-pink-50 border border-pink-200 rounded-xl p-4 mb-5">
-                                                                                    <div className="flex items-start gap-3">
-                                                                                        <AlertCircle className="h-5 w-5 text-pink-600 flex-shrink-0 mt-0.5" />
-                                                                                        <div>
-                                                                                            <h5 className="font-bold text-pink-900 text-sm mb-1">Teacher requested revision</h5>
-                                                                                            <p className="text-pink-800 text-sm whitespace-pre-wrap">{submission.feedback || 'Please revise your answer based on task requirements.'}</p>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            )}
-
-                                                                            <div className="flex items-center gap-2 mb-3">
-                                                                                <CheckCircle className="h-5 w-5 text-green-500" />
-                                                                                <p className="text-sm font-bold text-slate-700">Your Answer</p>
-                                                                            </div>
-                                                                            <p className="text-slate-600 text-sm whitespace-pre-wrap mb-4 pl-7">
-                                                                                <LinkifiedText text={submission.content} />
-                                                                            </p>
-
-                                                                            {/* Submission Attachments */}
-                                                                            {submission.attachments && submission.attachments.length > 0 && (
-                                                                                <div className="mb-4 pl-7">
-                                                                                    <div className="flex flex-wrap gap-2">
-                                                                                        {submission.attachments.map((att, idx) => (
-                                                                                            <a
-                                                                                                key={idx}
-                                                                                                href={att.url}
-                                                                                                target="_blank"
-                                                                                                rel="noopener noreferrer"
-                                                                                                className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors group"
-                                                                                            >
-                                                                                                <div className="bg-white p-1 rounded-lg border border-slate-100">
-                                                                                                    <FileText className="h-4 w-4 text-blue-600" />
-                                                                                                </div>
-                                                                                                <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900">{att.name}</span>
-                                                                                                <span className="text-xs text-slate-400">({(att.size / 1024).toFixed(0)} KB)</span>
-                                                                                                <Download className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-500 ml-1" />
-                                                                                            </a>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                </div>
-                                                                            )}
-
-
-
-                                                                            {submission.revisedAt && (
-                                                                                <div className="pl-7 mb-2">
-                                                                                    <p className="text-xs text-slate-400 italic flex items-center gap-1">
-                                                                                        <Clock className="h-3 w-3" />
-                                                                                        Last revised: {submission.revisedAt.toDate().toLocaleDateString('en-US', {
-                                                                                            day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                                                                                        })}
-                                                                                        {submission.revisionCount > 0 && ` • Revised ${submission.revisionCount} time${submission.revisionCount > 1 ? 's' : ''}`}
-                                                                                    </p>
-                                                                                </div>
-                                                                            )}
-
-                                                                            {submission.grade !== null && submission.grade !== undefined && (
-                                                                                <div className="mt-4 pt-4 border-t border-slate-100 pl-7">
-                                                                                    <div className="flex items-center gap-2 mb-2">
-                                                                                        <div className="bg-emerald-100 p-1 rounded">
-                                                                                            <CheckCircle className="h-4 w-4 text-emerald-600" />
-                                                                                        </div>
-                                                                                        <span className="text-sm font-bold text-emerald-700">Grade: {submission.grade}</span>
-                                                                                    </div>
-                                                                                    {submission.feedback && (
-                                                                                        <p className="text-slate-600 text-sm italic">"{submission.feedback}"</p>
-                                                                                    )}
-                                                                                </div>
-                                                                            )}
-
-
-                                                                        </div>
-
-                                                                        {!submission.grade && (
-                                                                            <div className="flex justify-end mt-4">
-                                                                                <button
-                                                                                    onClick={() => startEditing(task, submission)}
-                                                                                    className="px-6 py-2.5 bg-amber-500 text-white rounded-xl font-bold text-sm hover:bg-amber-600 transition-colors flex items-center gap-2"
-                                                                                >
-                                                                                    <Pencil className="h-4 w-4" />
-                                                                                    Edit Answer
-                                                                                </button>
-                                                                            </div>
-                                                                        )}
-                                                                    </>
-                                                                )
-                                                            ) : (
-                                                                <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-                                                                    <h4 className="text-sm font-bold text-slate-700 mb-3">Submit Task</h4>
-                                                                    {task.submissionInstructions && (
-                                                                        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
-                                                                            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                                                                            <div>
-                                                                                <p className="text-xs font-bold text-amber-900 mb-1">Submission Instructions:</p>
-                                                                                <p className="text-xs text-amber-800 whitespace-pre-wrap">{task.submissionInstructions}</p>
-                                                                            </div>
-                                                                        </div>
-                                                                    )}
-
-                                                                    <div className="mb-4">
-                                                                        <input
-                                                                            type="file"
-                                                                            id={`file-upload-${task.id}`}
-                                                                            className="hidden"
-                                                                            onChange={(e) => setFile(e.target.files[0])}
-                                                                        />
-
-                                                                        {!file ? (
-                                                                            <label
-                                                                                htmlFor={`file-upload-${task.id}`}
-                                                                                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 text-sm font-bold hover:bg-slate-50 cursor-pointer transition-all shadow-sm"
-                                                                            >
-                                                                                <Upload className="h-4 w-4 text-slate-500" />
-                                                                                Attach File
-                                                                            </label>
-                                                                        ) : (
-                                                                            <div className="flex items-center gap-2 p-2 px-3 bg-blue-50 border border-blue-200 rounded-lg inline-flex max-w-full">
-                                                                                <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                                                                                <span className="text-sm text-blue-800 font-medium truncate max-w-[200px]">{file.name}</span>
-                                                                                <button
-                                                                                    onClick={(e) => {
-                                                                                        e.preventDefault();
-                                                                                        setFile(null);
-                                                                                    }}
-                                                                                    className="p-1 hover:bg-blue-100 rounded-md text-blue-400 hover:text-red-500 transition-colors ml-1"
-                                                                                >
-                                                                                    <X className="h-3 w-3" />
-                                                                                </button>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-
-                                                                    <textarea
-                                                                        value={submissionText}
-                                                                        onChange={(e) => setSubmissionText(e.target.value)}
-                                                                        placeholder="Write your answer here..."
-                                                                        className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all min-h-[150px] text-sm mb-4"
-                                                                    />
-                                                                    <div className="flex justify-end">
-                                                                        <button
-                                                                            onClick={() => handleSubmit(task.id)}
-                                                                            disabled={isSubmitting || !submissionText.trim()}
-                                                                            className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                                                        >
-                                                                            {isSubmitting ? (
-                                                                                <>
-                                                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                                                    Submitting...
-                                                                                </>
-                                                                            ) : (
-                                                                                <>
-                                                                                    <Send className="h-4 w-4" />
-                                                                                    Submit Answer
-                                                                                </>
-                                                                            )}
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
                                         </div>
                                     );
                                 });
                             })()}
-                        </div>
+                        </div >
+                        {/* Task Modal - Desktop */}
+                        {selectedTask && (
+                            <StudentTaskModal
+                                task={selectedTask}
+                                onClose={handleCloseTask}
+                                submission={submissions[selectedTask.id]}
+                                onSubmit={handleSubmit}
+                                onUpdate={handleUpdate}
+                                isSubmitting={submitting === selectedTask.id}
+                                submissionText={submissionText}
+                                setSubmissionText={setSubmissionText}
+                                file={file}
+                                setFile={setFile}
+                                editingTask={editingTask}
+                                startEditing={startEditing}
+                                cancelEditing={cancelEditing}
+                            />
+                        )}
+
                         {/* MOBILE VIEW - Separate Component */}
                         <div className="md:hidden">
                             <TasksMobile
@@ -966,13 +695,16 @@ export default function Tasks() {
                                 submissions={submissions}
                                 currentPage={currentPage}
                                 itemsPerPage={itemsPerPage}
-                                expandedTask={expandedTask}
+                                expandedTask={selectedTask ? selectedTask.id : null}
                                 submitting={submitting}
                                 comment={comment}
                                 setComment={setComment}
                                 file={file}
                                 setFile={setFile}
-                                toggleExpand={toggleExpand}
+                                toggleExpand={(taskId) => {
+                                    const task = tasks.find(t => t.id === taskId);
+                                    if (task) handleOpenTask(task);
+                                }}
                                 handleSubmit={handleSubmit}
                                 handleUpdate={handleUpdate}
                                 setCurrentPage={setCurrentPage}
@@ -980,23 +712,26 @@ export default function Tasks() {
                         </div>
 
                         {/* Pagination Footer */}
-                        {(() => {
-                            const totalItems = filteredTasks.length;
-                            const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+                        {
+                            (() => {
+                                const totalItems = filteredTasks.length;
+                                const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
-                            return (
-                                <div className="bg-white px-6 py-5 border-t border-slate-200">
-                                    <Pagination
-                                        currentPage={currentPage}
-                                        totalPages={totalPages}
-                                        onPageChange={setCurrentPage}
-                                    />
-                                </div>
-                            );
-                        })()}
-                    </div>
-                )}
-            </div>
+                                return (
+                                    <div className="bg-white px-6 py-5 border-t border-slate-200">
+                                        <Pagination
+                                            currentPage={currentPage}
+                                            totalPages={totalPages}
+                                            onPageChange={setCurrentPage}
+                                        />
+                                    </div>
+                                );
+                            })()
+                        }
+                    </div >
+                )
+                }
+            </div >
         </>
     );
 }
