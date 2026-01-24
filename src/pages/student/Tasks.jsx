@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { db } from '../../lib/firebase';
+import { db, storage } from '../../lib/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, onSnapshot, increment } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LinkifiedText } from '../../utils/linkify';
-import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Search, Filter, Hourglass, Pencil, X, Save, ChevronLeft, ChevronRight, Trophy, Upload, Download, Link2, ExternalLink } from 'lucide-react';
+import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Search, Filter, Hourglass, Pencil, X, Save, ChevronLeft, ChevronRight, Trophy, Upload, Download, Link2, ExternalLink, Image as ImageIcon, Video } from 'lucide-react';
 import ToastContainer from '../../components/ToastContainer';
 import { useToast } from '../../hooks/useToast';
 import TasksMobile from './TasksMobile';
 import Pagination from '../../components/Pagination';
+import FileUpload from '../../components/FileUpload';
 
 export default function Tasks() {
     const { currentUser } = useAuth();
@@ -38,6 +40,7 @@ export default function Tasks() {
 
     // Mobile submission states
     const [comment, setComment] = useState('');
+    const [file, setFile] = useState(null);
 
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -161,6 +164,27 @@ export default function Tasks() {
             const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', currentUser.uid)));
             const userData = userDoc.docs[0].data();
 
+            let attachments = [];
+            if (file) {
+                try {
+                    const storageRef = ref(storage, `task_submissions/${taskId}/${currentUser.uid}/${file.name}`);
+                    const snapshot = await uploadBytes(storageRef, file);
+                    const downloadURL = await getDownloadURL(snapshot.ref);
+
+                    attachments.push({
+                        name: file.name,
+                        url: downloadURL,
+                        type: file.type,
+                        size: file.size,
+                        uploadedAt: new Date().toISOString()
+                    });
+                } catch (uploadError) {
+                    console.error("File upload failed:", uploadError);
+                    showError("File upload failed, but proceeding with text submission.");
+                    // Optional: return here if file is mandatory
+                }
+            }
+
             await addDoc(collection(db, 'submissions'), {
                 taskId,
                 studentId: currentUser.uid,
@@ -168,12 +192,14 @@ export default function Tasks() {
                 content: content,
                 submittedAt: serverTimestamp(),
                 grade: null,
-                teacherComment: ''
+                teacherComment: '',
+                attachments: attachments
             });
 
             showSuccess('Task submitted successfully!');
             setSubmissionText('');
             setComment(''); // Clear mobile input too
+            setFile(null);
             setSubmitting(null);
             setExpandedTask(null);
         } catch (error) {
@@ -649,6 +675,58 @@ export default function Tasks() {
                                                                 </div>
                                                             )}
 
+                                                            {/* Teacher Attachments Section */}
+                                                            {/* Teacher Attachments Section - Updated for Inline Images */}
+                                                            {task.attachments && task.attachments.length > 0 && (
+                                                                <div className="mb-6">
+                                                                    <div className="grid gap-2">
+                                                                        {task.attachments.map((att, idx) => (
+                                                                            <div key={idx} className="group">
+                                                                                {att.type === 'image' ? (
+                                                                                    <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden mb-2">
+                                                                                        <div className="bg-slate-100 p-2 flex justify-center">
+                                                                                            <img
+                                                                                                src={att.url}
+                                                                                                alt={att.name}
+                                                                                                className="w-full md:w-auto md:max-w-2xl h-auto max-h-[400px] object-contain rounded-lg shadow-sm"
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div className="px-3 py-2 bg-white border-t border-slate-100 flex justify-between items-center">
+                                                                                            <span className="text-xs font-bold text-slate-500 truncate">{att.name}</span>
+                                                                                            <a href={att.url} download target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-600 transition-colors" title="Download Image">
+                                                                                                <Download className="h-4 w-4" />
+                                                                                            </a>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <a
+                                                                                        href={att.url}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="flex items-center gap-3 p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all group shadow-sm"
+                                                                                        onClick={(e) => e.stopPropagation()}
+                                                                                    >
+                                                                                        <div className={`p-2 rounded-lg ${att.type === 'video' ? 'bg-pink-100 text-pink-600' :
+                                                                                            'bg-orange-100 text-orange-600'
+                                                                                            }`}>
+                                                                                            {att.type === 'video' ? <Video className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+                                                                                        </div>
+                                                                                        <div className="flex-1 min-w-0">
+                                                                                            <p className="text-sm font-bold text-slate-700">{att.name}</p>
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <span className="text-[10px] uppercase font-bold text-slate-500">{att.type || 'FILE'}</span>
+                                                                                                {att.size && <span className="text-[10px] text-slate-400">({(att.size / 1024).toFixed(0)} KB)</span>}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        <Download className="h-4 w-4 text-slate-400 group-hover:text-blue-600 flex-shrink-0 transition-colors" />
+                                                                                    </a>
+                                                                                )}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
                                                             {submission ? (
                                                                 editingTask === task.id ? (
                                                                     // EDIT MODE
@@ -731,6 +809,30 @@ export default function Tasks() {
                                                                                 <LinkifiedText text={submission.content} />
                                                                             </p>
 
+                                                                            {/* Submission Attachments */}
+                                                                            {submission.attachments && submission.attachments.length > 0 && (
+                                                                                <div className="mb-4 pl-7">
+                                                                                    <div className="flex flex-wrap gap-2">
+                                                                                        {submission.attachments.map((att, idx) => (
+                                                                                            <a
+                                                                                                key={idx}
+                                                                                                href={att.url}
+                                                                                                target="_blank"
+                                                                                                rel="noopener noreferrer"
+                                                                                                className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors group"
+                                                                                            >
+                                                                                                <div className="bg-white p-1 rounded-lg border border-slate-100">
+                                                                                                    <FileText className="h-4 w-4 text-blue-600" />
+                                                                                                </div>
+                                                                                                <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900">{att.name}</span>
+                                                                                                <span className="text-xs text-slate-400">({(att.size / 1024).toFixed(0)} KB)</span>
+                                                                                                <Download className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-500 ml-1" />
+                                                                                            </a>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+
 
 
                                                                             {submission.revisedAt && (
@@ -787,6 +889,40 @@ export default function Tasks() {
                                                                             </div>
                                                                         </div>
                                                                     )}
+
+                                                                    <div className="mb-4">
+                                                                        <input
+                                                                            type="file"
+                                                                            id={`file-upload-${task.id}`}
+                                                                            className="hidden"
+                                                                            onChange={(e) => setFile(e.target.files[0])}
+                                                                        />
+
+                                                                        {!file ? (
+                                                                            <label
+                                                                                htmlFor={`file-upload-${task.id}`}
+                                                                                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 text-sm font-bold hover:bg-slate-50 cursor-pointer transition-all shadow-sm"
+                                                                            >
+                                                                                <Upload className="h-4 w-4 text-slate-500" />
+                                                                                Attach File
+                                                                            </label>
+                                                                        ) : (
+                                                                            <div className="flex items-center gap-2 p-2 px-3 bg-blue-50 border border-blue-200 rounded-lg inline-flex max-w-full">
+                                                                                <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                                                                                <span className="text-sm text-blue-800 font-medium truncate max-w-[200px]">{file.name}</span>
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.preventDefault();
+                                                                                        setFile(null);
+                                                                                    }}
+                                                                                    className="p-1 hover:bg-blue-100 rounded-md text-blue-400 hover:text-red-500 transition-colors ml-1"
+                                                                                >
+                                                                                    <X className="h-3 w-3" />
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+
                                                                     <textarea
                                                                         value={submissionText}
                                                                         onChange={(e) => setSubmissionText(e.target.value)}
@@ -834,6 +970,8 @@ export default function Tasks() {
                                 submitting={submitting}
                                 comment={comment}
                                 setComment={setComment}
+                                file={file}
+                                setFile={setFile}
                                 toggleExpand={toggleExpand}
                                 handleSubmit={handleSubmit}
                                 handleUpdate={handleUpdate}

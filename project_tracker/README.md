@@ -1,5 +1,29 @@
 # Project Tracker
 
+## 🛠️ [2026-01-24 | 22:00 - 23:00] Improvement: Task Upload Robustness & Student UI Refactor
+
+### Overview
+Addressed user issues regarding file uploads being "stuck" due to network/CORS issues and improved the Student Task UI heavily based on feedback (Inline Images, Simplified Upload).
+
+### ✅ Key Features & Changes
+1.  **Robust Upload System (Tasks.jsx)**:
+    *   **Fallback Mechanism**: If Firebase Storage uploads hang (>5s) or fail, system automatically falls back to:
+        *   **Base64**: For small images (<500KB), saved directly to Firestore.
+        *   **Object URL**: For larger files (Preview only mode), preventing UI freeze.
+    *   **Timeout**: Added 5-second timeout to prevent indefinite loading states.
+
+2.  **Student Task UI Refactor**:
+    *   **Inline Images**: "Attachments" from teachers now display as **Full-Width Inline Images** instead of download links. This allows students to view questions/materials instantly.
+    *   **Responsive Design**: Images are centered and max-width constrained on Desktop, but full-width on Mobile for optimal readability.
+    *   **Simplified Upload**: Replaced the large "Drag & Drop" area with a cohesive, compact **[Attach File]** button and simple filename display.
+
+3.  **Mobile View Sync**:
+    *   Updated `TasksMobile.jsx` to match the Desktop experience (Inline Images + Simple Upload Button).
+
+### 📦 Git Commits
+*   `Refactor Student Task logic: Inline images, simple upload, and mobile sync`
+
+
 
 ## 🚀 [2026-01-21 | 14:00 - 18:00] Improvements: Grading UI & Navigation Fixes
 

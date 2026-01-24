@@ -4,8 +4,11 @@ import { useLocation } from 'react-router-dom';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query, where } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, X, GraduationCap, Calendar, Clock, FileText, AlertCircle, CheckCircle2, Users, Search, Filter, ArrowUpDown, Link, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, GraduationCap, Calendar, Clock, FileText, AlertCircle, CheckCircle2, Users, Search, Filter, ArrowUpDown, Link, ChevronLeft, ChevronRight, Download, Image as ImageIcon, Paperclip, Video, Copy } from 'lucide-react';
 import TaskDetail from './TaskDetail';
+import FileUpload from '../../components/FileUpload';
+import { storage } from '../../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { sortClasses } from '../../utils/classSort';
@@ -37,8 +40,12 @@ export default function Tasks() {
         deadline: '',
         assignedClasses: [],
         resources: [],
-        submissionInstructions: ''
+        submissionInstructions: '',
+        attachments: []
     });
+    const [uploadFile, setUploadFile] = useState(null);
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const [linkModalData, setLinkModalData] = useState({ url: '', name: '' });
 
     useEffect(() => {
         if (currentUser) {
@@ -121,11 +128,25 @@ export default function Tasks() {
                 deadline: task.deadline,
                 assignedClasses: task.assignedClasses || [],
                 resources: task.resources || [],
-                submissionInstructions: task.submissionInstructions || ''
+                submissionInstructions: task.submissionInstructions || '',
+                attachments: task.attachments || []
             });
+            setFormData({
+                title: task.title,
+                description: task.description,
+                deadline: task.deadline,
+                assignedClasses: task.assignedClasses || [],
+                resources: task.resources || [],
+                submissionInstructions: task.submissionInstructions || '',
+                attachments: task.attachments || []
+            });
+            setUploadFile(null);
+            setLinkModalData({ url: '', name: '' });
         } else {
             setEditingTask(null);
-            setFormData({ title: '', description: '', deadline: '', assignedClasses: [], resources: [], submissionInstructions: '' });
+            setFormData({ title: '', description: '', deadline: '', assignedClasses: [], resources: [], submissionInstructions: '', attachments: [] });
+            setUploadFile(null);
+            setLinkModalData({ url: '', name: '' });
         }
         setShowModal(true);
     };
@@ -139,6 +160,35 @@ export default function Tasks() {
 
         setLoading(true);
         try {
+            // Handle File Upload
+            let newAttachments = [...(formData.attachments || [])];
+            if (uploadFile) {
+                try {
+                    // Create a unique filename to avoid overwrites or conflicts
+                    const timestamp = Date.now();
+                    const uniqueInitials = currentUser.uid.slice(0, 5);
+                    const storageRef = ref(storage, `task_materials/${currentUser.uid}/${timestamp}_${uploadFile.name}`);
+                    const snapshot = await uploadBytes(storageRef, uploadFile);
+                    const downloadURL = await getDownloadURL(snapshot.ref);
+
+                    newAttachments.push({
+                        name: uploadFile.name,
+                        url: downloadURL,
+                        type: uploadFile.type,
+                        size: uploadFile.size,
+                        uploadedAt: new Date().toISOString()
+                    });
+                } catch (uploadError) {
+                    console.error("File upload failed:", uploadError);
+                    toast.error("File upload failed, proceeding without new attachment.");
+                }
+            }
+
+            const finalFormData = {
+                ...formData,
+                attachments: newAttachments
+            };
+
             if (editingTask) {
                 // Check if task was overdue and is now being reactivated
                 const wasOverdue = isOverdue(editingTask.deadline);
@@ -146,7 +196,7 @@ export default function Tasks() {
                 const isNowFuture = newDeadline > new Date();
 
                 await updateDoc(doc(db, 'tasks', editingTask.id), {
-                    ...formData,
+                    ...finalFormData,
                     updatedAt: serverTimestamp()
                 });
 
@@ -157,13 +207,14 @@ export default function Tasks() {
                 }
             } else {
                 await addDoc(collection(db, 'tasks'), {
-                    ...formData,
+                    ...finalFormData,
                     createdBy: currentUser.uid,
                     createdAt: serverTimestamp()
                 });
                 toast.success('Task berhasil dibuat');
             }
             setShowModal(false);
+            setUploadFile(null);
             loadData();
         } finally {
             setLoading(false);
@@ -199,27 +250,130 @@ export default function Tasks() {
         }));
     };
 
-    const addResource = () => {
+    // Unified Attachment Handlers to match ExamEditor Style
+
+    const handleAddLink = (url, name) => {
+        if (!url) return;
+        const newResource = {
+            id: crypto.randomUUID(),
+            title: name || url,
+            url,
+            type: 'link'
+        };
+        // We store links in 'resources' for compatibility, but UI treats them as generic attachments
         setFormData(prev => ({
             ...prev,
-            resources: [...prev.resources, { title: '', url: '' }]
+            resources: [...prev.resources, newResource]
         }));
+        toast.success("Link added successfully");
     };
 
-    const updateResource = (index, field, value) => {
+    // Fallback logic for when Storage is unavailable or hangs
+    const handleUploadFallback = (file, type, toastId) => {
+        console.log("Attempting fallback upload...");
+
+        // 1. Try Base64 for small images (Persistent)
+        if (type === 'image' && file.size < 500 * 1024) { // < 500KB
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result;
+                const newAttachment = {
+                    name: file.name + ' (Local)',
+                    url: base64String, // Save Base64 string directly
+                    type: type,
+                    size: file.size,
+                    uploadedAt: new Date().toISOString()
+                };
+
+                setFormData(prev => ({
+                    ...prev,
+                    attachments: [...prev.attachments, newAttachment]
+                }));
+                toast.success("Disimpan lokal (Base64)", { id: toastId, icon: '⚠️' });
+            };
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        // 2. Use Object URL for others (Temporary Preview)
+        const objectUrl = URL.createObjectURL(file);
+        const newAttachment = {
+            name: file.name + ' (Preview Only)',
+            url: objectUrl,
+            type: type,
+            size: file.size,
+            uploadedAt: new Date().toISOString()
+        };
+
         setFormData(prev => ({
             ...prev,
-            resources: prev.resources.map((resource, i) =>
-                i === index ? { ...resource, [field]: value } : resource
-            )
+            attachments: [...prev.attachments, newAttachment]
         }));
+
+        toast.success("Mode Preview (Storage non-aktif)", { id: toastId, icon: '⚠️' });
     };
 
-    const removeResource = (index) => {
-        setFormData(prev => ({
-            ...prev,
-            resources: prev.resources.filter((_, i) => i !== index)
-        }));
+    const handleFileUploadNew = async (file, type) => {
+        if (!file) return;
+
+        // Size check (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error("File limit is 10MB");
+            return;
+        }
+
+        const toastId = toast.loading(`Uploading ${type}...`);
+
+        try {
+            const timestamp = Date.now();
+            const storageRef = ref(storage, `task_materials/${currentUser.uid}/${timestamp}_${file.name}`);
+
+            // Create a timeout promise (5 seconds)
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Timeout")), 5000)
+            );
+
+            // Race between upload and timeout
+            const uploadPromise = async () => {
+                const snapshot = await uploadBytes(storageRef, file);
+                return await getDownloadURL(snapshot.ref);
+            };
+
+            const downloadURL = await Promise.race([uploadPromise(), timeoutPromise]);
+
+            const newAttachment = {
+                name: file.name,
+                url: downloadURL,
+                type: type, // 'image', 'video', 'file'
+                size: file.size,
+                uploadedAt: new Date().toISOString()
+            };
+
+            setFormData(prev => ({
+                ...prev,
+                attachments: [...prev.attachments, newAttachment]
+            }));
+
+            toast.success("File uploaded!", { id: toastId });
+        } catch (error) {
+            console.error("Upload error/timeout:", error);
+            // On any error (including timeout), switch to fallback
+            handleUploadFallback(file, type, toastId);
+        }
+    };
+
+    const removeAttachmentItem = (index, isResource) => {
+        if (isResource) {
+            setFormData(prev => ({
+                ...prev,
+                resources: prev.resources.filter((_, i) => i !== index)
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                attachments: prev.attachments.filter((_, i) => i !== index)
+            }));
+        }
     };
 
     const isOverdue = (deadline) => {
@@ -676,49 +830,125 @@ export default function Tasks() {
                                         />
                                     </div>
 
-                                    {/* Resources/Links Section */}
+                                    {/* Attachments & Materials Section (Unified) */}
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Resources & Links (Optional)
+                                            Resources & Attachments
                                         </label>
-                                        <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                            {formData.resources.map((resource, index) => (
-                                                <div key={index} className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <Link className="h-4 w-4 text-blue-600" />
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Link title (e.g., Video Tutorial)"
-                                                            value={resource.title}
-                                                            onChange={(e) => updateResource(index, 'title', e.target.value)}
-                                                            className="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                                                        />
+
+                                        <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                                            {/* List of Attachments (Merging resources + attachments for display) */}
+                                            <div className="flex flex-wrap gap-2 mb-4">
+                                                {/* 1. Resources (Links) */}
+                                                {formData.resources.map((res, idx) => (
+                                                    <div key={`res-${idx}`} className="relative group bg-white border border-slate-200 rounded-lg p-2 flex items-center gap-3 pr-8 min-w-[200px] max-w-full shadow-sm">
+                                                        <div className="p-2 bg-green-50 rounded-lg text-green-600">
+                                                            <Link className="h-5 w-5" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs font-bold text-slate-700 truncate">{res.title || 'Link'}</p>
+                                                            <a href={res.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline truncate block">
+                                                                {res.url}
+                                                            </a>
+                                                        </div>
                                                         <button
                                                             type="button"
-                                                            onClick={() => removeResource(index)}
-                                                            className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                                                            title="Remove link"
+                                                            onClick={() => removeAttachmentItem(idx, true)}
+                                                            className="absolute top-1 right-1 p-1 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all bg-white rounded-full shadow-sm"
                                                         >
-                                                            <Trash2 className="h-4 w-4" />
+                                                            <X className="h-3 w-3" />
                                                         </button>
                                                     </div>
+                                                ))}
+
+                                                {/* 2. Attachments (Files) */}
+                                                {formData.attachments.map((att, idx) => (
+                                                    <div key={`att-${idx}`} className="relative group bg-white border border-slate-200 rounded-lg p-2 flex items-center gap-3 pr-8 min-w-[200px] max-w-full shadow-sm">
+                                                        <div className={`p-2 rounded-lg ${att.type === 'image' ? 'bg-purple-50 text-purple-600' :
+                                                            att.type === 'video' ? 'bg-pink-50 text-pink-600' :
+                                                                'bg-orange-50 text-orange-600'
+                                                            }`}>
+                                                            {att.type === 'image' ? <ImageIcon className="h-5 w-5" /> :
+                                                                att.type === 'video' ? <Video className="h-5 w-5" /> :
+                                                                    <FileText className="h-5 w-5" />}
+                                                        </div>
+
+                                                        {att.type === 'image' && (
+                                                            <div className="w-10 h-10 bg-slate-100 rounded-md overflow-hidden flex-shrink-0 border border-slate-100">
+                                                                <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                                                            </div>
+                                                        )}
+
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs font-bold text-slate-700 truncate">{att.name}</p>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[10px] text-slate-500 uppercase font-bold">{att.type || 'file'}</span>
+                                                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline">
+                                                                    View
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeAttachmentItem(idx, false)}
+                                                            className="absolute top-1 right-1 p-1 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all bg-white rounded-full shadow-sm"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+
+                                                {formData.resources.length === 0 && formData.attachments.length === 0 && (
+                                                    <div className="w-full text-center py-4 text-slate-400 italic text-sm">
+                                                        Belum ada lampiran materi. Gunakan tombol di bawah.
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Action Toolbar */}
+                                            <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-3">
+                                                <label className="cursor-pointer px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-all shadow-sm hover:shadow active:scale-95">
+                                                    <ImageIcon className="h-4 w-4 text-purple-600" />
+                                                    Gambar
                                                     <input
-                                                        type="url"
-                                                        placeholder="URL (e.g., https://example.com)"
-                                                        value={resource.url}
-                                                        onChange={(e) => updateResource(index, 'url', e.target.value)}
-                                                        className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept="image/*"
+                                                        onChange={(e) => handleFileUploadNew(e.target.files[0], 'image')}
                                                     />
-                                                </div>
-                                            ))}
-                                            <button
-                                                type="button"
-                                                onClick={addResource}
-                                                className="w-full py-2.5 border-2 border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all font-medium text-sm flex items-center justify-center gap-2"
-                                            >
-                                                <Plus className="h-4 w-4" />
-                                                Add Link
-                                            </button>
+                                                </label>
+                                                <label className="cursor-pointer px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-all shadow-sm hover:shadow active:scale-95">
+                                                    <Paperclip className="h-4 w-4 text-orange-600" />
+                                                    File / Dokumen
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                                                        onChange={(e) => handleFileUploadNew(e.target.files[0], 'file')}
+                                                    />
+                                                </label>
+                                                <label className="cursor-pointer px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-all shadow-sm hover:shadow active:scale-95">
+                                                    <Video className="h-4 w-4 text-pink-600" />
+                                                    Video
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept="video/*"
+                                                        onChange={(e) => handleFileUploadNew(e.target.files[0], 'video')}
+                                                    />
+                                                </label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setLinkModalData({ url: '', name: '' });
+                                                        setShowLinkModal(true);
+                                                    }}
+                                                    className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-all shadow-sm hover:shadow active:scale-95"
+                                                >
+                                                    <Link className="h-4 w-4 text-green-600" />
+                                                    Link
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -783,6 +1013,8 @@ export default function Tasks() {
                                             </div>
                                         )}
                                     </div>
+
+
 
                                     <div className="pt-4 flex gap-3">
                                         <button
@@ -909,6 +1141,73 @@ export default function Tasks() {
                                         Yes, Delete
                                     </button>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            {/* Link Modal */}
+            <AnimatePresence>
+                {showLinkModal && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                    <Link className="h-5 w-5 text-blue-600" />
+                                    Tambah Link
+                                </h3>
+                                <button onClick={() => setShowLinkModal(false)} className="text-slate-400 hover:text-red-500 transition-colors">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Judul Link (Opsional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Contoh: Video Youtube"
+                                        value={linkModalData.name}
+                                        onChange={(e) => setLinkModalData(prev => ({ ...prev, name: e.target.value }))}
+                                        className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">URL / Tautan <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="url"
+                                        placeholder="https://..."
+                                        value={linkModalData.url}
+                                        onChange={(e) => setLinkModalData(prev => ({ ...prev, url: e.target.value }))}
+                                        className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+                                <button
+                                    onClick={() => setShowLinkModal(false)}
+                                    className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (!linkModalData.url) return toast.error("URL tidak boleh kosong");
+                                        handleAddLink(linkModalData.url, linkModalData.name);
+                                        setShowLinkModal(false);
+                                    }}
+                                    className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition-colors"
+                                >
+                                    Simpan Link
+                                </button>
                             </div>
                         </motion.div>
                     </div>
