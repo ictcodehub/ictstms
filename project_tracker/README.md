@@ -1,6 +1,22 @@
 # Project Tracker
 
-## 🚀 [2026-01-25 | 16:00 - 16:30] Improvement: Curriculum Overview & Editor Polish
+## 🚧 [2026-01-25 | 21:00 - 22:00] Improvement: Native Print Implementation (WIP)
+
+### Overview
+Moved from `html2pdf.js` to browser-native printing (`window.print()`) for better performance and reliability. Removed all custom print UI controls (paper size, orientation) to rely on the browser's dialog.
+
+### Status (WIP)
+- **Letter Size**: Works perfectly. Clean layout, proper margins.
+- **A4 Size**: Layout needs tuning. Vertical content often feels crowded or overflows.
+- **Next Steps**: Fine-tune A4 specific CSS padding or adjustments to match Letter's vertical rhythm.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/CurriculumPrint.jsx` | Removed size selectors, added auto-print logic, implemented hidden preview overlay |
+| `src/pages/teacher/CurriculumOverview.jsx` | Updated print navigation flow |
+
+
 
 ### Overview
 Refined the Curriculum Overview (CO) UI and Editor based on user feedback. Implemented direct editing of CO details (Class, Semester, Year) inside the editor, improved button aesthetics, fixed data display bugs, and added filtering capabilities.
