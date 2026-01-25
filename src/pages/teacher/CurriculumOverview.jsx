@@ -156,10 +156,28 @@ export default function CurriculumOverview() {
         }
     };
 
-    const filteredCurriculums = curriculums.filter(c =>
-        c.className.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.year.includes(searchQuery)
-    );
+    const [selectedAcademicYear, setSelectedAcademicYear] = useState('All');
+
+    const getAcademicYear = (co) => {
+        // If year is already in format like "2024 / 2025", just use it
+        if (co.year.toString().includes('/')) return co.year;
+
+        return co.semester === 2
+            ? `${parseInt(co.year) - 1} / ${co.year}`
+            : `${co.year} / ${parseInt(co.year) + 1}`;
+    };
+
+    const uniqueAcademicYears = [...new Set(curriculums.map(getAcademicYear))].sort().reverse();
+
+    const filteredCurriculums = curriculums.filter(c => {
+        const matchesSearch = c.className.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            c.year.includes(searchQuery);
+
+        const academicYear = getAcademicYear(c);
+        const matchesYear = selectedAcademicYear === 'All' || academicYear === selectedAcademicYear;
+
+        return matchesSearch && matchesYear;
+    });
 
     const getSemesterLabel = (semester) => {
         return semester === 1 ? 'Semester 1 (Ganjil)' : 'Semester 2 (Genap)';
@@ -184,25 +202,44 @@ export default function CurriculumOverview() {
                     </h1>
                     <p className="text-slate-500 mt-1">Kelola Curriculum Overview per Semester</p>
                 </div>
-                <button
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setShowCreateModal(true)}
-                    className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl font-semibold"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg shadow-blue-200 flex items-center gap-2 transition-all font-semibold"
                 >
                     <Plus className="h-5 w-5" />
                     Buat CO Baru
-                </button>
+                </motion.button>
             </div>
 
-            {/* Search */}
-            <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
-                <input
-                    type="text"
-                    placeholder="Cari kelas atau tahun..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                />
+            {/* Search and Filter */}
+            <div className="flex gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Cari kelas atau tahun..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    />
+                </div>
+
+                {/* Academic Year Filter */}
+                <div className="relative">
+                    <select
+                        value={selectedAcademicYear}
+                        onChange={(e) => setSelectedAcademicYear(e.target.value)}
+                        className="appearance-none pl-4 pr-10 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all font-medium text-slate-700 cursor-pointer hover:bg-slate-50 min-w-[160px]"
+                    >
+                        <option value="All">Semua Tahun</option>
+                        {uniqueAcademicYears.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
+                    </select>
+                    <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400 pointer-events-none" />
+                </div>
             </div>
 
             {/* Content */}
@@ -238,8 +275,8 @@ export default function CurriculumOverview() {
                         <div className="grid grid-cols-12 gap-0 p-4 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
                             <div className="col-span-1 text-center">No</div>
                             <div className="col-span-3">Kelas</div>
-                            <div className="col-span-2">Semester</div>
-                            <div className="col-span-1">Tahun</div>
+                            <div className="col-span-2 text-center">Semester</div>
+                            <div className="col-span-1 text-center">Tahun</div>
                             <div className="col-span-2 text-right">Last Update</div>
                             <div className="col-span-3 flex justify-center pl-[82px]">Aksi</div>
                         </div>
@@ -266,7 +303,7 @@ export default function CurriculumOverview() {
                                     </div>
 
                                     {/* Semester */}
-                                    <div className="col-span-2">
+                                    <div className="col-span-2 text-center">
                                         <span className={`px-2.5 py-1 rounded-md text-xs font-bold border inline-block ${co.semester === 1
                                             ? 'bg-blue-50 text-blue-600 border-blue-100'
                                             : 'bg-indigo-50 text-indigo-600 border-indigo-100'
@@ -276,9 +313,9 @@ export default function CurriculumOverview() {
                                     </div>
 
                                     {/* Year */}
-                                    <div className="col-span-1">
-                                        <span className="bg-slate-50 text-slate-500 px-2.5 py-1 rounded-md text-xs font-bold border border-slate-200 inline-block">
-                                            {co.year}
+                                    <div className="col-span-1 text-center">
+                                        <span className="text-xs font-bold text-slate-600">
+                                            {getAcademicYear(co)}
                                         </span>
                                     </div>
 
@@ -292,11 +329,6 @@ export default function CurriculumOverview() {
                                             {co.updatedAt?.seconds
                                                 ? new Date(co.updatedAt.seconds * 1000).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
                                                 : '-'}
-                                            {co.updatedAt?.seconds && (
-                                                <span className="text-[10px] text-slate-400 ml-2">
-                                                    {new Date(co.updatedAt.seconds * 1000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
-                                                </span>
-                                            )}
                                         </span>
                                     </div>
 

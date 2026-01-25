@@ -1,5 +1,38 @@
 # Project Tracker
 
+## 🚀 [2026-01-25 | 16:00 - 16:30] Improvement: Curriculum Overview & Editor Polish
+
+### Overview
+Refined the Curriculum Overview (CO) UI and Editor based on user feedback. Implemented direct editing of CO details (Class, Semester, Year) inside the editor, improved button aesthetics, fixed data display bugs, and added filtering capabilities.
+
+### ✅ Key Features & Changes
+1.  **Edit Curriculum Details (`CurriculumEditor.jsx`)**:
+    *   **In-Place Editing**: Added a new "Edit" button in the action bar to modify Class Name, Semester, and Academic Year directly from the editor page.
+    *   **UX Improvement**: Replaced the initial "pencil icon" with a more integrated "Edit" button (using `FilePenLine` icon) in the right-side action toolbar for better visibility and consistency.
+    *   **Visual Polish**: Matched the button style with the "Print" button and used **Amber** color to distinguish modification actions from print actions.
+
+2.  **Curriculum Overview UI (`CurriculumOverview.jsx`)**:
+    *   **Button Styling**: Changed "Buat CO Baru" button color to **Solid Blue** for better emphasis.
+    *   **Table Formatting**:
+        *   **Year Display**: Simplified format to "YYYY / YYYY" (e.g., 2025 / 2026), removing the background box for a cleaner look.
+        *   **Center Alignment**: Centered headers and content for "Semester" and "Tahun" columns.
+        *   **Clean Last Update**: Removed the clock time (HH:mm) from the "Last Update" column, showing only the date.
+    *   **Filtering**: Added an **Academic Year Filter** dropdown to easily filter the list by year (e.g., 2025/2026).
+
+3.  **Bug Fixes**:
+    *   **Year Logic Fix**: Fixed a bug where the academic year was being double-formatted (e.g., "2024 / 2025 / 2026") if the data already contained a slash. The system now detects pre-formatted strings.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/CurriculumEditor.jsx` | Added Edit Details modal, integrated Edit button in action bar, refactored header UI |
+| `src/pages/teacher/CurriculumOverview.jsx` | Updated table styling (center, simple year), added Year Filter, fixed Year display logic |
+
+### 📦 Git Commits
+*   `feat(editor): implement edit details modal & action button`
+*   `ui(overview): polish table styling, center headers, simplify year display`
+*   `feat(overview): add academic year filter & fix formatting bugs`
+
 ## 🚀 [2026-01-25 | 15:00 - 15:20] Improvement: Meeting Schedule UI & Session Configurations
 
 ### Overview

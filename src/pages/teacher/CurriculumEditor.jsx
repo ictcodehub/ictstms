@@ -6,7 +6,7 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     CalendarDays, ArrowLeft, Save, Plus, Trash2, X,
-    Calendar, BookOpen, Eye, Lock, AlertCircle, Check, Printer
+    Calendar, BookOpen, Eye, Lock, AlertCircle, Check, Printer, Edit2, FilePenLine
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -61,6 +61,44 @@ export default function CurriculumEditor() {
     }, [curriculum]);
 
     const [showChapterSuggestions, setShowChapterSuggestions] = useState(false);
+
+    // Edit details form
+    const [editForm, setEditForm] = useState({
+        className: '',
+        semester: 1,
+        year: ''
+    });
+    const [showEditModal, setShowEditModal] = useState(false);
+
+    const openEditModal = () => {
+        setEditForm({
+            className: curriculum.className,
+            semester: curriculum.semester,
+            year: curriculum.year
+        });
+        setShowEditModal(true);
+    };
+
+    const handleUpdateCurriculum = async () => {
+        if (!editForm.className.trim() || !editForm.year.trim()) {
+            toast.error('Semua data harus diisi');
+            return;
+        }
+
+        const toastId = toast.loading('Menyimpan perubahan...');
+        try {
+            await saveCurriculum({
+                className: editForm.className,
+                semester: parseInt(editForm.semester),
+                year: editForm.year
+            });
+            setShowEditModal(false);
+            toast.success('Detail curriculum berhasil diupdate', { id: toastId });
+        } catch (error) {
+            console.error('Error updating details:', error);
+            toast.error('Gagal update detail', { id: toastId });
+        }
+    };
 
     // Sort entries by Meeting No (P1, P2, P10, etc.)
     const sortedEntries = useMemo(() => {
@@ -354,7 +392,9 @@ export default function CurriculumEditor() {
                             <p className="text-lg font-bold text-emerald-600">{curriculum.entries?.length || 0}</p>
                             <p className="text-xs text-slate-500">Pertemuan</p>
                         </div>
+
                         <div className="w-px h-8 bg-slate-200"></div>
+
                         <button
                             onClick={() => navigate(`/teacher/curriculum/${id}/print`)}
                             className="text-center group hover:bg-indigo-50 px-2 py-1 rounded transition-colors cursor-pointer"
@@ -364,6 +404,19 @@ export default function CurriculumEditor() {
                                 <Printer className="h-5 w-5 text-indigo-600 group-hover:scale-110 transition-transform" />
                             </div>
                             <p className="text-[10px] font-medium text-slate-500 mt-0.5 group-hover:text-indigo-700">Print</p>
+                        </button>
+
+                        <div className="w-px h-8 bg-slate-200"></div>
+
+                        <button
+                            onClick={openEditModal}
+                            className="text-center group hover:bg-amber-50 px-2 py-1 rounded transition-colors cursor-pointer"
+                            title="Edit Info"
+                        >
+                            <div className="flex justify-center">
+                                <FilePenLine className="h-5 w-5 text-amber-600 group-hover:scale-110 transition-transform" />
+                            </div>
+                            <p className="text-[10px] font-medium text-slate-500 mt-0.5 group-hover:text-amber-700">Edit</p>
                         </button>
                     </div>
                     {saving && (
@@ -1068,6 +1121,82 @@ export default function CurriculumEditor() {
                                         Simpan
                                     </button>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            {/* Edit Details Modal */}
+            <AnimatePresence>
+                {showEditModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowEditModal(false)}
+                            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md"
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold text-slate-800">Edit Detail Curriculum</h2>
+                                <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-slate-600">
+                                    <X className="h-6 w-6" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Nama Kelas</label>
+                                    <input
+                                        type="text"
+                                        value={editForm.className}
+                                        onChange={(e) => setEditForm({ ...editForm, className: e.target.value })}
+                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Semester</label>
+                                    <select
+                                        value={editForm.semester}
+                                        onChange={(e) => setEditForm({ ...editForm, semester: e.target.value })}
+                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    >
+                                        <option value={1}>Semester 1 (Ganjil)</option>
+                                        <option value={2}>Semester 2 (Genap)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Tahun</label>
+                                    <input
+                                        type="text"
+                                        value={editForm.year}
+                                        onChange={(e) => setEditForm({ ...editForm, year: e.target.value })}
+                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 mt-8">
+                                <button
+                                    onClick={() => setShowEditModal(false)}
+                                    className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    onClick={handleUpdateCurriculum}
+                                    className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-medium"
+                                >
+                                    Simpan Perubahan
+                                </button>
                             </div>
                         </motion.div>
                     </div>
