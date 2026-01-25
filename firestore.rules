@@ -85,5 +85,16 @@ service cloud.firestore {
       allow update: if false; // Immutable
       allow delete: if request.auth != null && getUserRole() == 'teacher'; // Only teacher can reset
     }
+    
+    // Curriculum Overviews collection - Teacher only
+    match /curriculumOverviews/{coId} {
+      allow read: if request.auth != null && 
+        getUserRole() == 'teacher' &&
+        resource.data.teacherId == request.auth.uid;
+      allow create: if request.auth != null && getUserRole() == 'teacher';
+      allow update, delete: if request.auth != null && 
+        getUserRole() == 'teacher' &&
+        resource.data.teacherId == request.auth.uid;
+    }
   }
 }

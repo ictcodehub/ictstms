@@ -8,6 +8,8 @@ import Gradebook from './Gradebook';
 import Exams from './Exams';
 import ExamEditor from './ExamEditor';
 import ExamResults from './ExamResults';
+import CurriculumOverview from './CurriculumOverview';
+import CurriculumEditor from './CurriculumEditor';
 
 export default function TeacherDashboard() {
     return (
@@ -22,7 +24,10 @@ export default function TeacherDashboard() {
                 <Route path="exams/edit/:id" element={<ExamEditor />} />
                 <Route path="exams/results/:id" element={<ExamResults />} />
                 <Route path="gradebook" element={<Gradebook />} />
+                <Route path="curriculum" element={<CurriculumOverview />} />
+                <Route path="curriculum/:id" element={<CurriculumEditor />} />
             </Routes>
         </DashboardLayout>
     );
 }
+

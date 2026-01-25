@@ -13,7 +13,8 @@ import {
     ClipboardCheck,
     Trophy,
     CheckCircle2,
-    Clock
+    Clock,
+    CalendarDays
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ProfileDropdown from '../components/ProfileDropdown';
@@ -243,6 +244,7 @@ export default function DashboardLayout({ children }) {
         { path: '/teacher/tasks', icon: BookOpen, label: 'Tasks' },
         { path: '/teacher/exams', icon: ClipboardCheck, label: 'Exams' },
         { path: '/teacher/gradebook', icon: ClipboardList, label: 'Gradebook' },
+        { path: '/teacher/curriculum', icon: CalendarDays, label: 'CO Maker' },
     ];
 
     const studentMenuItems = [

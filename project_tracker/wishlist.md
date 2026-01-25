@@ -34,4 +34,32 @@
 
 ---
 
+## 3. Student Curriculum Overview & Smart Dashboard
+**Priority:** Medium
+**Status:** ⏳ Pending
+
+**Requirements:**
+- **Curriculum Overview View**: Siswa dapat melihat Curriculum Overview kelas mereka (read-only).
+- **Smart Dashboard "Up Next"**:
+    - Logika di dashboard untuk membandingkan tanggal hari ini dengan `dateRange` pertemuan.
+    - Widget otomatis: "Materi Minggu Ini: [Topic]" atau "Persiapan: [Chapter]".
+    - Highlight upcoming exams atau blocked weeks (libur) secara otomatis.
+
+**Files yang terlibat:**
+- `src/pages/student/Dashboard.jsx`
+- `src/pages/student/CurriculumOverview.jsx` (New)
+
+---
+
 *Last updated: 2026-01-25*
+
+## 4. Teacher Curriculum Management (Recent Progress)
+**Status:** 🚧 In Progress / Testing
+**Files Added:**
+- `src/pages/teacher/CurriculumEditor.jsx`
+- `src/pages/teacher/CurriculumOverview.jsx`
+
+**Recent Fixes:**
+- Fixed P4 positioning logic.
+- Corrected week counts for Semester 1 (July and October).
+- Updated Dashboard and Layout to include Curriculum routes.
