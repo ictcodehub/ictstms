@@ -719,7 +719,7 @@ export default function CurriculumEditor() {
                                                                 className="px-1 py-1 text-center border-b border-r border-slate-200 align-middle"
                                                             >
                                                                 {plotted && (
-                                                                    <span className="inline-flex items-center justify-center w-6 h-6 bg-indigo-600 text-white font-bold text-[10px] rounded shadow-sm">
+                                                                    <span className="inline-flex items-center justify-center w-7 h-7 bg-indigo-100 text-indigo-700 text-[10px] rounded">
                                                                         {plotted.jp || entry.duration}
                                                                     </span>
                                                                 )}

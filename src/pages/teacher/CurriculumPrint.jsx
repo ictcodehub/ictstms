@@ -219,7 +219,7 @@ export default function CurriculumPrint() {
                                             >
                                                 {plotted && (
                                                     <div className="flex items-center justify-center w-full h-full">
-                                                        <span className="inline-flex items-center justify-center w-5 h-5 bg-indigo-600 text-white font-bold text-[9px] rounded-sm">
+                                                        <span className="inline-flex items-center justify-center w-5 h-5 bg-indigo-100 text-indigo-700 text-[9px] rounded-sm">
                                                             {plotted.jp || entry.duration}
                                                         </span>
                                                     </div>

@@ -1,5 +1,34 @@
 # Project Tracker
 
+## 🚀 [2026-01-25 | 15:00 - 15:20] Improvement: Meeting Schedule UI & Session Configurations
+
+### Overview
+Refined the visual styling of the Meeting Schedule table in the Curriculum Editor and Print View based on user feedback (non-bold, indigo styling). Also updated the global session timeout configuration to reduce frequent logouts.
+
+### ✅ Key Features & Changes
+1.  **Meeting Table Styling (`CurriculumEditor.jsx`)**:
+    *   **Visual Update**: Changed the styling of "Meeting Duration" cells (e.g., "2JP") from **Bold/Solid Blue** to **Regular/Light Indigo** (`bg-indigo-100`, `text-indigo-700`, `font-normal`).
+    *   **Consistency**: Matched the styling of the "No" column for a more cohesive look.
+    *   **Size Adjustment**: Standardized cell size to `w-7 h-7` for better readability.
+
+2.  **Print PDF Styling (`CurriculumPrint.jsx`)**:
+    *   **Synced Styles**: Applied the same Light Indigo/Regular styling to the Print View to ensure the printed document matches the editor's screen.
+
+3.  **Session Management (`AuthContext.jsx`)**:
+    *   **Extended Timeout**: Increased the automatic session timeout duration from **15 minutes** to **90 minutes** to prevent users from being logged out during active work sessions.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/CurriculumEditor.jsx` | Updated "JP" indicator styling (removed bold, changed color scheme) |
+| `src/pages/teacher/CurriculumPrint.jsx` | Updated Print View to match Editor styling |
+| `src/contexts/AuthContext.jsx` | Changed `SESSION_TIMEOUT` from 15 mins to 90 mins |
+
+### 📦 Git Commits
+*   `ui(curriculum): refine meeting table styling (light indigo, non-bold)`
+*   `fix(print): sync print pdf styling with editor view`
+*   `config(auth): increase session timeout to 90 minutes`
+
 ## 🚀 [2026-01-25 | 10:00 - 11:30] Feature: Curriculum Overview (CO) Maker
 
 ### Overview
@@ -477,7 +506,7 @@ Fixed critical bugs causing navigation freezing and login hanging after multiple
 - ✅ Rapid menu navigation (6 menus x 6 cycles = 36 clicks) works flawlessly
 - ✅ No memory leaks after extended use
 - ✅ Browser performance remains stable
-
+- 
 ### 📦 Git Commits
 - `(pending)` - fix: critical navigation and login bugs
 
@@ -783,9 +812,3 @@ Fully implemented Essay and Short Answer question types with complete auto-gradi
 3. **Teacher Workflow**: Dedicated grading interface with answer key reference
 4. **Student Experience**: Clear "Pending" indicators and teacher feedback display
 5. **Score Calculation**: Automatic total score recalculation when manual grades are saved
-
-
----
-
-**Need Help?** Check `implementation_plan.md` for detailed code examples.
-

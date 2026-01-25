@@ -78,7 +78,7 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         if (!currentUser) return;
 
-        const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+        const SESSION_TIMEOUT = 90 * 60 * 1000; // 90 minutes
         let activityTimeout = null;
 
         const checkSession = () => {
