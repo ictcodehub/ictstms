@@ -49,7 +49,8 @@ export default function CurriculumEditor() {
         dateEnd: '',
         topic: '',
         duration: 2,
-        plotWeeks: []
+        plotWeeks: [],
+        meetingDetails: [] // Array of { id, number (e.g. 11), jp: 2 }
     });
     const [showEntryModal, setShowEntryModal] = useState(false);
     const [editingEntryId, setEditingEntryId] = useState(null);
@@ -104,7 +105,20 @@ export default function CurriculumEditor() {
     const sortedEntries = useMemo(() => {
         if (!curriculum?.entries) return [];
         return [...curriculum.entries].sort((a, b) => {
-            return (a.meetingNo || '').localeCompare(b.meetingNo || '', undefined, { numeric: true, sensitivity: 'base' });
+            // Check if meetingNo is complex (P10/P11)
+            // Just use simple sort for now, or extract first number
+            const getFirstNum = (str) => {
+                const match = (str || '').match(/\d+/);
+                return match ? parseInt(match[0]) : 999;
+            };
+
+            const numA = getFirstNum(a.meetingNo);
+            const numB = getFirstNum(b.meetingNo);
+
+            if (numA === numB) {
+                return (a.meetingNo || '').localeCompare(b.meetingNo || '', undefined, { numeric: true, sensitivity: 'base' });
+            }
+            return numA - numB;
         });
     }, [curriculum?.entries]);
 
@@ -195,7 +209,33 @@ export default function CurriculumEditor() {
 
     // Entry functions
     const openAddEntryModal = () => {
-        const nextMeetingNo = `P${(curriculum.entries?.length || 0) + 1}`;
+        // Calculate next meeting numbers
+        // We know how many meetings exist.
+        // We can scan existing meetingNos to find max P(number)
+        // But for simplicity, we count existing entries? No, entries can be multi-meeting.
+
+        let lastNumber = 0;
+        if (curriculum.entries) {
+            curriculum.entries.forEach(e => {
+                if (e.meetingDetails) {
+                    e.meetingDetails.forEach(d => {
+                        const num = parseInt(d.number);
+                        if (!isNaN(num) && num > lastNumber) lastNumber = num;
+                    });
+                } else if (e.meetingNo) {
+                    // Fallback parse "P10" or "P10/P11"
+                    const matches = e.meetingNo.match(/\d+/g);
+                    if (matches) {
+                        matches.forEach(m => {
+                            const num = parseInt(m);
+                            if (num > lastNumber) lastNumber = num;
+                        });
+                    }
+                }
+            });
+        }
+        const nextNumber = lastNumber + 1;
+        const initialMeetingDetails = [{ id: Date.now(), number: nextNumber, jp: 2 }];
 
         // Smart date calculation
         let nextDateStart = '';
@@ -211,30 +251,58 @@ export default function CurriculumEditor() {
                         const lastStart = new Date(parts[0]);
 
                         if (!isNaN(lastStart.getTime())) {
-                            // Add 7 days for next week
-                            const nextStart = new Date(lastStart);
-                            nextStart.setDate(nextStart.getDate() + 7);
+                            // Start checking from next week
+                            let candidateDate = new Date(lastStart);
+                            candidateDate.setDate(candidateDate.getDate() + 7);
 
-                            // Format YYYY-MM-DD
-                            nextDateStart = nextStart.toISOString().split('T')[0];
+                            // Skip blocked or occupied weeks
+                            let attempts = 0;
+                            // Limit lookahead to avoid infinite loops, but allow enough to skip a month of blocks
+                            while (attempts < 12) {
+                                // Determine month/week for candidate
+                                const monthIndex = candidateDate.getMonth(); // 0-11
+                                let monthNum = -1; // 1-6 (Semester relative)
 
-                            // Calculate end date (assuming 5 days work week: Mon-Fri) or spread derived from last entry
-                            if (parts.length > 1) {
-                                const lastEnd = new Date(parts[1]);
-                                if (!isNaN(lastEnd.getTime())) {
-                                    const diffTime = Math.abs(lastEnd - lastStart);
-                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                                    const nextEnd = new Date(nextStart);
-                                    nextEnd.setDate(nextEnd.getDate() + diffDays);
-                                    nextDateEnd = nextEnd.toISOString().split('T')[0];
+                                if (curriculum.semester === 1) { // Jul - Dec
+                                    if (monthIndex >= 6 && monthIndex <= 11) monthNum = monthIndex - 5;
+                                } else { // Jan - Jun
+                                    if (monthIndex >= 0 && monthIndex <= 5) monthNum = monthIndex + 1;
                                 }
-                            } else {
-                                // Default to +4 days (Mon -> Fri) if no end date previously
-                                const nextEnd = new Date(nextStart);
-                                nextEnd.setDate(nextEnd.getDate() + 4);
-                                nextDateEnd = nextEnd.toISOString().split('T')[0];
+
+                                const weekNum = Math.ceil(candidateDate.getDate() / 7);
+
+                                // If date falls outside semester range or beyond week 5, just accept it or stop optimizing
+                                if (monthNum === -1 || weekNum > 5) {
+                                    break;
+                                }
+
+                                // Check max weeks for this month
+                                const monthName = months[monthNum - 1];
+                                const maxWeeks = (monthName === 'April' || monthName === 'Oktober' || monthName === 'Juli') ? 5 : 4;
+
+                                const isOutOfBounds = weekNum > maxWeeks;
+
+                                const isBlocked = isWeekBlocked(monthNum - 1, weekNum);
+
+                                const isOccupied = curriculum.entries?.some(e =>
+                                    e.plotWeeks?.some(p => p.month === monthNum && p.week === weekNum)
+                                );
+
+                                if (isBlocked || isOccupied || isOutOfBounds) {
+                                    candidateDate.setDate(candidateDate.getDate() + 7);
+                                } else {
+                                    break;
+                                }
+                                attempts++;
                             }
+
+                            nextDateStart = candidateDate.toISOString().split('T')[0];
+
+                            // Default to +4 days (Mon -> Fri) for standard 1 week / 2 JP
+                            // User complained that it was taking too long range if previous entry was long.
+                            const nextEnd = new Date(candidateDate);
+                            nextEnd.setDate(nextEnd.getDate() + 4);
+                            nextDateEnd = nextEnd.toISOString().split('T')[0];
                         }
                     } catch (e) {
                         console.error("Error calculating next date", e);
@@ -244,19 +312,44 @@ export default function CurriculumEditor() {
         }
 
         setEntryForm({
-            meetingNo: nextMeetingNo,
+            meetingNo: `P${nextNumber}`,
             chapter: '',
             dateStart: nextDateStart,
             dateEnd: nextDateEnd,
             topic: '',
             duration: 2,
-            plotWeeks: []
+            plotWeeks: [],
+            meetingDetails: initialMeetingDetails
         });
         setEditingEntryId(null);
         setShowEntryModal(true);
     };
 
     const openEditEntryModal = (entry) => {
+        // Parse meetingDetails if missing
+        let details = entry.meetingDetails;
+        if (!details || details.length === 0) {
+            // Try to reconstruct from meetingNo "P10/P11"
+            const str = entry.meetingNo || '';
+            const nums = str.match(/\d+/g); // ["10", "11"]
+            if (nums) {
+                // Distribute duration?
+                const totalJP = entry.duration || 2;
+                const jpPerMeeting = Math.max(1, Math.floor(totalJP / nums.length));
+                // Remainder?
+                const remainder = totalJP % nums.length;
+
+                details = nums.map((n, idx) => ({
+                    id: Date.now() + idx,
+                    number: parseInt(n),
+                    jp: jpPerMeeting + (idx < remainder ? 1 : 0)
+                }));
+            } else {
+                // Fallback
+                details = [{ id: Date.now(), number: 1, jp: entry.duration || 2 }];
+            }
+        }
+
         setEntryForm({
             meetingNo: entry.meetingNo,
             chapter: entry.chapter,
@@ -264,28 +357,41 @@ export default function CurriculumEditor() {
             dateEnd: entry.dateRange?.split('~')[1] || '',
             topic: entry.topic,
             duration: entry.duration,
-            plotWeeks: entry.plotWeeks || []
+            plotWeeks: entry.plotWeeks || [],
+            meetingDetails: details
         });
         setEditingEntryId(entry.id);
         setShowEntryModal(true);
     };
 
     const handleSaveEntry = () => {
-        if (!entryForm.meetingNo.trim() || !entryForm.chapter.trim()) {
-            toast.error('Meeting No dan Chapter harus diisi');
+        // Calculate aggregate MeetingNo and Duration
+        const details = entryForm.meetingDetails;
+        if (!details || details.length === 0) {
+            toast.error('Minimal satu pertemuan harus diisi');
+            return;
+        }
+
+        const sortedDetails = [...details].sort((a, b) => a.number - b.number);
+        const meetingNoStr = sortedDetails.map(d => `P${d.number}`).join('/');
+        const totalDuration = sortedDetails.reduce((sum, d) => sum + parseInt(d.jp), 0);
+
+        if (!entryForm.chapter.trim()) {
+            toast.error('Chapter harus diisi');
             return;
         }
 
         const entryData = {
             id: editingEntryId || Date.now().toString(),
-            meetingNo: entryForm.meetingNo.trim(),
+            meetingNo: meetingNoStr,
             chapter: entryForm.chapter.trim(),
             dateRange: entryForm.dateStart && entryForm.dateEnd
                 ? `${entryForm.dateStart}~${entryForm.dateEnd}`
                 : '',
             topic: entryForm.topic.trim(),
-            duration: entryForm.duration,
-            plotWeeks: entryForm.plotWeeks
+            duration: totalDuration,
+            plotWeeks: entryForm.plotWeeks,
+            meetingDetails: sortedDetails
         };
 
         let updatedEntries;
@@ -301,6 +407,42 @@ export default function CurriculumEditor() {
         setShowEntryModal(false);
     };
 
+    // Helper for meeting details
+    const addMeetingDetail = () => {
+        setEntryForm(prev => {
+            const lastNum = prev.meetingDetails.length > 0
+                ? Math.max(...prev.meetingDetails.map(d => d.number))
+                : 0;
+            return {
+                ...prev,
+                meetingDetails: [
+                    ...prev.meetingDetails,
+                    { id: Date.now(), number: lastNum + 1, jp: 2 }
+                ]
+            };
+        });
+    };
+
+    const removeMeetingDetail = (id) => {
+        setEntryForm(prev => {
+            if (prev.meetingDetails.length <= 1) return prev;
+            return {
+                ...prev,
+                meetingDetails: prev.meetingDetails.filter(d => d.id !== id)
+            };
+        });
+    };
+
+    const updateMeetingDetail = (id, field, value) => {
+        setEntryForm(prev => ({
+            ...prev,
+            meetingDetails: prev.meetingDetails.map(d =>
+                d.id === id ? { ...d, [field]: value } : d
+            )
+        }));
+    };
+
+
     const handleDeleteEntry = (entryId) => {
         const updatedEntries = curriculum.entries.filter(e => e.id !== entryId);
         saveCurriculum({ entries: updatedEntries });
@@ -314,18 +456,32 @@ export default function CurriculumEditor() {
         if (isBlocked) return;
 
         setEntryForm(prev => {
+            let newPlotWeeks;
             const exists = prev.plotWeeks.some(p => p.month === monthIndex + 1 && p.week === week);
+
             if (exists) {
-                return {
-                    ...prev,
-                    plotWeeks: prev.plotWeeks.filter(p => !(p.month === monthIndex + 1 && p.week === week))
-                };
+                // Remove
+                newPlotWeeks = prev.plotWeeks.filter(p => !(p.month === monthIndex + 1 && p.week === week));
             } else {
-                return {
-                    ...prev,
-                    plotWeeks: [...prev.plotWeeks, { month: monthIndex + 1, week, jp: prev.duration }]
-                };
+                // Add (initially with current duration, will update below)
+                newPlotWeeks = [...prev.plotWeeks, { month: monthIndex + 1, week, jp: prev.duration }];
             }
+
+            // Distribute JP evenly
+            if (newPlotWeeks.length > 0) {
+                const jpPerWeek = Math.floor(prev.duration / newPlotWeeks.length);
+                const remainder = prev.duration % newPlotWeeks.length;
+
+                newPlotWeeks = newPlotWeeks.map((p, index) => ({
+                    ...p,
+                    jp: jpPerWeek + (index < remainder ? 1 : 0) // Distribute remainder if any
+                }));
+            }
+
+            return {
+                ...prev,
+                plotWeeks: newPlotWeeks
+            };
         });
     };
 
@@ -349,6 +505,9 @@ export default function CurriculumEditor() {
             e.plotWeeks?.some(p => p.month === monthIndex + 1 && p.week === week)
         ) || [];
     };
+
+    // Calculate stats
+
 
     // Calculate stats
     const totalME = useMemo(() => {
@@ -606,7 +765,7 @@ export default function CurriculumEditor() {
                                     <thead>
                                         {/* Month Headers Row */}
                                         <tr className="bg-slate-100">
-                                            <th rowSpan={2} className="w-10 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center sticky left-0 bg-slate-50 z-10">No</th>
+                                            <th rowSpan={2} className="w-14 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center sticky left-0 bg-slate-50 z-10">No</th>
                                             <th rowSpan={2} className="w-32 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-left bg-slate-100">Chapter/Bab</th>
                                             <th rowSpan={2} className="w-28 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center bg-slate-100">Date</th>
                                             <th rowSpan={2} className="min-w-[200px] max-w-[300px] px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-left bg-slate-100">TOPIC</th>
@@ -647,7 +806,8 @@ export default function CurriculumEditor() {
                                             >
                                                 {/* No */}
                                                 <td className="px-1 py-2 text-center border-b border-r border-slate-200 sticky left-0 bg-white z-10 transition-colors group-hover:bg-indigo-50/50">
-                                                    <span className="inline-flex items-center justify-center w-7 h-7 bg-indigo-100 text-indigo-700 font-bold text-[10px] rounded">
+                                                    <span className={`inline-flex items-center justify-center min-w-[1.75rem] w-auto h-7 px-1.5 bg-indigo-100 text-indigo-700 font-bold rounded ${entry.meetingNo?.length > 3 ? 'text-[9px] leading-tight' : 'text-[10px]'
+                                                        }`}>
                                                         {entry.meetingNo}
                                                     </span>
                                                 </td>
@@ -769,13 +929,10 @@ export default function CurriculumEditor() {
                                                         return (
                                                             <td
                                                                 key={`${monthIdx}-${weekIdx}`}
-                                                                className="px-1 py-1 text-center border-b border-r border-slate-200 align-middle"
+                                                                className={`p-0 text-center border-b border-r border-slate-200 align-middle ${plotted ? 'bg-indigo-100 text-indigo-700 font-bold text-[11px]' : ''
+                                                                    }`}
                                                             >
-                                                                {plotted && (
-                                                                    <span className="inline-flex items-center justify-center w-7 h-7 bg-indigo-100 text-indigo-700 text-[10px] rounded">
-                                                                        {plotted.jp || entry.duration}
-                                                                    </span>
-                                                                )}
+                                                                {plotted && (plotted.jp || entry.duration)}
                                                             </td>
                                                         );
                                                     });
@@ -908,30 +1065,69 @@ export default function CurriculumEditor() {
                             </div>
 
                             <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Meeting No</label>
-                                        <select
-                                            value={entryForm.meetingNo}
-                                            onChange={(e) => setEntryForm({ ...entryForm, meetingNo: e.target.value })}
-                                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                        >
-                                            {Array.from({ length: 25 }, (_, i) => i + 1).map(num => (
-                                                <option key={num} value={`P${num}`}>P{num}</option>
-                                            ))}
-                                        </select>
+
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <label className="block text-sm font-medium text-slate-700">Alokasi Pertemuan</label>
+                                        <div className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-1 rounded">
+                                            Total: {entryForm.meetingDetails?.reduce((sum, d) => sum + parseInt(d.jp), 0) || 0} JP
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Durasi (JP)</label>
-                                        <select
-                                            value={entryForm.duration}
-                                            onChange={(e) => setEntryForm({ ...entryForm, duration: parseInt(e.target.value) })}
-                                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+
+                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2 max-h-60 overflow-y-auto">
+                                        {entryForm.meetingDetails?.map((detail, index) => (
+                                            <div key={detail.id} className="flex items-center gap-2">
+                                                <div className="w-8 flex items-center justify-center text-slate-400 font-medium text-xs">
+                                                    #{index + 1}
+                                                </div>
+                                                <div className="relative flex-1">
+                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                        <span className="text-slate-400 font-medium">P</span>
+                                                    </div>
+                                                    <select
+                                                        value={detail.number}
+                                                        onChange={(e) => updateMeetingDetail(detail.id, 'number', e.target.value)}
+                                                        className="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                                                    >
+                                                        {Array.from({ length: 50 }, (_, i) => i + 1).map(num => (
+                                                            <option key={num} value={num}>{num}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="w-24">
+                                                    <select
+                                                        value={detail.jp}
+                                                        onChange={(e) => updateMeetingDetail(detail.id, 'jp', parseInt(e.target.value))}
+                                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                                                    >
+                                                        {[1, 2, 3, 4, 5, 6].map(jp => (
+                                                            <option key={jp} value={jp}>{jp} JP</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                {entryForm.meetingDetails.length > 1 && (
+                                                    <button
+                                                        onClick={() => removeMeetingDetail(detail.id)}
+                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Hapus"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+
+                                        <button
+                                            onClick={addMeetingDetail}
+                                            className="w-full py-2 border-2 border-dashed border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition-all text-sm font-medium flex items-center justify-center gap-2"
                                         >
-                                            {Array.from({ length: 8 }, (_, i) => i + 1).map(num => (
-                                                <option key={num} value={num}>{num} JP</option>
-                                            ))}
-                                        </select>
+                                            <Plus className="h-4 w-4" />
+                                            Tambah Slot Pertemuan
+                                        </button>
+                                    </div>
+                                    <div className="flex gap-2 text-xs text-slate-500 px-1">
+                                        <span className="font-semibold text-indigo-600">Info:</span>
+                                        Meeting No: {entryForm.meetingDetails?.sort((a, b) => a.number - b.number).map(d => `P${d.number}`).join('/')}
                                     </div>
                                 </div>
 
@@ -1056,9 +1252,10 @@ export default function CurriculumEditor() {
                                                         e.plotWeeks?.some(p => p.month === monthIndex + 1 && p.week === week)
                                                     );
 
-                                                    const selected = entryForm.plotWeeks.some(
+                                                    const plotInfo = entryForm.plotWeeks.find(
                                                         p => p.month === monthIndex + 1 && p.week === week
                                                     );
+                                                    const selected = !!plotInfo;
 
                                                     const isDisabled = blocked || isOccupied;
 
@@ -1068,7 +1265,7 @@ export default function CurriculumEditor() {
                                                             onClick={() => !isDisabled && togglePlotWeek(monthIndex, week)}
                                                             disabled={isDisabled}
                                                             title={isOccupied ? 'Sudah diisi pertemuan lain' : blocked ? 'Minggu Libur/Exam' : ''}
-                                                            className={`h-8 rounded transition-all ${blocked
+                                                            className={`h-8 rounded transition-all flex items-center justify-center ${blocked
                                                                 ? 'bg-slate-200 cursor-not-allowed'
                                                                 : isOccupied
                                                                     ? 'bg-red-50 border border-red-100 cursor-not-allowed opacity-60'
@@ -1077,9 +1274,11 @@ export default function CurriculumEditor() {
                                                                         : 'bg-white border border-slate-200 hover:border-indigo-300'
                                                                 }`}
                                                         >
-                                                            {selected && <Check className="h-4 w-4 mx-auto" />}
-                                                            {blocked && <Lock className="h-3 w-3 mx-auto text-slate-400" />}
-                                                            {isOccupied && !blocked && !selected && <span className="text-[10px] text-red-300 block text-center">x</span>}
+                                                            {selected && (
+                                                                <span className="text-[10px] font-bold">{plotInfo.jp}JP</span>
+                                                            )}
+                                                            {blocked && <Lock className="h-3 w-3 text-slate-400" />}
+                                                            {isOccupied && !blocked && !selected && <span className="text-[10px] text-red-300">x</span>}
                                                         </button>
                                                     );
                                                 })}
