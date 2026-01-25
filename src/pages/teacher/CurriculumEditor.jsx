@@ -6,7 +6,7 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     CalendarDays, ArrowLeft, Save, Plus, Trash2, X,
-    Calendar, BookOpen, Eye, Lock, AlertCircle, Check
+    Calendar, BookOpen, Eye, Lock, AlertCircle, Check, Printer
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -351,14 +351,20 @@ export default function CurriculumEditor() {
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-xl border border-slate-200">
                         <div className="text-center">
-                            <p className="text-lg font-bold text-indigo-600">{totalME}</p>
-                            <p className="text-xs text-slate-500">ME</p>
-                        </div>
-                        <div className="w-px h-8 bg-slate-200"></div>
-                        <div className="text-center">
                             <p className="text-lg font-bold text-emerald-600">{curriculum.entries?.length || 0}</p>
                             <p className="text-xs text-slate-500">Pertemuan</p>
                         </div>
+                        <div className="w-px h-8 bg-slate-200"></div>
+                        <button
+                            onClick={() => navigate(`/teacher/curriculum/${id}/print`)}
+                            className="text-center group hover:bg-indigo-50 px-2 py-1 rounded transition-colors cursor-pointer"
+                            title="Print PDF"
+                        >
+                            <div className="flex justify-center">
+                                <Printer className="h-5 w-5 text-indigo-600 group-hover:scale-110 transition-transform" />
+                            </div>
+                            <p className="text-[10px] font-medium text-slate-500 mt-0.5 group-hover:text-indigo-700">Print</p>
+                        </button>
                     </div>
                     {saving && (
                         <div className="flex items-center gap-2 text-indigo-600">
@@ -547,7 +553,11 @@ export default function CurriculumEditor() {
                                     <thead>
                                         {/* Month Headers Row */}
                                         <tr className="bg-slate-100">
-                                            <th colSpan="5" className="border-b border-r border-slate-200"></th>
+                                            <th rowSpan={2} className="w-10 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center sticky left-0 bg-slate-50 z-10">No</th>
+                                            <th rowSpan={2} className="w-32 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-left bg-slate-100">Chapter/Bab</th>
+                                            <th rowSpan={2} className="w-28 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center bg-slate-100">Date</th>
+                                            <th rowSpan={2} className="min-w-[200px] max-w-[300px] px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-left bg-slate-100">TOPIC</th>
+                                            <th rowSpan={2} className="w-14 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center bg-slate-100">TIME</th>
                                             {months.map((month, idx) => (
                                                 <th
                                                     key={idx}
@@ -557,15 +567,10 @@ export default function CurriculumEditor() {
                                                     {month}
                                                 </th>
                                             ))}
-                                            <th className="border-b border-slate-200"></th>
+                                            <th rowSpan={2} className="border-b border-slate-200"></th>
                                         </tr>
                                         {/* Week Headers Row */}
                                         <tr className="bg-slate-50">
-                                            <th className="w-10 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center sticky left-0 bg-slate-50 z-10">No</th>
-                                            <th className="w-32 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-left">Chapter/Bab</th>
-                                            <th className="w-28 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center">Date</th>
-                                            <th className="min-w-[200px] max-w-[300px] px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-left">TOPIC</th>
-                                            <th className="w-14 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center">TIME</th>
                                             {months.map((month, monthIdx) => {
                                                 const weekCount = (month === 'April' || month === 'Oktober' || month === 'Juli') ? 5 : 4;
                                                 return Array.from({ length: weekCount }, (_, weekIdx) => (

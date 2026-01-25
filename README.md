@@ -969,6 +969,40 @@ Enhanced mobile experience with responsive design.
 
 ---
 
+### 📚 7. Curriculum Overview Management
+
+#### Overview
+Integrated tool for teachers to plan, manage, and print semester curriculum schedules.
+
+#### Features
+- ✅ **CO Maker**: Visual editor for curriculum planning
+- ✅ **Smart Auto-Plotting**: Automatically calculates dates based on duration
+- ✅ **Block Weeks**: Mark holidays, exams, and other non-teaching weeks
+- ✅ **Print PDF**: Professional A4 Landscape layout (Auto-formatted)
+- ✅ **Excel Export**: Rich formatting export with merged cells
+- ✅ **Interactive Dashboard**: Meeting progress tracking & visual calendar
+
+#### Implementation
+**Visual Editor:**
+- Drag & Drop interface (future)
+- Interactive grid for plotting weeks
+- Real-time save status
+
+**Print Layout:**
+- CSS Print Media Query optimized
+- Hides UI elements automatically
+- Compact A4 Landscape table
+
+#### Usage
+1. Go to **CO Maker** in sidebar
+2. Create or select a Curriculum
+3. Use **Blok Minggu** tab to set holidays
+4. Use **Pertemuan** tab to add chapters/topics
+5. Use **Print** button (top right) to generate PDF
+6. Use **Excel** icon to download spreadsheet
+
+---
+
 ### 🎯 Feature Comparison
 
 | Feature | Before | After |
@@ -979,6 +1013,7 @@ Enhanced mobile experience with responsive design.
 | **Bulk Ops** | One at a time | Multiple selections ✅ |
 | **Languages** | English only | EN + ID ✅ |
 | **Mobile** | Desktop-focused | Fully responsive ✅ |
+| **Curriculum** | Manual/None | CO Maker + Print/Export ✅ |
 
 ---
 

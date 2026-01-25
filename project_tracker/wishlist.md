@@ -53,13 +53,16 @@
 
 *Last updated: 2026-01-25*
 
-## 4. Teacher Curriculum Management (Recent Progress)
-**Status:** 🚧 In Progress / Testing
-**Files Added:**
-- `src/pages/teacher/CurriculumEditor.jsx`
-- `src/pages/teacher/CurriculumOverview.jsx`
+## 4. Teacher Curriculum Management (COMPLETED)
+**Status:** ✅ Done
+**Features Implemented:**
+- **Curriculum Editor**: Full CRUD, blocked weeks, dynamic calendar.
+- **Excel Export**: Full spreadsheet format with merged cells and colored blocked weeks.
+- **Print PDF**: Compact layout, signature area, auto-date, inline headers.
+- **UI/UX**: Consistent color coding (orange/yellow/green/blue/purple) between Editor, Excel, and Print.
 
-**Recent Fixes:**
-- Fixed P4 positioning logic.
-- Corrected week counts for Semester 1 (July and October).
-- Updated Dashboard and Layout to include Curriculum routes.
+**Files:**
+- `src/pages/teacher/CurriculumEditor.jsx`
+- `src/pages/teacher/CurriculumPrint.jsx`
+- `src/utils/excelExport.js`
+

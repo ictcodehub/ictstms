@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../lib/firebase';
-import { collection, getDocs, query, where, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, addDoc, deleteDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CalendarDays, Plus, Trash2, Edit2, ChevronRight, Search, Filter, BookOpen } from 'lucide-react';
+import { CalendarDays, Plus, Trash2, Edit2, ChevronRight, Search, Filter, BookOpen, Copy, FileSpreadsheet, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
+import { exportCurriculumToExcel } from '../../utils/excelExport';
 
 export default function CurriculumOverview() {
     const { currentUser } = useAuth();
@@ -99,6 +101,61 @@ export default function CurriculumOverview() {
         }
     };
 
+    const handleDuplicateCO = async (e, co) => {
+        e.stopPropagation();
+        const toastId = toast.loading('Menduplikasi curriculum...');
+        try {
+            // Get full data first to ensure we have entries
+            const coRef = doc(db, 'curriculumOverviews', co.id);
+            const coSnap = await getDoc(coRef);
+
+            if (!coSnap.exists()) {
+                throw new Error('Data tidak ditemukan');
+            }
+
+            const data = coSnap.data();
+
+            const newDoc = {
+                ...data,
+                className: `${data.className} (Copy)`,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                // Keep entries and configuration
+            };
+
+            const docRef = await addDoc(collection(db, 'curriculumOverviews'), newDoc);
+
+            toast.success('Curriculum berhasil diduplikasi!', { id: toastId });
+            loadCurriculums(); // Reload list
+        } catch (error) {
+            console.error('Error duplicating CO:', error);
+            toast.error('Gagal menduplikasi curriculum', { id: toastId });
+        }
+    };
+
+    const handleExportExcel = async (e, co) => {
+        e.stopPropagation();
+        const toastId = toast.loading('Mengexport ke Excel...');
+        try {
+            const coRef = doc(db, 'curriculumOverviews', co.id);
+            const coSnap = await getDoc(coRef);
+
+            if (!coSnap.exists()) {
+                throw new Error('Data tidak ditemukan');
+            }
+
+            const fullData = coSnap.data();
+
+            // Use helper to generate full spreadsheet Excel
+            await exportCurriculumToExcel(fullData);
+
+            toast.success('Export Excel berhasil!', { id: toastId });
+        } catch (error) {
+            console.error('Error exporting excel:', error);
+            toast.error('Gagal export ke Excel', { id: toastId });
+        }
+    };
+
     const filteredCurriculums = curriculums.filter(c =>
         c.className.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.year.includes(searchQuery)
@@ -175,68 +232,117 @@ export default function CurriculumOverview() {
                     )}
                 </div>
             ) : (
-                <div className="grid gap-4">
-                    {filteredCurriculums.map((co, index) => (
-                        <motion.div
-                            key={co.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className="bg-white rounded-2xl shadow-lg border border-slate-100 p-5 hover:shadow-xl transition-all group"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-                                        <BookOpen className="h-7 w-7 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-slate-800">{co.className}</h3>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-sm bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
-                                                {getSemesterLabel(co.semester)}
-                                            </span>
-                                            <span className="text-sm bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
-                                                {co.year}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
+                    <div className="min-w-[800px]">
+                        {/* Table Header */}
+                        <div className="grid grid-cols-12 gap-0 p-4 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            <div className="col-span-1 text-center">No</div>
+                            <div className="col-span-3">Kelas</div>
+                            <div className="col-span-2">Semester</div>
+                            <div className="col-span-1">Tahun</div>
+                            <div className="col-span-2 text-right">Last Update</div>
+                            <div className="col-span-3 flex justify-center pl-[82px]">Aksi</div>
+                        </div>
 
-                                <div className="flex items-center gap-6">
-                                    {/* Stats */}
-                                    <div className="hidden md:flex items-center gap-6 text-sm">
-                                        <div className="text-center">
-                                            <p className="text-2xl font-bold text-indigo-600">{getEntriesCount(co)}</p>
-                                            <p className="text-slate-500">Pertemuan</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-2xl font-bold text-orange-500">{getBlockedWeeksCount(co)}</p>
-                                            <p className="text-slate-500">Minggu Blok</p>
-                                        </div>
+                        {/* Table Body */}
+                        <div className="divide-y divide-slate-100">
+                            {filteredCurriculums.map((co, index) => (
+                                <motion.div
+                                    key={co.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    onClick={() => navigate(`/teacher/curriculum/${co.id}`)}
+                                    className="grid grid-cols-12 gap-0 p-4 items-center hover:bg-slate-50 transition-colors group cursor-pointer"
+                                >
+                                    {/* No */}
+                                    <div className="col-span-1 text-center font-medium text-slate-400">
+                                        {index + 1}
+                                    </div>
+
+                                    {/* Class Name */}
+                                    <div className="col-span-3">
+                                        <h3 className="text-base font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{co.className}</h3>
+                                    </div>
+
+                                    {/* Semester */}
+                                    <div className="col-span-2">
+                                        <span className={`px-2.5 py-1 rounded-md text-xs font-bold border inline-block ${co.semester === 1
+                                            ? 'bg-blue-50 text-blue-600 border-blue-100'
+                                            : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                            }`}>
+                                            {getSemesterLabel(co.semester)}
+                                        </span>
+                                    </div>
+
+                                    {/* Year */}
+                                    <div className="col-span-1">
+                                        <span className="bg-slate-50 text-slate-500 px-2.5 py-1 rounded-md text-xs font-bold border border-slate-200 inline-block">
+                                            {co.year}
+                                        </span>
+                                    </div>
+
+
+
+
+
+                                    {/* Last Update */}
+                                    <div className="col-span-2 text-right">
+                                        <span className="text-xs font-semibold text-slate-600">
+                                            {co.updatedAt?.seconds
+                                                ? new Date(co.updatedAt.seconds * 1000).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                                                : '-'}
+                                            {co.updatedAt?.seconds && (
+                                                <span className="text-[10px] text-slate-400 ml-2">
+                                                    {new Date(co.updatedAt.seconds * 1000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                                                </span>
+                                            )}
+                                        </span>
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="flex items-center gap-2">
+                                    <div className="col-span-3 flex items-center justify-end gap-2">
                                         <button
-                                            onClick={() => setDeleteConfirm(co.id)}
-                                            className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-all"
+                                            onClick={(e) => handleDuplicateCO(e, co)}
+                                            className="p-2.5 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-xl transition-all hover:scale-110"
+                                            title="Duplikat"
+                                        >
+                                            <Copy className="h-5 w-5" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleExportExcel(e, co)}
+                                            className="p-2.5 text-green-500 hover:text-green-700 hover:bg-green-50 rounded-xl transition-all hover:scale-110"
+                                            title="Export Excel"
+                                        >
+                                            <FileSpreadsheet className="h-5 w-5" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); navigate(`/teacher/curriculum/${co.id}/print`); }}
+                                            className="p-2.5 text-orange-500 hover:text-orange-700 hover:bg-orange-50 rounded-xl transition-all hover:scale-110"
+                                            title="Cetak PDF"
+                                        >
+                                            <Printer className="h-5 w-5" />
+                                        </button>
+                                        <div className="w-px h-6 bg-slate-200 mx-2"></div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); navigate(`/teacher/curriculum/${co.id}`); }}
+                                            className="p-2.5 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-xl transition-all hover:scale-110"
+                                            title="Edit"
+                                        >
+                                            <Edit2 className="h-5 w-5" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setDeleteConfirm(co.id); }}
+                                            className="p-2.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all hover:scale-110"
                                             title="Hapus"
                                         >
                                             <Trash2 className="h-5 w-5" />
                                         </button>
-                                        <button
-                                            onClick={() => navigate(`/teacher/curriculum/${co.id}`)}
-                                            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-all font-medium"
-                                        >
-                                            <Edit2 className="h-4 w-4" />
-                                            Edit
-                                            <ChevronRight className="h-4 w-4" />
-                                        </button>
                                     </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             )}
 
