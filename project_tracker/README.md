@@ -1,5 +1,36 @@
 # Project Tracker
 
+## 🚀 [2026-01-25 | 10:00 - 11:30] Feature: Curriculum Overview (CO) Maker
+
+### Overview
+Implemented a comprehensive Curriculum Overview Maker allowing teachers to visually plan semester schedules, block non-teaching weeks (Holidays, Exams), and generate professional Print PDF summaries and Excel exports.
+
+### ✅ Key Features & Changes
+1.  **Print PDF System**:
+    *   **Professional Layout**: A4 Landscape optimized with compact rows and high readability.
+    *   **Smart Rendering**: Hides all UI chrome (sidebars, buttons) automatically during print.
+    *   **Manual Trigger**: Disabled auto-print on load to give users control.
+    *   **Navigation**: Print button uses SPA navigation (no new tab bloat).
+
+2.  **Excel Export**:
+    *   **Rich Formatting**: Exports schedule with proper merged cells for Months and Weeks, matching the visual grid standard.
+
+3.  **Editor Improvements**:
+    *   **Consistent UI**: Updated Print button style in Editor to match Dashboard list view (Orange Icon).
+    *   **Crash Fix**: Resolved blank screen issue by fixing variable reference in navigation link.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/CurriculumEditor.jsx` | Added Print button, fixed navigation logic, optimized header layout |
+| `src/pages/teacher/CurriculumPrint.jsx` | [NEW] Dedicated print view component with CSS print media queries |
+| `src/utils/excelExport.js` | [NEW] Utility for generating formatted Excel files from curriculum data |
+| `src/pages/teacher/CurriculumOverview.jsx` | Integrated Print and Export actions in the list view |
+
+### 📦 Git Commits
+*   `feat(curriculum): complete print pdf (A4 Landscape) and excel export features`
+*   `fix(editor): resolve navigation crash and unify print button styling`
+
 ## 🛠️ [2026-01-24 | 22:00 - 23:00] Improvement: Task Upload Robustness & Student UI Refactor
 
 ### Overview
