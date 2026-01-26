@@ -3,7 +3,7 @@ import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import PullToRefresh from '../components/PullToRefresh';
+
 import { Mail, Lock, AlertCircle, ArrowRight, LogIn, Eye, EyeOff, CheckCircle, Flame, X } from 'lucide-react';
 
 export default function Login() {
@@ -53,81 +53,75 @@ export default function Login() {
     };
 
     return (
-        <div className="h-screen w-full overflow-hidden">
-            <PullToRefresh onRefresh={() => window.location.reload()}>
-                {/* Main Container - Fluid Responsive */}
-                <div
-                    className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-blue-100 relative overflow-hidden"
-                    style={{
-                        padding: 'clamp(0.75rem, 2vw, 2rem) clamp(1rem, 3vw, 1.5rem)'
-                    }}
-                >
-                    {/* Decorative Background Elements - Adaptive Size */}
-                    <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-                        <div
-                            className="absolute bg-blue-400/20 rounded-full blur-3xl"
-                            style={{
-                                top: '-10%',
-                                left: '-10%',
-                                width: 'clamp(200px, 40vw, 600px)',
-                                height: 'clamp(200px, 40vh, 600px)'
-                            }}
-                        ></div>
-                        <div
-                            className="absolute bg-cyan-400/20 rounded-full blur-3xl"
-                            style={{
-                                bottom: '-10%',
-                                right: '-10%',
-                                width: 'clamp(200px, 40vw, 600px)',
-                                height: 'clamp(200px, 40vh, 600px)'
-                            }}
-                        ></div>
-                    </div>
+        <>
+            {/* Main Container - Fluid Responsive */}
+            <div
+                className="min-h-screen flex flex-col bg-gradient-to-br from-sky-50 to-blue-100 relative overflow-x-hidden"
+                style={{
+                    padding: 'clamp(0.5rem, 1.5vw, 1rem) clamp(1rem, 3vw, 1.5rem)' // Reduced top padding
+                }}
+            >
+                {/* Decorative Background Elements - Adaptive Size */}
+                <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+                    <div
+                        className="absolute bg-blue-400/20 rounded-full blur-3xl"
+                        style={{
+                            top: '-10%',
+                            left: '-10%',
+                            width: 'clamp(200px, 40vw, 600px)',
+                            height: 'clamp(200px, 40vh, 600px)'
+                        }}
+                    ></div>
+                    <div
+                        className="absolute bg-cyan-400/20 rounded-full blur-3xl"
+                        style={{
+                            bottom: '-10%',
+                            right: '-10%',
+                            width: 'clamp(200px, 40vw, 600px)',
+                            height: 'clamp(200px, 40vh, 600px)'
+                        }}
+                    ></div>
+                </div>
 
+                {/* Content Wrapper ensures Card is centered and Footer is at bottom */}
+                <div className="flex-grow flex items-center justify-center w-full z-10">
                     {/* Login Card - Vertical Rectangle (Portrait) */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
-                        className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-[90vw] sm:max-w-md md:max-w-xl lg:max-w-lg relative z-10 border border-white/50"
+                        className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-[90vw] sm:max-w-[360px] md:max-w-[500px] lg:max-w-[360px] z-10 border border-white/50 flex flex-col justify-evenly"
                         style={{
-                            padding: 'clamp(1.5rem, 4vw, 2.5rem)',
-                            marginBottom: 'clamp(3rem, 8vh, 5rem)'
+                            padding: 'clamp(1rem, 3vw, 2rem)',
+                            minHeight: 'clamp(550px, 70vh, 750px)' // Enforce vertical rectangle shape
                         }}
                     >
                         {/* Header Section - Fluid Typography & Spacing */}
-                        <div
-                            className="text-center"
-                            style={{
-                                marginBottom: 'clamp(1.25rem, 4vh, 3rem)' // More breathing room
-                            }}
-                        >
+                        <div className="text-center">
                             <motion.img
                                 src="/favicon.png"
                                 alt="Logo"
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
-                                className="mx-auto rounded-xl"
+                                className="mx-auto rounded-xl w-[100px] h-[100px] lg:w-[70px] lg:h-[70px] mb-5 lg:mb-3 transition-all duration-300"
                                 style={{
-                                    width: 'clamp(72px, 15vw, 104px)', // 72px mobile → 104px desktop (reduced from 120px)
-                                    height: 'clamp(72px, 15vw, 104px)',
-                                    marginBottom: 'clamp(0.75rem, 2.5vh, 2rem)'
+                                    // Removed clamp sizing to strictly enforce the requested "Big on Mobile, Small on PC" logic
                                 }}
                             />
                             <h2
-                                className="font-bold text-slate-800 mb-1"
+                                className="font-bold text-slate-800 mb-1 font-['Plus_Jakarta_Sans']"
                                 style={{
-                                    fontSize: 'clamp(1.75rem, 5vw, 2.5rem)', // Bigger: 28px → 40px (was 20px → 32px)
+                                    fontSize: 'clamp(1.75rem, 5vw, 2.25rem)', // Fluid formatting for bold title
                                     lineHeight: '1.2'
                                 }}
                             >
                                 ICT Codehub
                             </h2>
                             <p
-                                className="text-slate-500"
+                                className="text-slate-500 font-['Plus_Jakarta_Sans'] font-normal"
                                 style={{
-                                    fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)' // Bigger: 14px → 18px (was 12px → 16px)
+                                    fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)' // Proportional subtitle
                                 }}
                             >
                                 Learning Management System
@@ -137,10 +131,10 @@ export default function Login() {
                         {/* Form - Fluid Spacing */}
                         <form
                             onSubmit={handleLogin}
+                            className="flex-grow flex flex-col justify-evenly" // Use justify-evenly for proportional internal spacing
                             style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 'clamp(0.75rem, 2.5vh, 1.5rem)'
+                                gap: 'clamp(0.5rem, 1.5vh, 1rem)',
+                                padding: 'clamp(0.5rem, 2vh, 1.5rem) 0'
                             }}
                         >
                             {/* Inline validation error */}
@@ -150,15 +144,15 @@ export default function Login() {
                                     animate={{ opacity: 1, y: 0 }}
                                     className="bg-red-50 text-red-600 rounded-xl flex items-center gap-2 border border-red-100"
                                     style={{
-                                        padding: 'clamp(0.75rem, 2vw, 1rem)',
-                                        fontSize: 'clamp(0.875rem, 2vw, 1rem)'
+                                        padding: 'clamp(0.5rem, 1.5vw, 0.75rem)',
+                                        fontSize: 'clamp(0.75rem, 2vw, 0.875rem)'
                                     }}
                                 >
                                     <AlertCircle
                                         className="flex-shrink-0"
                                         style={{
-                                            width: 'clamp(18px, 3vw, 20px)',
-                                            height: 'clamp(18px, 3vw, 20px)'
+                                            width: 'clamp(16px, 2.5vw, 18px)',
+                                            height: 'clamp(16px, 2.5vw, 18px)'
                                         }}
                                     />
                                     <p>{error}</p>
@@ -166,17 +160,11 @@ export default function Login() {
                             )}
 
                             {/* Email Field */}
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: 'clamp(0.5rem, 1vh, 0.75rem)'
-                                }}
-                            >
+                            <div className="flex flex-col gap-1">
                                 <label
-                                    className="font-semibold text-gray-700 ml-1"
+                                    className="font-medium text-gray-700 ml-1"
                                     style={{
-                                        fontSize: 'clamp(0.875rem, 2.5vw, 1rem)'
+                                        fontSize: 'clamp(0.9rem, 3vw, 1.1rem)' // Truly Responsive Label
                                     }}
                                 >
                                     Email
@@ -185,14 +173,14 @@ export default function Login() {
                                     <div
                                         className="absolute inset-y-0 left-0 flex items-center pointer-events-none"
                                         style={{
-                                            paddingLeft: 'clamp(0.875rem, 2vw, 1rem)'
+                                            paddingLeft: 'clamp(0.75rem, 1.5vw, 1rem)'
                                         }}
                                     >
                                         <Mail
                                             className="text-gray-400 group-focus-within:text-blue-500 transition-colors"
                                             style={{
-                                                width: 'clamp(18px, 3vw, 20px)',
-                                                height: 'clamp(18px, 3vw, 20px)'
+                                                width: 'clamp(20px, 5vw, 24px)', // Responsive Icon
+                                                height: 'clamp(20px, 5vw, 24px)'
                                             }}
                                         />
                                     </div>
@@ -212,28 +200,22 @@ export default function Login() {
                                             }
                                         }}
                                         style={{
-                                            paddingLeft: 'clamp(2.5rem, 8vw, 2.75rem)',
-                                            paddingRight: 'clamp(1rem, 3vw, 1rem)',
-                                            paddingTop: 'clamp(0.75rem, 2vh, 1rem)',
-                                            paddingBottom: 'clamp(0.75rem, 2vh, 1rem)',
-                                            fontSize: 'clamp(0.875rem, 2.5vw, 1rem)'
+                                            paddingLeft: 'clamp(2.75rem, 8vw, 3.25rem)', // Adjusted for larger icon
+                                            paddingRight: 'clamp(0.75rem, 2vw, 1rem)',
+                                            paddingTop: 'clamp(0.6rem, 1.5vh, 0.8rem)',
+                                            paddingBottom: 'clamp(0.6rem, 1.5vh, 0.8rem)',
+                                            fontSize: 'clamp(1rem, 3.5vw, 1.125rem)' // Truly Responsive Input Text
                                         }}
                                     />
                                 </div>
                             </div>
 
                             {/* Password Field */}
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: 'clamp(0.5rem, 1vh, 0.75rem)'
-                                }}
-                            >
+                            <div className="flex flex-col gap-1">
                                 <label
-                                    className="font-semibold text-gray-700 ml-1"
+                                    className="font-medium text-gray-700 ml-1"
                                     style={{
-                                        fontSize: 'clamp(0.875rem, 2.5vw, 1rem)'
+                                        fontSize: 'clamp(0.9rem, 3vw, 1.1rem)' // Truly Responsive Label
                                     }}
                                 >
                                     Password
@@ -242,14 +224,14 @@ export default function Login() {
                                     <div
                                         className="absolute inset-y-0 left-0 flex items-center pointer-events-none"
                                         style={{
-                                            paddingLeft: 'clamp(0.875rem, 2vw, 1rem)'
+                                            paddingLeft: 'clamp(0.75rem, 1.5vw, 1rem)'
                                         }}
                                     >
                                         <Lock
                                             className="text-gray-400 group-focus-within:text-blue-500 transition-colors"
                                             style={{
-                                                width: 'clamp(18px, 3vw, 20px)',
-                                                height: 'clamp(18px, 3vw, 20px)'
+                                                width: 'clamp(20px, 5vw, 24px)', // Responsive Icon
+                                                height: 'clamp(20px, 5vw, 24px)'
                                             }}
                                         />
                                     </div>
@@ -261,11 +243,11 @@ export default function Login() {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         style={{
-                                            paddingLeft: 'clamp(2.5rem, 8vw, 2.75rem)',
-                                            paddingRight: 'clamp(2.75rem, 9vw, 3rem)',
-                                            paddingTop: 'clamp(0.75rem, 2vh, 1rem)',
-                                            paddingBottom: 'clamp(0.75rem, 2vh, 1rem)',
-                                            fontSize: 'clamp(0.875rem, 2.5vw, 1rem)'
+                                            paddingLeft: 'clamp(2.75rem, 8vw, 3.25rem)', // Adjusted for larger icon
+                                            paddingRight: 'clamp(2.75rem, 8vw, 3.25rem)',
+                                            paddingTop: 'clamp(0.6rem, 1.5vh, 0.8rem)',
+                                            paddingBottom: 'clamp(0.6rem, 1.5vh, 0.8rem)',
+                                            fontSize: 'clamp(1rem, 3.5vw, 1.125rem)' // Truly Responsive Input Text
                                         }}
                                     />
                                     <button
@@ -273,12 +255,12 @@ export default function Login() {
                                         onClick={() => setShowPassword(!showPassword)}
                                         className="absolute inset-y-0 right-0 flex items-center text-gray-400 hover:text-blue-600 transition-colors focus:outline-none"
                                         style={{
-                                            paddingRight: 'clamp(0.875rem, 2vw, 1rem)'
+                                            paddingRight: 'clamp(0.75rem, 1.5vw, 1rem)'
                                         }}
                                     >
                                         {showPassword ?
-                                            <EyeOff style={{ width: 'clamp(18px, 3vw, 20px)', height: 'clamp(18px, 3vw, 20px)' }} /> :
-                                            <Eye style={{ width: 'clamp(18px, 3vw, 20px)', height: 'clamp(18px, 3vw, 20px)' }} />
+                                            <EyeOff style={{ width: 'clamp(20px, 5vw, 24px)', height: 'clamp(20px, 5vw, 24px)' }} /> :
+                                            <Eye style={{ width: 'clamp(20px, 5vw, 24px)', height: 'clamp(20px, 5vw, 24px)' }} />
                                         }
                                     </button>
                                 </div>
@@ -288,19 +270,19 @@ export default function Login() {
                             <div
                                 className="flex items-center justify-between"
                                 style={{
-                                    paddingTop: 'clamp(0.25rem, 1vh, 0.5rem)'
+                                    paddingTop: 'clamp(0.125rem, 0.5vh, 0.25rem)'
                                 }}
                             >
                                 <label className="flex items-center cursor-pointer group"
                                     style={{
-                                        gap: 'clamp(0.5rem, 1.5vw, 0.75rem)'
+                                        gap: 'clamp(0.375rem, 1vw, 0.5rem)'
                                     }}
                                 >
                                     <div
                                         className={`rounded-md border flex items-center justify-center transition-all ${rememberMe ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white group-hover:border-blue-400'}`}
                                         style={{
-                                            width: 'clamp(18px, 3vw, 20px)',
-                                            height: 'clamp(18px, 3vw, 20px)'
+                                            width: 'clamp(20px, 4vw, 22px)',
+                                            height: 'clamp(20px, 4vw, 22px)'
                                         }}
                                     >
                                         {rememberMe && <CheckCircle className="text-white" style={{ width: '70%', height: '70%' }} />}
@@ -314,7 +296,7 @@ export default function Login() {
                                     <span
                                         className="text-slate-600 font-medium group-hover:text-blue-600 transition-colors"
                                         style={{
-                                            fontSize: 'clamp(0.875rem, 2.5vw, 1rem)'
+                                            fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' // Larger responsive text
                                         }}
                                     >
                                         Remember Me
@@ -324,7 +306,7 @@ export default function Login() {
                                     to="/forgot-password"
                                     className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
                                     style={{
-                                        fontSize: 'clamp(0.875rem, 2.5vw, 1rem)'
+                                        fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' // Larger responsive text
                                     }}
                                 >
                                     Forgot Password?
@@ -338,10 +320,10 @@ export default function Login() {
                                 style={{
                                     backgroundColor: '#2563eb',
                                     color: 'white',
-                                    paddingTop: 'clamp(0.75rem, 2.5vh, 1rem)',
-                                    paddingBottom: 'clamp(0.75rem, 2.5vh, 1rem)',
-                                    fontSize: 'clamp(1rem, 3vw, 1.125rem)',
-                                    gap: 'clamp(0.5rem, 1.5vw, 0.75rem)'
+                                    paddingTop: 'clamp(0.6rem, 2vh, 0.8rem)',
+                                    paddingBottom: 'clamp(0.6rem, 2vh, 0.8rem)',
+                                    fontSize: 'clamp(0.95rem, 3vw, 1.1rem)', // Increased max vw influence
+                                    gap: 'clamp(0.375rem, 1vw, 0.5rem)'
                                 }}
                                 className="w-full rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center disabled:opacity-70"
                             >
@@ -349,13 +331,13 @@ export default function Login() {
                                     <div
                                         className="border-2 border-white/30 border-t-white rounded-full animate-spin"
                                         style={{
-                                            width: 'clamp(20px, 4vw, 24px)',
-                                            height: 'clamp(20px, 4vw, 24px)'
+                                            width: 'clamp(20px, 3vw, 24px)',
+                                            height: 'clamp(20px, 3vw, 24px)'
                                         }}
                                     />
                                 ) : (
                                     <>
-                                        Login <LogIn style={{ width: 'clamp(18px, 3vw, 20px)', height: 'clamp(18px, 3vw, 20px)' }} />
+                                        Login <LogIn style={{ width: 'clamp(18px, 2.5vw, 20px)', height: 'clamp(18px, 2.5vw, 20px)' }} />
                                     </>
                                 )}
                             </button>
@@ -363,10 +345,9 @@ export default function Login() {
 
                         {/* Register Link */}
                         <div
-                            className="text-center"
+                            className="text-center mt-2"
                             style={{
-                                marginTop: 'clamp(1rem, 3vh, 1.75rem)',
-                                fontSize: 'clamp(0.875rem, 2.5vw, 1rem)'
+                                fontSize: 'clamp(0.85rem, 2.5vw, 1rem)' // Larger responsive text
                             }}
                         >
                             <p className="text-gray-500">
@@ -377,35 +358,34 @@ export default function Login() {
                             </p>
                         </div>
                     </motion.div>
+                </div>
 
-                    {/* Credits Footer - Fluid Sizing */}
-                    <div
-                        className="absolute bottom-0 left-0 w-full bg-white/60 backdrop-blur-md border-t border-white/40 text-center z-10"
+                {/* Credits Footer - Fluid Sizing */}
+                <div
+                    className="w-full bg-white/60 backdrop-blur-md border-t border-white/40 text-center z-10"
+                    style={{
+                        padding: 'clamp(0.5rem, 1.5vh, 0.75rem)'
+                    }}
+                >
+                    <p
+                        className="text-slate-600 font-medium flex items-center justify-center flex-wrap"
                         style={{
-                            padding: 'clamp(0.75rem, 2vh, 1rem) clamp(1rem, 3vw, 1.5rem)'
+                            fontSize: 'clamp(0.625rem, 1.5vw, 0.75rem)',
+                            gap: 'clamp(0.25rem, 0.5vw, 0.375rem)'
                         }}
                     >
-                        <p
-                            className="text-slate-600 font-medium flex items-center justify-center flex-wrap"
+                        <span>Made with</span>
+                        <Flame
+                            className="text-orange-500 fill-orange-500 animate-pulse inline-block"
                             style={{
-                                fontSize: 'clamp(0.625rem, 1.5vw, 0.75rem)',
-                                gap: 'clamp(0.25rem, 0.5vw, 0.375rem)'
+                                width: 'clamp(10px, 2vw, 12px)',
+                                height: 'clamp(10px, 2vw, 12px)'
                             }}
-                        >
-                            <span>Made with</span>
-                            <Flame
-                                className="text-orange-500 fill-orange-500 animate-pulse inline-block"
-                                style={{
-                                    width: 'clamp(10px, 2vw, 12px)',
-                                    height: 'clamp(10px, 2vw, 12px)'
-                                }}
-                            />
-                            <span>by Mr. Tio • Powered by Google Antigravity & Firebase</span>
-                        </p>
-                    </div>
+                        />
+                        <span>by Mr. Tio • Powered by Google Antigravity & Firebase</span>
+                    </p>
                 </div>
-            </PullToRefresh>
-
+            </div>
             {/* Full-Screen Loading Overlay */}
             <AnimatePresence>
                 {showSuccessLoader && (
@@ -562,6 +542,6 @@ export default function Login() {
                     </div>
                 )}
             </AnimatePresence>
-        </div>
+        </>
     );
 }
