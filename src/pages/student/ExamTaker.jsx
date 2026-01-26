@@ -1424,10 +1424,11 @@ export default function ExamTaker({ isGuest = false }) {
                                         ) : currentQ.type === 'essay' ? (
                                             <div className="space-y-2">
                                                 <RichTextEditor
-                                                    value={answers[currentQ.id] || ''}
-                                                    onChange={(content) => handleTextAnswer(currentQ.id, content)}
+                                                    value={tempTextAnswer}
+                                                    onChange={setTempTextAnswer}
                                                     placeholder="Type your essay answer here..."
-                                                    height={300}
+                                                    height={200}
+                                                    mode="simple" // Use simplified toolbar for essays
                                                 />
                                             </div>
                                         ) : currentQ.type === 'short_answer' ? (

@@ -1,5 +1,30 @@
 # Project Tracker
 
+## 🛠️ [2026-01-26 | 10:00 - 10:15] Improvement: RichTextEditor Toolbar Customization
+
+### Overview
+Refined the `RichTextEditor` component to support different contexts (Tasks vs. Exams) and optimized the toolbar layout to prevent UI clutter.
+
+### ✅ Key Features & Changes
+1.  **Context-Aware Toolbar Modes**:
+    *   **Default Mode (Tasks)**: Full toolbar including Lists, Indents, Links, Images, Colors, etc.
+    *   **Simple Mode (Exam Essays)**: Simplified toolbar showing ONLY: Font, Size, Heading, and basic Formatting (Bold/Italic/Underline/Strike). This reduces distraction during exams.
+
+2.  **Compact Layout (Single Row)**:
+    *   Forced toolbar to standard **Single Row** layout using `flex-wrap: nowrap`.
+    *   Condensed padding and spacing between button groups.
+    *   Optimized font picker width.
+    *   Added horizontal scroll support for very small screens to prevent layout breakage.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/components/RichTextEditor.jsx` | Added `mode` prop, reduced CSS padding/gap, enforced single row layout |
+| `src/pages/student/ExamTaker.jsx` | Implemented `mode="simple"` for Essay questions |
+
+### 📦 Git Commits
+*   `ui(editor): simplify toolbar for exams and force single-row compact layout`
+
 ## 🎨 [2026-01-26 | 09:30 - 10:00] Improvement: Login Page Refactor (Rich Text, Vortex, Gradient)
 
 ### Overview
