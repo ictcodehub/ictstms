@@ -10,6 +10,7 @@ import { createExamSession, getExamSession, updateSessionAnswers, completeExamSe
 import { saveAnswersOffline, getOfflineAnswers, markAsSynced } from '../../utils/offlineStorage';
 import ExamOfflineIndicator from '../../components/ExamOfflineIndicator';
 import ExamResultModal from './ExamResultModal';
+import RichTextEditor from '../../components/RichTextEditor';
 
 import { App as CapacitorApp } from '@capacitor/app';
 
@@ -1422,15 +1423,12 @@ export default function ExamTaker({ isGuest = false }) {
                                             </div>
                                         ) : currentQ.type === 'essay' ? (
                                             <div className="space-y-2">
-                                                <textarea
+                                                <RichTextEditor
                                                     value={answers[currentQ.id] || ''}
-                                                    onChange={(e) => handleTextAnswer(currentQ.id, e.target.value)}
+                                                    onChange={(content) => handleTextAnswer(currentQ.id, content)}
                                                     placeholder="Type your essay answer here..."
-                                                    className="w-full p-4 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none min-h-[300px] resize-y"
+                                                    height={300}
                                                 />
-                                                <p className="text-xs text-slate-500">
-                                                    {(answers[currentQ.id] || '').length} characters
-                                                </p>
                                             </div>
                                         ) : currentQ.type === 'short_answer' ? (
                                             <div className="space-y-2">

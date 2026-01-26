@@ -19,7 +19,6 @@
     "@capacitor/core": "^8.0.0",
     "@capacitor/network": "^8.0.0",
     "@capacitor/splash-screen": "^8.0.0",
-    "@tinymce/tinymce-react": "^6.3.0",
     "clsx": "^2.1.1",
     "dompurify": "^3.3.1",
     "firebase": "^12.6.0",
