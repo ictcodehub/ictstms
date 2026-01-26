@@ -255,9 +255,8 @@ export default function CurriculumEditor() {
                             let candidateDate = new Date(lastStart);
                             candidateDate.setDate(candidateDate.getDate() + 7);
 
-                            // Skip blocked or occupied weeks
+                            // Find next available week (skip blocked weeks)
                             let attempts = 0;
-                            // Limit lookahead to avoid infinite loops, but allow enough to skip a month of blocks
                             while (attempts < 12) {
                                 // Determine month/week for candidate
                                 const monthIndex = candidateDate.getMonth(); // 0-11
@@ -271,24 +270,21 @@ export default function CurriculumEditor() {
 
                                 const weekNum = Math.ceil(candidateDate.getDate() / 7);
 
-                                // If date falls outside semester range or beyond week 5, just accept it or stop optimizing
+                                // If date falls outside semester range or beyond week 5, stop optimizing
                                 if (monthNum === -1 || weekNum > 5) {
                                     break;
                                 }
 
-                                // Check max weeks for this month
-                                const monthName = months[monthNum - 1];
-                                const maxWeeks = (monthName === 'April' || monthName === 'Oktober' || monthName === 'Juli') ? 5 : 4;
-
+                                // ALLOW WEEK 5 for ALL months. Limiting to 4 caused skips for months like May.
+                                // const monthName = months[monthNum - 1];
+                                // const maxWeeks = (monthName === 'April' || monthName === 'Oktober' || monthName === 'Juli') ? 5 : 4;
+                                const maxWeeks = 5;
                                 const isOutOfBounds = weekNum > maxWeeks;
-
                                 const isBlocked = isWeekBlocked(monthNum - 1, weekNum);
 
-                                const isOccupied = curriculum.entries?.some(e =>
-                                    e.plotWeeks?.some(p => p.month === monthNum && p.week === weekNum)
-                                );
+                                // REMOVED isOccupied check to allow multiple meetings per week
 
-                                if (isBlocked || isOccupied || isOutOfBounds) {
+                                if (isBlocked || isOutOfBounds) {
                                     candidateDate.setDate(candidateDate.getDate() + 7);
                                 } else {
                                     break;
@@ -298,8 +294,7 @@ export default function CurriculumEditor() {
 
                             nextDateStart = candidateDate.toISOString().split('T')[0];
 
-                            // Default to +4 days (Mon -> Fri) for standard 1 week / 2 JP
-                            // User complained that it was taking too long range if previous entry was long.
+                            // Default to +4 days (Mon -> Fri)
                             const nextEnd = new Date(candidateDate);
                             nextEnd.setDate(nextEnd.getDate() + 4);
                             nextDateEnd = nextEnd.toISOString().split('T')[0];
@@ -685,7 +680,7 @@ export default function CurriculumEditor() {
                             <div className="flex items-end">
                                 <button
                                     onClick={handleAddBlockedWeek}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-medium"
+                                    className="w-full flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-medium"
                                 >
                                     <Plus className="h-4 w-4" />
                                     Block
@@ -760,35 +755,35 @@ export default function CurriculumEditor() {
                                 <p className="text-slate-500">Belum ada pertemuan. Klik tombol "Tambah Pertemuan" untuk mulai.</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                                <table className="w-full border-collapse min-w-[1200px]">
+                            <div className="border border-slate-200 rounded-xl overflow-hidden">
+                                <table className="w-full border-collapse text-sm">
                                     <thead>
                                         {/* Month Headers Row */}
                                         <tr className="bg-slate-100">
-                                            <th rowSpan={2} className="w-14 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center sticky left-0 bg-slate-50 z-10">No</th>
-                                            <th rowSpan={2} className="w-32 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-left bg-slate-100">Chapter/Bab</th>
-                                            <th rowSpan={2} className="w-28 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center bg-slate-100">Date</th>
-                                            <th rowSpan={2} className="min-w-[200px] max-w-[300px] px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-left bg-slate-100">TOPIC</th>
-                                            <th rowSpan={2} className="w-14 px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center bg-slate-100">TIME</th>
+                                            <th rowSpan={2} className="w-10 px-1 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center bg-slate-50">No</th>
+                                            <th rowSpan={2} className="w-20 px-1 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-left bg-slate-100">Chapter</th>
+                                            <th rowSpan={2} className="w-24 px-1 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center bg-slate-100">Date</th>
+                                            <th rowSpan={2} className="px-2 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-left bg-slate-100 min-w-[120px]">TOPIC</th>
+                                            <th rowSpan={2} className="w-12 px-1 py-2 text-xs font-bold text-slate-600 border-b border-r border-slate-200 text-center bg-slate-100">JP</th>
                                             {months.map((month, idx) => (
                                                 <th
                                                     key={idx}
-                                                    colSpan={month === 'April' || month === 'Oktober' || month === 'Juli' ? 5 : 4}
+                                                    colSpan={5}
                                                     className="px-1 py-2 text-xs font-bold text-slate-700 border-b border-r border-slate-200 text-center bg-slate-50"
                                                 >
                                                     {month}
                                                 </th>
                                             ))}
-                                            <th rowSpan={2} className="border-b border-slate-200"></th>
+                                            <th rowSpan={2} className="w-8 border-b border-slate-200"></th>
                                         </tr>
                                         {/* Week Headers Row */}
                                         <tr className="bg-slate-50">
                                             {months.map((month, monthIdx) => {
-                                                const weekCount = (month === 'April' || month === 'Oktober' || month === 'Juli') ? 5 : 4;
+                                                const weekCount = 5;
                                                 return Array.from({ length: weekCount }, (_, weekIdx) => (
                                                     <th
                                                         key={`${monthIdx}-${weekIdx}`}
-                                                        className="w-8 px-1 py-2 text-[10px] font-semibold text-slate-500 border-b border-r border-slate-200 text-center"
+                                                        className="w-7 px-0.5 py-1 text-[10px] font-semibold text-slate-400 border-b border-r border-slate-200 text-center"
                                                     >
                                                         {weekIdx + 1}
                                                     </th>
@@ -857,7 +852,7 @@ export default function CurriculumEditor() {
                                                 </td>
                                                 {/* Weekly Cells */}
                                                 {months.map((month, monthIdx) => {
-                                                    const weekCount = (month === 'April' || month === 'Oktober' || month === 'Juli') ? 5 : 4;
+                                                    const weekCount = 5;
                                                     return Array.from({ length: weekCount }, (_, weekIdx) => {
                                                         const week = weekIdx + 1;
                                                         const monthNum = monthIdx + 1;
@@ -1238,7 +1233,7 @@ export default function CurriculumEditor() {
                                                 {[1, 2, 3, 4, 5].map(week => {
                                                     // Determine block count for this month
                                                     const currentMonthName = months[monthIndex];
-                                                    const weekCount = (currentMonthName === 'April' || currentMonthName === 'Oktober' || currentMonthName === 'Juli') ? 5 : 4;
+                                                    const weekCount = 5;
 
                                                     if (week > weekCount) {
                                                         return <div key={`${monthIndex}-${week}`} className="h-8"></div>;

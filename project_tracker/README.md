@@ -1,6 +1,29 @@
 # Project Tracker
 
-## 🛠️ [2026-01-26 | 10:00 - 10:15] Improvement: RichTextEditor Toolbar Customization
+## � [2026-01-26 | 10:45 - 11:30] Fix: CO Maker Date Logic & Layout
+
+### Overview
+Fixed critical bugs in the Curriculum Overview (CO) Maker where valid weeks (especially the 5th week of months like May) were being skipped, causing date calculation to jump incorrectly to subsequent months. Also improved the table layout.
+
+### ✅ Key Features & Changes
+1.  **Fixed Date Escalation Logic**:
+    *   **Universal 5-Week Support**: Updated the system to acknowledge that ALL months can have up to 5 weeks (previously capped at 4 for some months). This prevented "phantom blocking" of valid late-month dates (e.g., May 18-31).
+    *   **Logic Refinement**: Removed risky heuristic fallbacks. The system now strictly calculates the next date as `Last Date + 7 Days` while respecting blocked weeks, ensuring continuous progression.
+
+2.  **UI/UX Improvements**:
+    *   **Removed Horizontal Scroll**: Optimized column widths in the main curriculum table to fit standard screens without scrolling.
+    *   **Consistent Grid**: Ensuring the 5th week column is visible for all months to match the new logic.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/CurriculumEditor.jsx` | Forced `maxWeeks=5`, fixed date loop logic, optimized table CSS |
+
+### 📦 Git Commits
+*   `fix(curriculum): enable 5-week months and repair date calculation logic`
+*   `style(curriculum): remove horizontal scroll and optimize table layout`
+
+## �🛠️ [2026-01-26 | 10:00 - 10:15] Improvement: RichTextEditor Toolbar Customization
 
 ### Overview
 Refined the `RichTextEditor` component to support different contexts (Tasks vs. Exams) and optimized the toolbar layout to prevent UI clutter.
