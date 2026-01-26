@@ -1,5 +1,40 @@
 # Project Tracker
 
+## 🎨 [2026-01-26 | 09:30 - 10:00] Improvement: Login Page Refactor (Rich Text, Vortex, Gradient)
+
+### Overview
+Addressed user dissatisfaction with the login page design. Implemented a significantly improved visual experience without breaking the existing responsive layout. The updates focus on modern aesthetics, interactive elements, and proper content presentation.
+
+### ✅ Key Features & Changes
+1.  **Rich Text Editor Integration (ExamTaker)**:
+    *   Replaced the standard `textarea` with a `RichTextEditor` component for **Essay** question types.
+    *   Allows students to format their answers (bold, italic, list, etc.).
+    *   Removed character count limit for these fields to accommodate HTML content.
+
+2.  **Login Page Visual Overhaul**:
+    *   **Background**: Implemented a **Dynamic Animated Gradient** (`bg-gradient-to-br from-blue-100 via-indigo-100 to-cyan-100`) that shifts colors smoothly over 15 seconds.
+    *   **Particle Vortex**: Added a custom `ParticleVortex.jsx` component using HTML5 Canvas.
+        *   **Interactive**: Particles react to mouse movement (distortion effect).
+        *   **Visuals**: Bright white particles (`opacity: 0.95`) with connecting lines (`opacity: 0.8`), simulating a "constellation" or "neural network" effect.
+        *   **Performance**: Optimized for 60fps using Canvas API instead of DOM nodes.
+    *   **UI Polish**:
+        *   Removed "bounce/zoom" animation from the logo (now static).
+        *   Cleaned up Footer (removed white background, darkened text color `text-slate-600` for readability).
+        *   Adjusted input padding to prevent text overlap with icons.
+        *   Reverted "ICT Codehub" font to standard Sans-Serif for a cleaner look.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/student/ExamTaker.jsx` | Replaced textarea with RichTextEditor for essays |
+| `src/pages/Login.jsx` | Added ParticleVortex, updated gradient classes, cleaned up UI/Footer |
+| `src/components/ParticleVortex.jsx` | [NEW] Canvas-based interactive particle animation component |
+| `src/index.css` | Added `@keyframes gradient-xy` for background animation |
+
+### 📦 Git Commits
+*   `ui(login): overhaul visuals with animated gradient and white particle vortex`
+*   `feat(exam): integrate rich text editor for essay questions`
+
 ## 🚧 [2026-01-25 | 21:00 - 22:00] Improvement: Native Print Implementation (WIP)
 
 ### Overview
