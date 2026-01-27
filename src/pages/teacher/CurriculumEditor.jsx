@@ -23,6 +23,13 @@ const BLOCK_TYPES = [
     { id: 'preparation', label: 'Persiapan/Review', color: '#8B5CF6', bgClass: 'bg-purple-500' },
 ];
 
+// Helper to determine weeks in a month
+const getWeekCount = (monthName) => {
+    // According to user: Only April has 5 weeks (in Sem 2 context).
+    // Including Oktober and Juli for Sem 1 robustness as they often have 5 weeks.
+    return ['April', 'Oktober', 'Juli'].includes(monthName) ? 5 : 4;
+};
+
 export default function CurriculumEditor() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -275,10 +282,8 @@ export default function CurriculumEditor() {
                                     break;
                                 }
 
-                                // ALLOW WEEK 5 for ALL months. Limiting to 4 caused skips for months like May.
-                                // const monthName = months[monthNum - 1];
-                                // const maxWeeks = (monthName === 'April' || monthName === 'Oktober' || monthName === 'Juli') ? 5 : 4;
-                                const maxWeeks = 5;
+                                // ALLOW WEEK 5 only for specific months
+                                const maxWeeks = getWeekCount(months[monthNum - 1]);
                                 const isOutOfBounds = weekNum > maxWeeks;
                                 const isBlocked = isWeekBlocked(monthNum - 1, weekNum);
 
@@ -507,10 +512,13 @@ export default function CurriculumEditor() {
     // Calculate stats
     const totalME = useMemo(() => {
         if (!curriculum) return 0;
-        const totalWeeks = months.length * 5;
+        // Calculate total available weeks based on dynamic week count
+        const totalWeeks = months.reduce((sum, month) => sum + getWeekCount(month), 0);
         const blockedCount = curriculum.blockedWeeks?.length || 0;
         return totalWeeks - blockedCount;
     }, [curriculum, months]);
+
+
 
     if (loading) {
         return (
@@ -650,7 +658,7 @@ export default function CurriculumEditor() {
                                     onChange={(e) => setBlockForm({ ...blockForm, week: parseInt(e.target.value) })}
                                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
                                 >
-                                    {[1, 2, 3, 4, 5].map(w => (
+                                    {Array.from({ length: getWeekCount(months[blockForm.month - 1]) }, (_, i) => i + 1).map(w => (
                                         <option key={w} value={w}>Minggu {w}</option>
                                     ))}
                                 </select>
@@ -768,18 +776,17 @@ export default function CurriculumEditor() {
                                             {months.map((month, idx) => (
                                                 <th
                                                     key={idx}
-                                                    colSpan={5}
+                                                    colSpan={getWeekCount(month)}
                                                     className="px-1 py-2 text-xs font-bold text-slate-700 border-b border-r border-slate-200 text-center bg-slate-50"
                                                 >
                                                     {month}
                                                 </th>
                                             ))}
-                                            <th rowSpan={2} className="w-8 border-b border-slate-200"></th>
                                         </tr>
                                         {/* Week Headers Row */}
                                         <tr className="bg-slate-50">
                                             {months.map((month, monthIdx) => {
-                                                const weekCount = 5;
+                                                const weekCount = getWeekCount(month);
                                                 return Array.from({ length: weekCount }, (_, weekIdx) => (
                                                     <th
                                                         key={`${monthIdx}-${weekIdx}`}
@@ -852,7 +859,7 @@ export default function CurriculumEditor() {
                                                 </td>
                                                 {/* Weekly Cells */}
                                                 {months.map((month, monthIdx) => {
-                                                    const weekCount = 5;
+                                                    const weekCount = getWeekCount(month);
                                                     return Array.from({ length: weekCount }, (_, weekIdx) => {
                                                         const week = weekIdx + 1;
                                                         const monthNum = monthIdx + 1;
@@ -971,6 +978,15 @@ export default function CurriculumEditor() {
                                                 {month}
                                             </td>
                                             {[1, 2, 3, 4, 5].map(week => {
+                                                const maxWeeks = getWeekCount(month);
+                                                if (week > maxWeeks) {
+                                                    return (
+                                                        <td key={week} className="p-1 border-b border-slate-100 bg-slate-100/50">
+                                                            {/* Empty cell for non-existent week */}
+                                                        </td>
+                                                    );
+                                                }
+
                                                 const blockInfo = getBlockInfo(monthIndex, week);
                                                 const entries = getEntriesForWeek(monthIndex, week);
                                                 const totalJP = entries.reduce((sum, e) => sum + (e.duration || 0), 0);

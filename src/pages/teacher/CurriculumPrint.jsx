@@ -87,9 +87,8 @@ export default function CurriculumPrint() {
             {/* Dynamic style for print */}
             <style>{`
                 @page {
-                    /* Start with 0 margin to avoid double-margin issues */
-                    margin: 0mm; 
                     size: landscape;
+                    margin: 0;
                 }
                 @media print {
                     #print-wrapper {
@@ -122,11 +121,14 @@ export default function CurriculumPrint() {
                         top: 0;
                         width: 100% !important;
                         margin: 0 !important;
-                        /* Minimized padding (5mm) to safely fit A4 Landscape height limitations */
-                        padding: 5mm !important; 
+                        padding: 10px 10px !important;
+                        box-sizing: border-box !important;
                         box-shadow: none !important;
                         border: none !important;
                         background-color: white !important;
+                        /* Scale down slightly to ensure it fits Letter/A4 margins */
+                        transform: scale(0.99);
+                        transform-origin: top center;
                     }
                     
                     .no-print {
@@ -137,7 +139,7 @@ export default function CurriculumPrint() {
                     table {
                         width: 100%;
                         border-collapse: collapse !important;
-                        font-size: 10px;
+                        font-size: 9px;
                     }
                     th, td {
                         border: 1px solid #1e293b !important; /* slate-900 */
@@ -185,9 +187,9 @@ export default function CurriculumPrint() {
                     {/* We render the content here for PREVIEW. */}
                     <div id="print-content" className="w-full h-full">
                         {/* Header */}
-                        <div className="mb-6">
-                            <h1 className="text-2xl font-bold text-slate-900 mb-3 text-center uppercase tracking-wide">Curriculum Overview</h1>
-                            <div className="flex justify-between items-center text-[10px] text-slate-600 border-b-2 border-slate-800 pb-2 mb-4">
+                        <div className="mb-2">
+                            <h1 className="text-xl font-bold text-slate-900 mb-1 text-left uppercase tracking-wide">Curriculum Overview</h1>
+                            <div className="flex justify-between items-center text-[9px] text-slate-600 pb-2 mb-2">
                                 <div>
                                     <span className="mr-4"><strong>Kelas:</strong> {curriculum.className}</span>
                                     <span className="mr-4"><strong>Semester:</strong> {getSemesterLabel(curriculum.semester)}</span>

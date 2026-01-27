@@ -1,7 +1,37 @@
 
 
 
-## � [2026-01-27 | 19:47] Feature: Manual App Update (Cache Clear)
+## � [2026-01-27 | 19:47] Fix: CO Maker Week Count & Print Layout
+
+### Overview
+Addressed a critical bug in the Curriculum Overview (CO) Maker where all months were incorrectly assigned 5 weeks. Implemented dynamic week calculation logic. Also refined the Print Layout to be more compact and optimized for "Letter" paper size.
+
+### ✅ Key Changes
+1.  **Week Count Logic (`CurriculumEditor.jsx`)**:
+    *   **Dynamic Calculation**: Implemented `getWeekCount` helper.
+    *   **Rule**: Weeks based on month name:
+        *   **5 Weeks**: April (Sem 2), Oktober, Juli (Sem 1).
+        *   **4 Weeks**: All other months.
+    *   **UI Update**: Block Weeks Form, Entries Table, and Calendar Grid now respect this dynamic count.
+    *   **Fixes**: Solved "Blank Screen" initialization error and "Table Header misalignment" (dynamic `colSpan`).
+
+2.  **Print Layout (`CurriculumPrint.jsx`)**:
+    *   **Optimized for Letter**: Removed default margins, added safe internal padding (10px).
+    *   **Compact Rows**: Reduced row height (padding `py-1`, line-height `1.1`) for better vertical fit.
+    *   **Maximized Width**: Adjusted scale to 99% and minimized side padding to use full paper width.
+    *   **Header**: Left-aligned "CURRICULUM OVERVIEW" title and compacted header spacing.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/CurriculumEditor.jsx` | Implemented dynamic week count logic, fixed table alignment |
+| `src/pages/teacher/CurriculumPrint.jsx` | Refined print CSS for Letter size, compacted layout |
+
+### 📦 Git Commits
+*   `fix(co-maker): implement dynamic week count (4/5 weeks rule)`
+*   `ui(print): optimize layout for Letter paper (compact rows, max width)`
+
+## 🚀 [2026-01-27 | 19:47] Feature: Manual App Update (Cache Clear)
 
 ### Overview
 Implemented a "Smart Update" button in the Sidebar to allow students (and teachers) to force an application update. This resolves issues where devices with aggressive caching (Service Workers) stay on old versions even after deployment.
