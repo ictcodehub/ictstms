@@ -7,23 +7,25 @@
 Implemented a "Smart Update" button in the Sidebar to allow students (and teachers) to force an application update. This resolves issues where devices with aggressive caching (Service Workers) stay on old versions even after deployment.
 
 ### ✅ Key Features
-1.  **"Update Aplikasi" Button**:
-    *   Located in the Sidebar (below the menu).
+1.  **"Update App" Button**:
+    *   Located in the **Student Dashboard Header** (Top Right).
     *   **Functionality**:
         *   Unregisters all Service Workers.
         *   Clears `caches` storage (PWA assets).
         *   Clears `sessionStorage`.
         *   Forces a Hard Reload (`window.location.reload(true)`).
-    *   **UX**: Includes a help text "Klik jika ada error/macet" to guide students.
+    *   **UX**: Minimalist white button with Refresh icon.
 
 ### 📁 Files Modified
 | File | Changes |
 |------|---------|
 | `src/utils/appUpdater.js` | [NEW] Utility to handle SW unregistration and cache clearing |
-| `src/layouts/DashboardLayout.jsx` | Added "Update Aplikasi" button to Sidebar |
+| `src/pages/student/Overview.jsx` | Added "Update App" button to Dashboard Header |
+| `src/layouts/DashboardLayout.jsx` | Cleaned up imports (Removed sidebar button) |
 
 ### 📦 Git Commits
 *   `feat: add manual app update button to sidebar for clearing cache`
+*   `ui: relocate update button to student dashboard header and rename to English`
 
 ## �🐛 [2026-01-27 | 19:30] Fix: Missing Exams for Multi-Class Students
 
