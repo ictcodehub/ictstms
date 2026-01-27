@@ -1,4 +1,20 @@
-# Project Tracker
+
+## 🚀 [2026-01-27 | 10:45] Feature: Realtime Storage Dashboard
+
+### Overview
+Implemented a real-time storage monitoring widget in the Teacher Dashboard to track file usage against the 5GB Free Tier limit. Redesigned for a modern, animated aesthetic with "Server/Hard Drive" visual metaphors.
+
+### ✅ Key Features & Changes
+1.  **Storage Dashboard Widget**:
+    *   **Real-time Calculation**: Sums up file sizes from all Tasks and Submissions.
+    *   **Visual Design**: Horizontal, glass-morphism card with an animated "Heartbeat" server icon.
+    *   **Intuitive Indicators**: Color-coded progress bar (Blue/Green/Red) and status dots for quick health checks.
+2.  **Tasks Enhancement**:
+    *   **File Size Display**: Added explicit size (e.g., `DOCX • 2.5 MB`) to attachment list in Task Editor.
+    *   **Code Fix**: Resolved syntax error in `Tasks.jsx` (missing function closure) and removed deprecated base64 fallback.
+3.  **UI Polish**:
+    *   Redesigned Storage Widget typography for consistency and clarity (no collisions, clean weights).
+
 
 ## 🚀 [2026-01-27 | 09:30 - 10:30] Optimization: Firebase Storage & Upload Reliability
 
