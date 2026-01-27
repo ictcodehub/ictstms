@@ -1,5 +1,29 @@
 
 
+
+## 🎨 [2026-01-27 | 13:30] Refactor: Teacher Task Modal Overhaul
+
+### Overview
+Complete overhaul of the `TeacherTaskModal` to improve usability, visual balance, and functionality. Addressed user feedback regarding "thin" UI elements and alignment issues.
+
+### ✅ Key Features & Changes
+1.  **Layout Restructuring**:
+    *   **Deadlines**: Moved to a dedicated full-width section for better visibility.
+    *   **Balanced Grid**: "Instructions" (Yellow Box) and "Classes" (Selection List) are now side-by-side with equal height (`h-full`), creating a symmetrical and professional look.
+    *   **Portal Implementation**: Using `createPortal` to render the modal at the document root, ensuring no z-index clipping issues.
+
+2.  **Visual Polish**:
+    *   **Typography**: Adjusted font weights (Medium/Semibold) to look refined but readable, replacing overly bold headers.
+    *   **Action Buttons**: Removed the sticky footer. Buttons (Cancel/Publish) are now inline at the bottom of the form, with increased size (`px-8 py-4`) for a clearer call-to-action.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/TeacherTaskModal.jsx` | Full layout refactor, grid improvements, button sizing |
+
+### 📦 Git Commits
+*   `refactor: refine TeacherTaskModal layout, typography and buttons`
+
 ## 🐛 [2026-01-27 | 10:52] Fix: Missing Submission Instructions
 
 ### Overview
