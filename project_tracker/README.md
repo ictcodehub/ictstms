@@ -9,8 +9,9 @@ Implemented a "Smart Update" button in the Sidebar to allow students (and teache
 ### ✅ Key Features
 1.  **"Update App" Button**:
     *   **Desktop/Tablet (≥768px)**: Located in the **Dashboard Header** (Top Left, next to Menu).
-        *   **Style**: **Cyan/Teal** color scheme. 2-Row Layout, Equal Small Text Size.
+        *   **Style**: **Cyan/Teal** theme. 2-Row Layout, Small Text (9px). **Spinning Icon**.
     *   **Mobile (<768px)**: Located in the **Dashboard Header** (Top Right, next to Profile).
+        *   **Style**: Compact **Spinning Icon**.
         *   **Style**: Compact Icon Only.
     *   **Functionality**:
         *   Unregisters all Service Workers.

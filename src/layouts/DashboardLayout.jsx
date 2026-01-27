@@ -377,12 +377,12 @@ export default function DashboardLayout({ children }) {
                         {/* Desktop/Tablet Update App Button - Detailed */}
                         <button
                             onClick={forceAppUpdate}
-                            className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 hover:border-cyan-300 group transition-all"
+                            className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 hover:border-cyan-300 group transition-all"
                         >
-                            <RefreshCw className="h-3.5 w-3.5 text-cyan-600 group-hover:text-cyan-700" />
+                            <RefreshCw className="h-3.5 w-3.5 text-cyan-600 group-hover:text-cyan-700 animate-[spin_3s_linear_infinite]" />
                             <div className="text-left leading-none">
-                                <span className="block text-[10px] font-bold text-cyan-700 group-hover:text-cyan-800 uppercase tracking-wide">Update App</span>
-                                <span className="block text-[10px] text-cyan-600 font-medium mt-0.5">To Update & Fix Error</span>
+                                <span className="block text-[9px] font-bold text-cyan-700 group-hover:text-cyan-800">Update App</span>
+                                <span className="block text-[9px] text-cyan-600 font-medium mt-1">To Update & Fix Error</span>
                             </div>
                         </button>
                     </div>
@@ -391,10 +391,10 @@ export default function DashboardLayout({ children }) {
                         {/* Mobile Update App Button */}
                         <button
                             onClick={forceAppUpdate}
-                            className="md:hidden p-2 rounded-full border border-slate-200 text-slate-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
+                            className="md:hidden p-2 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-600 hover:bg-cyan-100 hover:text-cyan-700 hover:border-cyan-300 transition-all shadow-sm"
                             title="Update App"
                         >
-                            <RefreshCw className="h-5 w-5" />
+                            <RefreshCw className="h-5 w-5 animate-[spin_3s_linear_infinite]" />
                         </button>
 
                         <ProfileDropdown currentUser={currentUser} logout={logout} />
