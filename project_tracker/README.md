@@ -9,7 +9,7 @@ Implemented a "Smart Update" button in the Sidebar to allow students (and teache
 ### ✅ Key Features
 1.  **"Update App" Button**:
     *   **Desktop/Tablet (≥768px)**: Located in the **Dashboard Header** (Top Left, next to Menu).
-        *   **Style**: Detailed button with Title ("Update App") and Subtitle ("Fix stuck/errors").
+        *   **Style**: **Amber/Orange** color scheme (High Visibility) with "Fix errors" subtitle. Compact height.
     *   **Mobile (<768px)**: Located in the **Dashboard Header** (Top Right, next to Profile).
         *   **Style**: Compact Icon Only.
     *   **Functionality**:
