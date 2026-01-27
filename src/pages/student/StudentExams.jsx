@@ -20,8 +20,8 @@ export default function StudentExams() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(window.innerWidth < 768 ? 5 : 10);
-
-    const [examSessions, setExamSessions] = useState({}); // Store sessions by examId
+    const [examSessions, setExamSessions] = useState({});
+    const [enrolledClassIds, setEnrolledClassIds] = useState([]); // New state
 
     // Responsive itemsPerPage
     useEffect(() => {
@@ -42,18 +42,28 @@ export default function StudentExams() {
                 const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
-                    if (userData.classId) {
-                        setStudentClassId(userData.classId);
 
-                        // Fetch Class Name
+                    // Collect all class IDs (legacy + new)
+                    const classIds = new Set();
+                    if (userData.classId) classIds.add(userData.classId);
+                    if (userData.classIds && Array.isArray(userData.classIds)) {
+                        userData.classIds.forEach(id => classIds.add(id));
+                    }
+
+                    const classIdsArray = Array.from(classIds);
+                    setStudentClassId(userData.classId); // Keep for legacy compatibility if needed
+                    setEnrolledClassIds(classIdsArray);
+
+                    // Fetch Class Name (Primary)
+                    if (userData.classId) {
                         const classDoc = await getDoc(doc(db, 'classes', userData.classId));
                         if (classDoc.exists()) {
                             setStudentClassName(classDoc.data().name);
                         } else {
                             setStudentClassName('Unknown Class');
                         }
-
-                        // loadExams(userData.classId); // Removed direct call
+                    } else if (classIdsArray.length > 0) {
+                        setStudentClassName(`${classIdsArray.length} Classes Enrolled`);
                     } else {
                         setLoading(false);
                     }
@@ -68,15 +78,19 @@ export default function StudentExams() {
     }, [currentUser]);
 
     useEffect(() => {
-        if (!studentClassId || !currentUser) return;
+        if (enrolledClassIds.length === 0 || !currentUser) {
+            if (!loading && enrolledClassIds.length === 0) setLoading(false);
+            return;
+        }
 
         setLoading(true);
         let localExams = [];
         let localResults = [];
 
+        // Updated query to check ANY of the enrolled classes
         const qExams = query(
             collection(db, 'exams'),
-            where('assignedClasses', 'array-contains', studentClassId),
+            where('assignedClasses', 'array-contains-any', enrolledClassIds),
             where('status', '==', 'published')
         );
 
@@ -115,7 +129,7 @@ export default function StudentExams() {
         });
 
         return () => { unsubExams(); unsubResults(); };
-    }, [studentClassId, currentUser]);
+    }, [enrolledClassIds, currentUser]);
 
     // Load exam sessions for all exams with real-time listener
     useEffect(() => {
@@ -210,7 +224,7 @@ export default function StudentExams() {
         );
     }
 
-    if (!studentClassId) {
+    if (enrolledClassIds.length === 0 && !loading) {
         return (
             <div className="text-center py-20 bg-white rounded-3xl border border-slate-200">
                 <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
@@ -257,7 +271,7 @@ export default function StudentExams() {
                 </div>
             </div>
 
-            {!loading && !studentClassId && (
+            {!loading && enrolledClassIds.length === 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4">
                     <AlertCircle className="h-6 w-6 text-amber-600 shrink-0 mt-1" />
                     <div>

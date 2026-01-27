@@ -1,6 +1,25 @@
 
 
 
+## 🐛 [2026-01-27 | 19:30] Fix: Missing Exams for Multi-Class Students
+
+### Overview
+Resolved a critical bug where students enrolled in multiple classes (using the modern `classIds` system) could not see exams assigned to their secondary classes. The system previously only checked the primary `classId`.
+
+### ✅ Key Changes
+1.  **Student Exam Query**:
+    *   Updated `StudentExams.jsx` to fetch ALL enrolled classes (`classId` + `classIds`).
+    *   Changed Firestore query from `array-contains` (single class) to `array-contains-any` (list of classes).
+    *   Restored missing state variables that caused "Class Not Assigned" crash during debugging.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/student/StudentExams.jsx` | Implemented multi-class query logic & fixed state initialization |
+
+### 📦 Git Commits
+*   `fix(student): enable exam visibility for multi-class students`
+
 ## 🎨 [2026-01-27 | 13:30] Refactor: Teacher Task Modal Overhaul
 
 ### Overview
