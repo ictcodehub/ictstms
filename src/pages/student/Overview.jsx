@@ -336,7 +336,7 @@ export default function Overview() {
 
                 <button
                     onClick={forceAppUpdate}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:shadow-sm transition-all text-sm font-medium"
+                    className="hidden md:flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:shadow-sm transition-all text-sm font-medium"
                 >
                     <div className="p-1 bg-slate-100 rounded-lg">
                         <RefreshCw className="h-3.5 w-3.5" />

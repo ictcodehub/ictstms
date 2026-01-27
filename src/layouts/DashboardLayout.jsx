@@ -14,11 +14,13 @@ import {
     Trophy,
     CheckCircle2,
     Clock,
-    CalendarDays
+    CalendarDays,
+    RefreshCw
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ProfileDropdown from '../components/ProfileDropdown';
 import PullToRefresh from '../components/PullToRefresh';
+import { forceAppUpdate } from '../utils/appUpdater';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -371,7 +373,18 @@ export default function DashboardLayout({ children }) {
                         {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                     </button>
 
-                    <ProfileDropdown currentUser={currentUser} logout={logout} />
+                    <div className="flex items-center gap-2">
+                        {/* Mobile Update App Button */}
+                        <button
+                            onClick={forceAppUpdate}
+                            className="md:hidden p-2 rounded-full border border-slate-200 text-slate-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
+                            title="Update App"
+                        >
+                            <RefreshCw className="h-5 w-5" />
+                        </button>
+
+                        <ProfileDropdown currentUser={currentUser} logout={logout} />
+                    </div>
                 </header>
 
                 {/* Page Content */}

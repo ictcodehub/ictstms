@@ -8,24 +8,26 @@ Implemented a "Smart Update" button in the Sidebar to allow students (and teache
 
 ### ✅ Key Features
 1.  **"Update App" Button**:
-    *   Located in the **Student Dashboard Header** (Top Right).
+    *   **Desktop/Tablet (≥768px)**: Located in the Student Dashboard Header (Text Button).
+    *   **Mobile (<768px)**: Located in the **Top Navigation Bar** (Icon Only).
     *   **Functionality**:
         *   Unregisters all Service Workers.
         *   Clears `caches` storage (PWA assets).
         *   Clears `sessionStorage`.
         *   Forces a Hard Reload (`window.location.reload(true)`).
-    *   **UX**: Minimalist white button with Refresh icon.
 
 ### 📁 Files Modified
 | File | Changes |
 |------|---------|
 | `src/utils/appUpdater.js` | [NEW] Utility to handle SW unregistration and cache clearing |
-| `src/pages/student/Overview.jsx` | Added "Update App" button to Dashboard Header |
-| `src/layouts/DashboardLayout.jsx` | Cleaned up imports (Removed sidebar button) |
+| `src/pages/student/Overview.jsx` | Added "Update App" button (Visible on Tablet/Desktop) |
+| `src/layouts/DashboardLayout.jsx` | Added Mobile Header Icon for update (Visible on Mobile) |
 
 ### 📦 Git Commits
 *   `feat: add manual app update button to sidebar for clearing cache`
 *   `ui: relocate update button to student dashboard header and rename to English`
+*   `ui: optimize update button placement for mobile (header icon)`
+*   `ui: adjust breakpoints to show full update button on tablet`
 
 ## �🐛 [2026-01-27 | 19:30] Fix: Missing Exams for Multi-Class Students
 
