@@ -74,6 +74,54 @@ export default function StudentTaskModal({
         );
     };
 
+
+    // Function to force download
+    const handleDownload = async (e, url, filename) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Special handling for blob URLs (local previews)
+        // We cannot 'fetch' a blob URL in some environments, but we can download it directly if it's valid.
+        // Special handling for blob URLs (local) and data URLs (Base64)
+        if (url.startsWith('blob:') || url.startsWith('data:')) {
+            try {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (err) {
+                console.error("Download failed:", err);
+                // Fallback: just open in new tab
+                window.open(url, '_blank');
+            }
+            return;
+        }
+
+        // For remote URLs (Firebase Storage), fetch as blob to force download
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback: just open in new tab
+            window.open(url, '_blank');
+        }
+    };
+
     return (
         <AnimatePresence>
             <div className="fixed inset-0 z-[100] flex flex-col bg-white">
@@ -169,7 +217,7 @@ export default function StudentTaskModal({
                                         <div className="grid gap-4 sm:grid-cols-2">
                                             {task.attachments.map((att, idx) => (
                                                 <div key={idx} className="group">
-                                                    {att.type === 'image' ? (
+                                                    {att.type === 'image' || att.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                                                         <div
                                                             className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-all cursor-pointer relative"
                                                             onClick={() => setLightboxImage(att.url)}
@@ -189,25 +237,21 @@ export default function StudentTaskModal({
                                                             </div>
                                                             <div className="px-3 py-2.5 bg-white border-t border-slate-100 flex justify-between items-center relative z-10">
                                                                 <span className="text-xs font-bold text-slate-600 truncate max-w-[70%]">{att.name}</span>
-                                                                {/* Prevent lightbox open when clicking download */}
-                                                                <a
-                                                                    href={att.url}
-                                                                    download
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
+                                                                {/* Use handleDownload for images too */}
+                                                                <button
+                                                                    onClick={(e) => handleDownload(e, att.url, att.name)}
                                                                     className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
-                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    title="Download"
                                                                 >
                                                                     <Download className="h-4 w-4" />
-                                                                </a>
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     ) : (
                                                         <a
                                                             href={att.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex items-center gap-4 p-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-300 rounded-xl transition-all shadow-sm hover:shadow-md group h-full"
+                                                            onClick={(e) => handleDownload(e, att.url, att.name)}
+                                                            className="flex items-center gap-4 p-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-300 rounded-xl transition-all shadow-sm hover:shadow-md group h-full cursor-pointer"
                                                         >
                                                             <div className={`p-3 rounded-lg ${att.type === 'video' ? 'bg-pink-100 text-pink-600' :
                                                                 'bg-amber-100 text-amber-600'

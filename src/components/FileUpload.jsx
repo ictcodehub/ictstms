@@ -95,7 +95,6 @@ export default function FileUpload({ onFileSelect, disabled = false, currentFile
                 type="file"
                 className="hidden"
                 onChange={handleChange}
-                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
                 disabled={disabled}
             />
 
@@ -137,7 +136,7 @@ export default function FileUpload({ onFileSelect, disabled = false, currentFile
                                 {dragActive ? 'Lepaskan file di sini' : 'Pilih file atau drag & drop'}
                             </p>
                             <p className="text-sm text-slate-500">
-                                PDF, DOC, DOCX, PNG, JPG (Max 2MB)
+                                Semua jenis file (Max 10MB)
                             </p>
                         </div>
 

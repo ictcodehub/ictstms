@@ -1,6 +1,31 @@
 # Project Tracker
 
-## � [2026-01-26 | 10:45 - 11:30] Fix: CO Maker Date Logic & Layout
+## 🚀 [2026-01-27 | 09:30 - 10:30] Optimization: Firebase Storage & Upload Reliability
+
+### Overview
+Moved from a mixed uploads system (Base64 backup + Storage) to a **Pure Storage** architecture for consistency and reliability. Implemented `uploadBytesResumable` for robust uploading on slow networks and enforced strict file size limits to optimize costs.
+
+### ✅ Key Features & Changes
+1.  **Robust Upload System**:
+    *   **Resumable Uploads**: Replaced `uploadBytes` with `uploadBytesResumable` across both Teacher and Student dashboards. This allows uploads to recover from network interruptions.
+    *   **Removed Base64 Backup**: Eliminated the complexity of saving small files to Firestore. All files now go to Storage.
+
+2.  **Storage Optimization**:
+    *   **5MB Limit**: Enforced a strict **5MB per file** limit for both teachers and students to prevent storage bloat and ensure cost efficiency.
+    *   **Storage Rules**: Deployed secure `storage.rules` to allow authenticated users to upload, fixing previous "Access Denied" errors for large files.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/Tasks.jsx` | Implemented resumable upload, added 5MB limit, removed backup logic |
+| `src/pages/student/Tasks.jsx` | Synced logic with teacher side (Resumable + 5MB Limit) |
+| `storage.rules` | [NEW] Created permissive rules for authenticated users |
+| `firebase.json` | Linked storage configuration |
+
+### 📦 Git Commits
+*   `feat: optimize uploads with resumable storage and 5MB limit`
+
+##  [2026-01-26 | 10:45 - 11:30] Fix: CO Maker Date Logic & Layout
 
 ### Overview
 Fixed critical bugs in the Curriculum Overview (CO) Maker where valid weeks (especially the 5th week of months like May) were being skipped, causing date calculation to jump incorrectly to subsequent months. Also improved the table layout.

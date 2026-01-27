@@ -235,8 +235,12 @@ export default function ExamEditor() {
                 },
                 (error) => {
                     console.error("Upload error details:", error);
-                    // Trigger fallback immediately on error
-                    handleUploadFallback(file, questionId, toastId);
+                    // Trigger fallback only for small images
+                    if (file.type.startsWith('image/') && file.size < 500 * 1024) {
+                        handleUploadFallback(file, questionId, toastId);
+                    } else {
+                        toast.error(`Upload gagal: ${error.message}`, { id: toastId });
+                    }
                 },
                 async () => {
                     try {
@@ -260,13 +264,21 @@ export default function ExamEditor() {
                         toast.success("File berhasil diupload", { id: toastId });
                     } catch (urlError) {
                         console.error("Error getting URL:", urlError);
-                        handleUploadFallback(file, questionId, toastId);
+                        if (file.type.startsWith('image/') && file.size < 500 * 1024) {
+                            handleUploadFallback(file, questionId, toastId);
+                        } else {
+                            toast.error(`Gagal mendapatkan URL: ${urlError.message}`, { id: toastId });
+                        }
                     }
                 }
             );
         } catch (error) {
             console.error("Error uploading file:", error);
-            handleUploadFallback(file, questionId, toastId);
+            if (file.type.startsWith('image/') && file.size < 500 * 1024) {
+                handleUploadFallback(file, questionId, toastId);
+            } else {
+                toast.error(`Error upload: ${error.message}`, { id: toastId });
+            }
         }
     };
 

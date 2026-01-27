@@ -175,7 +175,14 @@ export default function Tasks() {
             return;
         }
 
+        // Size check (5MB)
+        if (file && file.size > 5 * 1024 * 1024) {
+            showWarning("File limit is 5MB");
+            return;
+        }
+
         setSubmitting(taskId);
+
         try {
             const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', currentUser.uid)));
             const userData = userDoc.docs[0].data();
@@ -183,21 +190,46 @@ export default function Tasks() {
             let attachments = [];
             if (file) {
                 try {
-                    const storageRef = ref(storage, `task_submissions/${taskId}/${currentUser.uid}/${file.name}`);
-                    const snapshot = await uploadBytes(storageRef, file);
-                    const downloadURL = await getDownloadURL(snapshot.ref);
+                    console.log("Starting student upload...", file.name);
+                    const storageRef = ref(storage, `task_submissions/${taskId}/${currentUser.uid}/${Date.now()}_${file.name}`);
 
-                    attachments.push({
-                        name: file.name,
-                        url: downloadURL,
-                        type: file.type,
-                        size: file.size,
-                        uploadedAt: new Date().toISOString()
+                    // Promise wrapper for Resumable Upload
+                    const uploadPromise = new Promise((resolve, reject) => {
+                        const uploadTask = uploadBytesResumable(storageRef, file);
+
+                        uploadTask.on('state_changed',
+                            (snapshot) => {
+                                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                                console.log('Upload is ' + progress + '% done');
+                            },
+                            (error) => {
+                                reject(error);
+                            },
+                            async () => {
+                                try {
+                                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                                    resolve({
+                                        name: file.name,
+                                        url: downloadURL,
+                                        type: file.type,
+                                        size: file.size,
+                                        uploadedAt: new Date().toISOString()
+                                    });
+                                } catch (err) {
+                                    reject(err);
+                                }
+                            }
+                        );
                     });
+
+                    const attachment = await uploadPromise;
+                    attachments.push(attachment);
+
                 } catch (uploadError) {
-                    console.error("File upload failed:", uploadError);
-                    showError("File upload failed, but proceeding with text submission.");
-                    // Optional: return here if file is mandatory
+                    console.error("Storage upload failed:", uploadError);
+                    showError(`Upload failed: ${uploadError.message}.`);
+                    setSubmitting(null);
+                    return;
                 }
             }
 
