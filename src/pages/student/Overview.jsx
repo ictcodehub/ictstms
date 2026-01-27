@@ -8,8 +8,6 @@ import { useNavigate } from 'react-router-dom';
 import Pagination from '../../components/Pagination';
 import NewExamsBanner from '../../components/NewExamsBanner';
 import { useNewExams } from '../../hooks/useNewExams';
-import { forceAppUpdate } from '../../utils/appUpdater';
-import { RefreshCw } from 'lucide-react';
 
 export default function Overview() {
     const { currentUser } = useAuth();
@@ -334,15 +332,7 @@ export default function Overview() {
                     <p className="text-slate-500 mt-1">Welcome, track your learning progress today.</p>
                 </div>
 
-                <button
-                    onClick={forceAppUpdate}
-                    className="hidden md:flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:shadow-sm transition-all text-sm font-medium"
-                >
-                    <div className="p-1 bg-slate-100 rounded-lg">
-                        <RefreshCw className="h-3.5 w-3.5" />
-                    </div>
-                    <span>Update App</span>
-                </button>
+
             </div>
 
             {!loading && !userClass && (

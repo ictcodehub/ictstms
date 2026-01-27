@@ -365,13 +365,29 @@ export default function DashboardLayout({ children }) {
                     className="bg-white/80 backdrop-blur-md border-b border-blue-100 px-4 sm:px-6 pb-4 flex items-center justify-between sticky top-0 z-30 flex-shrink-0 transition-all"
                     style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top))' }}
                 >
-                    <button
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-slate-600"
-                        aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
-                    >
-                        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-slate-600"
+                            aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
+                        >
+                            {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                        </button>
+
+                        {/* Desktop/Tablet Update App Button - Detailed */}
+                        <button
+                            onClick={forceAppUpdate}
+                            className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-200 group transition-all"
+                        >
+                            <div className="p-1.5 bg-white rounded-md shadow-sm group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                                <RefreshCw className="h-3.5 w-3.5 text-slate-500 group-hover:text-blue-600" />
+                            </div>
+                            <div className="text-left">
+                                <span className="block text-xs font-bold text-slate-700 group-hover:text-blue-700 leading-tight">Update App</span>
+                                <span className="block text-[10px] text-slate-400 font-medium leading-tight">Fix stuck/errors</span>
+                            </div>
+                        </button>
+                    </div>
 
                     <div className="flex items-center gap-2">
                         {/* Mobile Update App Button */}
