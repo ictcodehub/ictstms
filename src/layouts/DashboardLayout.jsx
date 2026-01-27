@@ -380,11 +380,10 @@ export default function DashboardLayout({ children }) {
                             className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 hover:border-cyan-300 group transition-all"
                         >
                             <RefreshCw className="h-3.5 w-3.5 text-cyan-600 group-hover:text-cyan-700" />
-                            <span className="text-[11px] font-medium text-cyan-700 group-hover:text-cyan-800">
-                                <span className="font-bold">Update App</span>
-                                <span className="mx-1.5 opacity-50">|</span>
-                                <span className="opacity-90">To Update & Fix Error</span>
-                            </span>
+                            <div className="text-left leading-none">
+                                <span className="block text-[10px] font-bold text-cyan-700 group-hover:text-cyan-800 uppercase tracking-wide">Update App</span>
+                                <span className="block text-[10px] text-cyan-600 font-medium mt-0.5">To Update & Fix Error</span>
+                            </div>
                         </button>
                     </div>
 
