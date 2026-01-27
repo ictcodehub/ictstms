@@ -377,15 +377,14 @@ export default function DashboardLayout({ children }) {
                         {/* Desktop/Tablet Update App Button - Detailed */}
                         <button
                             onClick={forceAppUpdate}
-                            className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 hover:border-amber-300 group transition-all"
+                            className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 hover:border-cyan-300 group transition-all"
                         >
-                            <div className="p-1 bg-amber-100 rounded-md group-hover:bg-amber-200 transition-colors">
-                                <RefreshCw className="h-3.5 w-3.5 text-amber-600 group-hover:text-amber-700" />
-                            </div>
-                            <div className="text-left">
-                                <span className="block text-xs font-bold text-amber-700 leading-none">Update App</span>
-                                <span className="block text-[10px] text-amber-600/80 font-medium leading-none mt-0.5">Fix errors</span>
-                            </div>
+                            <RefreshCw className="h-3.5 w-3.5 text-cyan-600 group-hover:text-cyan-700" />
+                            <span className="text-[11px] font-medium text-cyan-700 group-hover:text-cyan-800">
+                                <span className="font-bold">Update App</span>
+                                <span className="mx-1.5 opacity-50">|</span>
+                                <span className="opacity-90">To Update & Fix Error</span>
+                            </span>
                         </button>
                     </div>
 
