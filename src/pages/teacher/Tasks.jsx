@@ -9,6 +9,7 @@ import TaskDetail from './TaskDetail';
 import FileUpload from '../../components/FileUpload';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import TeacherTaskModal from './TeacherTaskModal';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { sortClasses } from '../../utils/classSort';
@@ -748,271 +749,26 @@ export default function Tasks() {
                 )}
             </div>
 
-            {/* Task Create/Edit Modal */}
-            <AnimatePresence>
-                {showModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
-                        >
-                            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 text-white shrink-0">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-2xl font-bold">
-                                        {editingTask ? 'Edit Task' : 'Create New Task'}
-                                    </h2>
-                                    <button onClick={() => setShowModal(false)} className="text-white/80 hover:text-white transition-colors">
-                                        <X className="h-6 w-6" />
-                                    </button>
-                                </div>
-                                <p className="text-blue-100 mt-1">Fill in task details for your students</p>
-                            </div>
-
-                            <div className="p-6 overflow-y-auto custom-scrollbar">
-                                <form onSubmit={handleSubmit} className="space-y-5">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Task Title <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white"
-                                            placeholder="Contoh: Latihan Soal Aljabar"
-                                            value={formData.title}
-                                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Description
-                                        </label>
-                                        <textarea
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white min-h-[120px]"
-                                            placeholder="Jelaskan detail tugas..."
-                                            value={formData.description}
-                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        />
-                                    </div>
-
-                                    {/* Attachments & Materials Section (Unified) */}
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Resources & Attachments
-                                        </label>
-
-                                        <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                                            {/* List of Attachments (Merging resources + attachments for display) */}
-                                            <div className="flex flex-wrap gap-2 mb-4">
-                                                {/* 1. Resources (Links) */}
-                                                {formData.resources.map((res, idx) => (
-                                                    <div key={`res-${idx}`} className="relative group bg-white border border-slate-200 rounded-lg p-2 flex items-center gap-3 pr-8 min-w-[200px] max-w-full shadow-sm">
-                                                        <div className="p-2 bg-green-50 rounded-lg text-green-600">
-                                                            <Link className="h-5 w-5" />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-xs font-bold text-slate-700 truncate">{res.title || 'Link'}</p>
-                                                            <a href={res.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline truncate block">
-                                                                {res.url}
-                                                            </a>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeAttachmentItem(idx, true)}
-                                                            className="absolute top-1 right-1 p-1 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all bg-white rounded-full shadow-sm"
-                                                        >
-                                                            <X className="h-3 w-3" />
-                                                        </button>
-                                                    </div>
-                                                ))}
-
-                                                {/* 2. Attachments (Files) */}
-                                                {formData.attachments.map((att, idx) => (
-                                                    <div key={`att-${idx}`} className="relative group bg-white border border-slate-200 rounded-lg p-2 flex items-center gap-3 pr-8 min-w-[200px] max-w-full shadow-sm">
-                                                        <div className={`p-2 rounded-lg ${att.type === 'image' ? 'bg-purple-50 text-purple-600' :
-                                                            att.type === 'video' ? 'bg-pink-50 text-pink-600' :
-                                                                'bg-orange-50 text-orange-600'
-                                                            }`}>
-                                                            {att.type === 'image' ? <ImageIcon className="h-5 w-5" /> :
-                                                                att.type === 'video' ? <Video className="h-5 w-5" /> :
-                                                                    <FileText className="h-5 w-5" />}
-                                                        </div>
-
-                                                        {att.type === 'image' && (
-                                                            <div className="w-10 h-10 bg-slate-100 rounded-md overflow-hidden flex-shrink-0 border border-slate-100">
-                                                                <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
-                                                            </div>
-                                                        )}
-
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-xs font-bold text-slate-700 truncate">{att.name}</p>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-[10px] text-slate-500 uppercase font-bold">{att.type || 'file'}</span>
-                                                                <span className="text-[10px] text-slate-400">•</span>
-                                                                <span className="text-[10px] text-slate-500 font-medium">
-                                                                    {att.size < 1024 * 1024
-                                                                        ? `${(att.size / 1024).toFixed(1)} KB`
-                                                                        : `${(att.size / (1024 * 1024)).toFixed(1)} MB`}
-                                                                </span>
-                                                                <span className="text-[10px] text-slate-400">•</span>
-                                                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline">
-                                                                    View
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeAttachmentItem(idx, false)}
-                                                            className="absolute top-1 right-1 p-1 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all bg-white rounded-full shadow-sm"
-                                                        >
-                                                            <X className="h-3 w-3" />
-                                                        </button>
-                                                    </div>
-                                                ))}
-
-                                                {formData.resources.length === 0 && formData.attachments.length === 0 && (
-                                                    <div className="w-full text-center py-4 text-slate-400 italic text-sm">
-                                                        Belum ada lampiran materi. Gunakan tombol di bawah.
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Action Toolbar */}
-                                            <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-3">
-                                                <label className="cursor-pointer px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-all shadow-sm hover:shadow active:scale-95">
-                                                    <ImageIcon className="h-4 w-4 text-purple-600" />
-                                                    Gambar
-                                                    <input
-                                                        type="file"
-                                                        className="hidden"
-                                                        accept="image/*"
-                                                        onChange={(e) => handleFileUploadNew(e.target.files[0], 'image')}
-                                                    />
-                                                </label>
-                                                <label className="cursor-pointer px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-all shadow-sm hover:shadow active:scale-95">
-                                                    <Paperclip className="h-4 w-4 text-orange-600" />
-                                                    File / Dokumen
-                                                    <input
-                                                        type="file"
-                                                        className="hidden"
-                                                        onChange={(e) => handleFileUploadNew(e.target.files[0], 'file')}
-                                                    />
-                                                </label>
-                                                <label className="cursor-pointer px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-all shadow-sm hover:shadow active:scale-95">
-                                                    <Video className="h-4 w-4 text-pink-600" />
-                                                    Video
-                                                    <input
-                                                        type="file"
-                                                        className="hidden"
-                                                        accept="video/*"
-                                                        onChange={(e) => handleFileUploadNew(e.target.files[0], 'video')}
-                                                    />
-                                                </label>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setLinkModalData({ url: '', name: '' });
-                                                        setShowLinkModal(true);
-                                                    }}
-                                                    className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-all shadow-sm hover:shadow active:scale-95"
-                                                >
-                                                    <Link className="h-4 w-4 text-green-600" />
-                                                    Link
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Submission Instructions */}
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Submission Instructions (Optional)
-                                        </label>
-                                        <textarea
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white min-h-[80px]"
-                                            placeholder="Contoh: Beri nama file: NamaKamu_Tugas1.pdf"
-                                            value={formData.submissionInstructions}
-                                            onChange={(e) => setFormData({ ...formData, submissionInstructions: e.target.value })}
-                                        />
-                                        <p className="text-xs text-slate-500 mt-1">
-                                            Instruksi akan ditampilkan kepada siswa saat mereka akan mengerjakan tugas
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Deadline <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="datetime-local"
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white"
-                                            value={formData.deadline}
-                                            onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                            Assign to Classes <span className="text-red-500">*</span>
-                                        </label>
-                                        <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar p-2 bg-slate-50 rounded-xl border border-slate-200">
-                                            {classes.map(cls => (
-                                                <label
-                                                    key={cls.id}
-                                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${formData.assignedClasses.includes(cls.id)
-                                                        ? 'border-blue-500 bg-blue-50'
-                                                        : 'border-transparent bg-white hover:border-slate-300'
-                                                        }`}
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                                                        checked={formData.assignedClasses.includes(cls.id)}
-                                                        onChange={() => toggleClassSelection(cls.id)}
-                                                    />
-                                                    <span className={`font-medium ${formData.assignedClasses.includes(cls.id) ? 'text-blue-700' : 'text-slate-700'
-                                                        }`}>
-                                                        {cls.name}
-                                                    </span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                        {classes.length === 0 && (
-                                            <div className="text-center p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 mt-2">
-                                                <p className="text-sm text-slate-500">No classes yet. Create a class first in the Classes menu.</p>
-                                            </div>
-                                        )}
-                                    </div>
-
-
-
-                                    <div className="pt-4 flex gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowModal(false)}
-                                            className="flex-1 px-6 py-3 rounded-xl border-2 border-slate-400 bg-white text-slate-800 font-bold hover:bg-slate-50 transition-all"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            disabled={loading}
-                                            className="flex-1 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-xl hover:bg-blue-700 active:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                            style={{ backgroundColor: loading ? undefined : '#2563eb' }}
-                                        >
-                                            {loading ? 'Saving...' : (editingTask ? 'Save Changes' : 'Create Task')}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+            {/* Task Create/Edit Modal - Replaced with TeacherTaskModal */}
+            <TeacherTaskModal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                isEditing={!!editingTask}
+                formData={formData}
+                setFormData={setFormData}
+                loading={loading}
+                classes={classes}
+                onSubmit={(e) => {
+                    const event = e || { preventDefault: () => { } };
+                    handleSubmit(event);
+                }}
+                handleFileUpload={handleFileUploadNew}
+                removeAttachment={removeAttachmentItem}
+                openLinkModal={() => {
+                    setLinkModalData({ url: '', name: '' });
+                    setShowLinkModal(true);
+                }}
+            />
 
             {/* Class Info Modal */}
             <AnimatePresence>
