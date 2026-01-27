@@ -272,6 +272,19 @@ export default function StudentTaskModal({
                                 )}
                             </div>
 
+                            {/* Submission Instructions (New Section) */}
+                            {task.submissionInstructions && (
+                                <div className="bg-amber-50 rounded-2xl p-6 border border-amber-200">
+                                    <h3 className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <AlertCircle className="h-4 w-4" />
+                                        Important Instructions
+                                    </h3>
+                                    <div className="prose prose-sm text-amber-900 max-w-none leading-relaxed">
+                                        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(task.submissionInstructions.replace(/\n/g, '<br />')) }} />
+                                    </div>
+                                </div>
+                            )}
+
                             {/* SECTION 2: SUBMISSION AREA */}
                             <div className="mt-8">
                                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2 px-1">

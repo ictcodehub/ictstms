@@ -1,4 +1,13 @@
 
+
+## 🐛 [2026-01-27 | 10:52] Fix: Missing Submission Instructions
+
+### Overview
+Addressed a bug where the "Submission Instructions" (e.g., specific naming conventions or formatting rules) entered by teachers were not visible to students in the Task Details modal.
+
+### ✅ Changes
+*   **StudentTaskModal.jsx**: Added a dedicated, highlighted section (Amber/Yellow box) to render `submissionInstructions` if they exist. This ensures students don't miss critical requirements before submitting.
+
 ## 🚀 [2026-01-27 | 10:45] Feature: Realtime Storage Dashboard
 
 ### Overview
