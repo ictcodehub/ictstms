@@ -1,4 +1,4 @@
-# 📚 ICT STMS - Student Task Management System
+# 📚 ICT Codehub - Student Task Management System
 
 > Developed by **Ajit Prasetiyo**
 
