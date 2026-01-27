@@ -1,7 +1,31 @@
 
 
 
-## 🐛 [2026-01-27 | 19:30] Fix: Missing Exams for Multi-Class Students
+## � [2026-01-27 | 19:47] Feature: Manual App Update (Cache Clear)
+
+### Overview
+Implemented a "Smart Update" button in the Sidebar to allow students (and teachers) to force an application update. This resolves issues where devices with aggressive caching (Service Workers) stay on old versions even after deployment.
+
+### ✅ Key Features
+1.  **"Update Aplikasi" Button**:
+    *   Located in the Sidebar (below the menu).
+    *   **Functionality**:
+        *   Unregisters all Service Workers.
+        *   Clears `caches` storage (PWA assets).
+        *   Clears `sessionStorage`.
+        *   Forces a Hard Reload (`window.location.reload(true)`).
+    *   **UX**: Includes a help text "Klik jika ada error/macet" to guide students.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/utils/appUpdater.js` | [NEW] Utility to handle SW unregistration and cache clearing |
+| `src/layouts/DashboardLayout.jsx` | Added "Update Aplikasi" button to Sidebar |
+
+### 📦 Git Commits
+*   `feat: add manual app update button to sidebar for clearing cache`
+
+## �🐛 [2026-01-27 | 19:30] Fix: Missing Exams for Multi-Class Students
 
 ### Overview
 Resolved a critical bug where students enrolled in multiple classes (using the modern `classIds` system) could not see exams assigned to their secondary classes. The system previously only checked the primary `classId`.

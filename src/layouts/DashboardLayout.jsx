@@ -14,11 +14,13 @@ import {
     Trophy,
     CheckCircle2,
     Clock,
-    CalendarDays
+    CalendarDays,
+    RefreshCw
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ProfileDropdown from '../components/ProfileDropdown';
 import PullToRefresh from '../components/PullToRefresh';
+import { forceAppUpdate } from '../utils/appUpdater';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, onSnapshot, doc, getDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -336,6 +338,22 @@ export default function DashboardLayout({ children }) {
                             </NavLink>
                         ))}
                     </nav>
+
+                    {/* Update App Button (Fix for caching issues) */}
+                    <div className="mt-6 px-4">
+                        <button
+                            onClick={forceAppUpdate}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-all group"
+                        >
+                            <div className="p-1.5 bg-slate-100 rounded-md group-hover:bg-blue-100 transition-colors">
+                                <RefreshCw className="h-4 w-4 text-slate-600 group-hover:text-blue-600" />
+                            </div>
+                            <div className="text-left">
+                                <span className="block text-sm font-semibold text-slate-600 group-hover:text-blue-700">Update Aplikasi</span>
+                                <span className="block text-[10px] text-slate-400 font-light">Klik jika ada error/macet</span>
+                            </div>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Credits Section */}
