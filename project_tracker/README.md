@@ -1,3 +1,23 @@
+## 🧹 [2026-01-29 | 05:15] Maintenance: System-wide Debug Log Cleanup
+
+### Overview
+Performed a comprehensive cleanup of `console.log` statements across the entire application to improve performance and remove clutter from the production console. Critical error logging (`console.error`) remains intact for debugging purposes.
+
+### ✅ Key Changes
+1.  **Teacher Dashboard**:
+    *   Cleaned verbose logs in `UserManagement.jsx` (batch delete operations), `ExamResults.jsx`, `Gradebook.jsx`, `Tasks.jsx`, `ExamEditor.jsx`, and `Overview.jsx`.
+
+2.  **Student App**:
+    *   Removed extensive flow tracing logs in `ExamTaker.jsx` (fullscreen status, tab switching traces, auto-submit triggers) while ensuring security logic remains active.
+    *   Cleaned `Tasks.jsx` upload logs.
+
+3.  **System Utilities**:
+    *   Cleaned `appUpdater.js`, `examReset.js`, `Register.jsx`, `App.jsx`, and `useGradeNotifications.js`.
+
+### 📦 Git Commits
+*   `chore: remove system-wide console.log statements for production cleanliness`
+*   `tag: clean-logs-checkpoint` (Created for easy revert if needed)
+
 ## 🗑️ [2026-01-29 | 05:00] Feature: Permanently Remove Exclude Student
 
 ### Overview

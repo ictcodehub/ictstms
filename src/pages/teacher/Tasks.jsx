@@ -286,7 +286,7 @@ export default function Tasks() {
             const timestamp = Date.now();
             const storageRef = ref(storage, `task_materials/${currentUser.uid}/${timestamp}_${file.name}`);
 
-            console.log("Starting upload...", file.name);
+
 
             const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -302,7 +302,7 @@ export default function Tasks() {
                 async () => {
                     try {
                         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                        console.log('File available at', downloadURL);
+
 
                         const newAttachment = {
                             name: file.name,

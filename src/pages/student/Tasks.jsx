@@ -196,7 +196,7 @@ export default function Tasks() {
             let attachments = [];
             if (file) {
                 try {
-                    console.log("Starting student upload...", file.name);
+
                     const storageRef = ref(storage, `task_submissions/${taskId}/${currentUser.uid}/${Date.now()}_${file.name}`);
 
                     // Promise wrapper for Resumable Upload
@@ -206,7 +206,7 @@ export default function Tasks() {
                         uploadTask.on('state_changed',
                             (snapshot) => {
                                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                                console.log('Upload is ' + progress + '% done');
+
                             },
                             (error) => {
                                 reject(error);

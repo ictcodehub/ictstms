@@ -82,7 +82,7 @@ export default function ExamTaker({ isGuest = false }) {
     // Helper function to exit fullscreen
     const exitFullscreen = () => {
         if (document.exitFullscreen) {
-            document.exitFullscreen().catch(err => console.log('Exit fullscreen error:', err));
+            document.exitFullscreen().catch(err => { });
         } else if (document.webkitExitFullscreen) {
             document.webkitExitFullscreen();
         } else if (document.msExitFullscreen) {
@@ -339,7 +339,7 @@ export default function ExamTaker({ isGuest = false }) {
         const enterFullscreenOnLoad = () => {
             const elem = document.documentElement;
             if (elem.requestFullscreen) {
-                elem.requestFullscreen().catch(err => console.log('Fullscreen error:', err));
+                elem.requestFullscreen().catch(err => { });
             } else if (elem.webkitRequestFullscreen) {
                 elem.webkitRequestFullscreen();
             } else if (elem.msRequestFullscreen) {
@@ -360,7 +360,7 @@ export default function ExamTaker({ isGuest = false }) {
         // Detect tab switch (visibility change)
         const handleVisibilityChange = () => {
             if (document.hidden && !isPausing) {
-                console.log('Tab switch detected - auto-submitting');
+
                 handleIllegalExit();
             }
         };
@@ -368,7 +368,7 @@ export default function ExamTaker({ isGuest = false }) {
         // Detect fullscreen exit (ESC key)
         const handleFullscreenChange = () => {
             if (!document.fullscreenElement && hasStarted && !timeUp && !isSubmitting && !isPausing) {
-                console.log('Fullscreen exit detected - auto-submitting');
+
                 handleIllegalExit();
             }
         };
@@ -376,7 +376,7 @@ export default function ExamTaker({ isGuest = false }) {
         // Detect window blur (Win key, Alt+Tab, clicking outside browser)
         const handleWindowBlur = () => {
             if (!isPausing && hasStarted && !timeUp && !isSubmitting) {
-                console.log('Window blur detected (Win key / Alt+Tab) - auto-submitting');
+
                 handleIllegalExit();
             }
         };
@@ -394,7 +394,7 @@ export default function ExamTaker({ isGuest = false }) {
         let backButtonListener;
         CapacitorApp.addListener('backButton', ({ canGoBack }) => {
             if (!isPausing && hasStarted && !timeUp && !isSubmitting) {
-                console.log('Mobile back button detected - auto-submitting');
+
                 handleIllegalExit();
             }
         }).then(listener => {
@@ -407,7 +407,7 @@ export default function ExamTaker({ isGuest = false }) {
         let appStateListener;
         CapacitorApp.addListener('appStateChange', ({ isActive }) => {
             if (!isActive && !isPausing && hasStarted && !timeUp && !isSubmitting) {
-                console.log('App moved to background - auto-submitting');
+
                 handleIllegalExit();
             }
         }).then(listener => {
@@ -546,7 +546,7 @@ export default function ExamTaker({ isGuest = false }) {
         try {
             // Try online save first
             await updateSessionAnswers(sessionId, answers);
-            console.log('✅ Answers saved online (writes optimized)');
+
 
             // Also save offline as backup
             await saveAnswersOffline(sessionId, answers);
@@ -557,7 +557,7 @@ export default function ExamTaker({ isGuest = false }) {
             // If offline or error, save locally
             if (!navigator.onLine) {
                 await saveAnswersOffline(sessionId, answers);
-                console.log('💾 Answers saved offline - will sync when online');
+
             } else {
                 console.error('❌ Auto-save failed:', error);
                 // Still try to save offline as backup
@@ -649,7 +649,7 @@ export default function ExamTaker({ isGuest = false }) {
                         pauseCodeUsed: false, // Reset used flag (code already generated on pause)
                         status: 'in_progress' // Change status back to in_progress
                     });
-                    console.log('Exam resumed. Pause code ready for next pause.');
+
                     toast.success('Exam resumed!');
                 }
             }
@@ -657,7 +657,7 @@ export default function ExamTaker({ isGuest = false }) {
             // Enter fullscreen
             const elem = document.documentElement;
             if (elem.requestFullscreen) {
-                elem.requestFullscreen().catch(err => console.log(err));
+                elem.requestFullscreen().catch(err => { });
             } else if (elem.webkitRequestFullscreen) {
                 elem.webkitRequestFullscreen();
             } else if (elem.msRequestFullscreen) {
@@ -796,8 +796,7 @@ export default function ExamTaker({ isGuest = false }) {
     // Handle pause with teacher code
     const handlePauseWithCode = async () => {
         try {
-            console.log('Pause attempt - sessionId:', sessionId);
-            console.log('Pause attempt - code entered:', pauseCode);
+
 
             // Validate sessionId exists
             if (!sessionId) {
@@ -814,17 +813,14 @@ export default function ExamTaker({ isGuest = false }) {
             }
 
             const sessionData = sessionDoc.data();
-            console.log('Session data:', sessionData);
-            console.log('Session pauseCode:', sessionData.pauseCode);
 
             // Verify pause code
             if (pauseCode.toUpperCase() !== sessionData.pauseCode) {
-                console.log('Code mismatch:', pauseCode.toUpperCase(), '!==', sessionData.pauseCode);
                 setPauseCodeError('Incorrect pause code. Please ask your teacher.');
                 return;
             }
 
-            console.log('Code verified, pausing exam...');
+
 
             // Set pausing flag to prevent auto-submit
             setIsPausing(true);
@@ -853,7 +849,7 @@ export default function ExamTaker({ isGuest = false }) {
                 lastActivityAt: serverTimestamp()
             });
 
-            console.log('Exam paused successfully. New code generated:', newPauseCode);
+
             toast.success('Exam paused successfully!');
             exitFullscreen();
             isGuest ? navigate(`/exam/guest/${examId}`) : navigate('/student/exams');
@@ -865,7 +861,7 @@ export default function ExamTaker({ isGuest = false }) {
 
     // Handle illegal exit (auto-submit)
     const handleIllegalExit = async () => {
-        console.log('⚠️ Illegal exit detected - Auto-submitting exam');
+
 
         try {
             // Calculate score with current answers
@@ -939,7 +935,7 @@ export default function ExamTaker({ isGuest = false }) {
         try {
             const sessionRef = doc(db, 'exam_sessions', sessionId);
             await deleteDoc(sessionRef);
-            console.log('Exam session deleted:', sessionId);
+
         } catch (error) {
             console.error('Error completing exam session:', error);
             throw error;
@@ -947,12 +943,8 @@ export default function ExamTaker({ isGuest = false }) {
     };
 
     const confirmSubmit = async (isAutoSubmit = false, answersToSubmit = null) => {
-        console.log('confirmSubmit called', { isAutoSubmit, isSubmitting, answersCount: Object.keys(answers).length });
 
-        if (isSubmitting) {
-            console.log('Already submitting, returning');
-            return;
-        }
+        if (isSubmitting) return;
 
         setIsSubmitting(true);
         setShowSubmitModal(false);
@@ -962,22 +954,22 @@ export default function ExamTaker({ isGuest = false }) {
 
         // Use provided answers or current state
         const finalAnswers = answersToSubmit || answers;
-        console.log('Final answers:', finalAnswers);
+
 
         try {
             const stats = calculateExamStats(finalAnswers);
             const finalScore = (stats.autoPoints / stats.maxPoints) * 100;
-            console.log('Calculated stats:', stats);
+
 
             // Complete exam session
             if (sessionId) {
-                console.log('Completing exam session:', sessionId);
+
                 await completeExamSession(sessionId, finalAnswers, finalScore);
             }
 
             // GUEST SECURITY: Log attempt and lock browser
             if (isGuest && guestUser) {
-                console.log('Logging guest attempt...');
+
                 await addDoc(collection(db, 'guest_attempts'), {
                     examId: exam.id,
                     name: guestUser.name.toLowerCase(),
@@ -1001,7 +993,7 @@ export default function ExamTaker({ isGuest = false }) {
                 }
             }
 
-            console.log('Adding exam result to database');
+
             await addDoc(collection(db, 'exam_results'), {
                 examId: exam.id,
                 studentId: studentId,
@@ -1024,12 +1016,12 @@ export default function ExamTaker({ isGuest = false }) {
 
             // Exit fullscreen if active
             if (document.fullscreenElement) {
-                document.exitFullscreen().catch(err => console.log(err));
+                document.exitFullscreen().catch(err => { });
             }
 
             // Show result modal instead of immediate navigation (unless auto-submitted)
             if (!isAutoSubmit) {
-                console.log('Showing result modal');
+
 
                 // Calculate detailed stats
                 const timeTakenSeconds = (exam.duration * 60) - timeLeft;
@@ -1050,7 +1042,7 @@ export default function ExamTaker({ isGuest = false }) {
                 setShowResultModal(true);
             } else {
                 // Auto-submit: Show notification modal instead of immediate navigation
-                console.log('Auto-submit successful, showing notification');
+
                 setShowAutoSubmitNotif(true);
             }
         } catch (error) {
@@ -1131,7 +1123,7 @@ export default function ExamTaker({ isGuest = false }) {
                                 // Enter fullscreen
                                 const elem = document.documentElement;
                                 if (elem.requestFullscreen) {
-                                    elem.requestFullscreen().catch(err => console.log(err));
+                                    elem.requestFullscreen().catch(err => { });
                                 } else if (elem.webkitRequestFullscreen) {
                                     elem.webkitRequestFullscreen();
                                 } else if (elem.msRequestFullscreen) {
@@ -1927,7 +1919,7 @@ export default function ExamTaker({ isGuest = false }) {
                                     if (!document.fullscreenElement) {
                                         const elem = document.documentElement;
                                         if (elem.requestFullscreen) {
-                                            elem.requestFullscreen().catch(err => console.log('Fullscreen error:', err));
+                                            elem.requestFullscreen().catch(err => { });
                                         } else if (elem.webkitRequestFullscreen) {
                                             elem.webkitRequestFullscreen();
                                         } else if (elem.msRequestFullscreen) {

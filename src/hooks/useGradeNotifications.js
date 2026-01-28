@@ -64,13 +64,7 @@ export function useGradeNotifications(currentUser) {
                                     }
                                 }
 
-                                console.log('Notification Check:', {
-                                    taskTitle,
-                                    gradeTime,
-                                    sessionStart,
-                                    isNewGrade,
-                                    grade: submission.grade
-                                });
+
 
                                 if (taskTitle) {
                                     newNotifications.push({

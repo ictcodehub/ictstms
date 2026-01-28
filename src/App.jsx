@@ -73,7 +73,7 @@ function App() {
   const [splashMinTimeComplete, setSplashMinTimeComplete] = useState(false);
 
   useEffect(() => {
-    console.log('🚀 STMS Version 1.2 Loaded');
+
     // Hide NATIVE splash immediately. Our Web Splash (AnimatedSplash) is already rendered layer above.
     // This creates the seamless transition.
     const hideNativeSplash = async () => {

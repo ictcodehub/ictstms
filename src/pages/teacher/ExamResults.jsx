@@ -335,10 +335,10 @@ export default function ExamResults() {
 
                 // Get Students
                 const assignedClassIds = examData.assignedClasses || [];
-                console.log('🔍 DEBUG: Assigned class IDs:', assignedClassIds);
+
 
                 if (assignedClassIds.length === 0) {
-                    console.log('⚠️ No assigned classes found for this exam');
+
                     setStudentMap({});
                     setClassMap({});
                     setLoading(false);
@@ -587,7 +587,7 @@ export default function ExamResults() {
 
         // Sort by Name
         combinedList.sort((a, b) => a.name.localeCompare(b.name));
-        console.log('✅ DEBUG: Combined student list:', combinedList);
+
         setStudents(combinedList);
 
     }, [results, classMap, sessions, studentMap]);

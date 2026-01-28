@@ -8,14 +8,14 @@ export const forceAppUpdate = async () => {
     const toastId = toast.loading('Memproses update aplikasi...');
 
     try {
-        console.log('[AppUpdater] Starting force update...');
+
 
         // 1. Unregister all Service Workers
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
             for (const registration of registrations) {
                 await registration.unregister();
-                console.log('[AppUpdater] Service Worker unregistered:', registration);
+
             }
         }
 
@@ -24,7 +24,7 @@ export const forceAppUpdate = async () => {
             const keys = await caches.keys();
             for (const key of keys) {
                 await caches.delete(key);
-                console.log('[AppUpdater] Cache deleted:', key);
+
             }
         }
 

@@ -287,7 +287,7 @@ export default function TeacherOverview() {
                 }
             });
 
-            console.log('Total Storage Used:', totalSizeBytes, 'bytes');
+
 
             setStats({
                 totalStudents: studentsSnap.size,

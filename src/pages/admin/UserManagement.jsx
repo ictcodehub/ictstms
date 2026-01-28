@@ -82,25 +82,19 @@ export default function UserManagement() {
         if (!userToDelete) return;
         const user = userToDelete;
 
-        console.log('Starting delete process via Modal...');
+
         setLoading(true);
         try {
-            console.log('Initializing batch...');
+
             const batch = writeBatch(db);
 
             // Helper to delete query results in batch
             const deleteQueryBatch = async (q, desc) => {
-                console.log(`Querying for ${desc}...`);
-                const snapshot = await getDocs(q);
-                console.log(`Found ${snapshot.size} documents for ${desc}`);
-                snapshot.forEach((doc) => {
-                    console.log(`Deleting ${desc} doc: ${doc.id}`);
-                    batch.delete(doc.ref);
-                });
+
                 return snapshot.size;
             };
 
-            console.log(`Processing role: ${user.role}`);
+
 
             if (user.role === 'student') {
                 // 1. Delete Submissions
@@ -113,46 +107,32 @@ export default function UserManagement() {
 
             } else if (user.role === 'teacher') {
                 // 1. Delete Classes and their Members
-                console.log('Finding teacher classes...');
                 const classesQ = query(collection(db, 'classes'), where('createdBy', '==', user.id));
                 const classesSnap = await getDocs(classesQ);
-                console.log(`Found ${classesSnap.size} classes`);
 
                 for (const classDoc of classesSnap.docs) {
-                    console.log(`Processing class: ${classDoc.id}`);
                     // Delete members of this class
                     const classMembersQ = query(collection(db, 'class_members'), where('classId', '==', classDoc.id));
                     await deleteQueryBatch(classMembersQ, `members of class ${classDoc.id}`);
                     // Delete the class itself
-                    console.log(`Deleting class doc: ${classDoc.id}`);
                     batch.delete(classDoc.ref);
                 }
 
                 // 2. Delete Tasks and their Submissions
-                console.log('Finding teacher tasks...');
                 const tasksQ = query(collection(db, 'tasks'), where('createdBy', '==', user.id));
                 const tasksSnap = await getDocs(tasksQ);
-                console.log(`Found ${tasksSnap.size} tasks`);
 
                 for (const taskDoc of tasksSnap.docs) {
-                    console.log(`Processing task: ${taskDoc.id}`);
                     // Delete submissions for this task
                     const taskSubmissionsQ = query(collection(db, 'submissions'), where('taskId', '==', taskDoc.id));
                     await deleteQueryBatch(taskSubmissionsQ, `submissions for task ${taskDoc.id}`);
                     // Delete the task itself
-                    console.log(`Deleting task doc: ${taskDoc.id}`);
                     batch.delete(taskDoc.ref);
                 }
             }
 
             // 3. Delete User Profile
-            console.log('Deleting user profile doc:', user.id);
-            batch.delete(doc(db, 'users', user.id));
 
-            // Commit the batch
-            console.log('Committing batch...');
-            await batch.commit();
-            console.log('Batch commit successful.');
 
             toast.success(`User ${user.name} dan semua datanya berhasil dihapus.`);
             setDeleteModalOpen(false);

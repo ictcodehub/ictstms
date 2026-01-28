@@ -37,15 +37,15 @@ export default function Register() {
 
     const loadClasses = async () => {
         try {
-            console.log('Loading classes from Firestore...');
+
             const classesSnap = await getDocs(collection(db, 'classes'));
             const classesData = classesSnap.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
-            console.log('Classes loaded:', classesData);
+
             const sortedClasses = sortClasses(classesData);
-            console.log('Classes sorted:', sortedClasses);
+
             setClasses(sortedClasses);
         } catch (error) {
             console.error('Error loading classes:', error);

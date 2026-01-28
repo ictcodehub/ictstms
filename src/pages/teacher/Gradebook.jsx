@@ -223,13 +223,7 @@ export default function Gradebook() {
 
             // Debug logging for Scratch task
             if (task.title && task.title.includes('Scratch')) {
-                console.log('=== DEBUG Scratch Task ===');
-                console.log('Task ID:', task.id);
-                console.log('Student UID:', selectedStudent.uid);
-                console.log('Submission found:', submission);
-                console.log('Submission grade:', submission?.grade);
-                console.log('Has grade:', hasGrade);
-                console.log('Calculated status:', hasGrade ? 'graded' : submission ? 'submitted' : isOverdue ? 'overdue' : 'pending');
+
             }
 
             return {

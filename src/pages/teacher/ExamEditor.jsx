@@ -229,13 +229,13 @@ export default function ExamEditor() {
             const folder = id ? `exams/${id}` : `exams/temp/${Date.now()}`;
             const storageRef = ref(storage, `${folder}/${questionId}/${file.name}`);
 
-            console.log("Starting upload...", file.name);
+
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on('state_changed',
                 (snapshot) => {
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log('Upload is ' + progress + '% done');
+
                 },
                 (error) => {
                     console.error("Upload error details:", error);
@@ -249,7 +249,7 @@ export default function ExamEditor() {
                 async () => {
                     try {
                         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                        console.log('File available at', downloadURL);
+
 
                         // ... (ketersediaan URL sukses) ...
 
@@ -295,7 +295,7 @@ export default function ExamEditor() {
 
     // Fallback for when Storage is unavailable (Free Tier/CORS issues)
     const handleUploadFallback = (file, questionId, toastId) => {
-        console.log("Attempting fallback upload...");
+
 
         // 1. Try Base64 for small images (Persistent)
         if (file.type.startsWith('image/') && file.size < 500 * 1024) { // < 500KB

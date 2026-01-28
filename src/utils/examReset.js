@@ -25,7 +25,7 @@ const removeGuestAttempts = async (examId, resultData) => {
         await Promise.all(deletePromises);
 
         if (snapshot.size > 0) {
-            console.log(`Released guest lock for ${resultData.guestName}`);
+
         }
     } catch (err) {
         console.error("Error removing guest attempts:", err);
