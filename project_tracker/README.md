@@ -1,7 +1,42 @@
+## 🚀 [2026-01-28 | 12:00] Feature: Exam Management Enhancements & Duration Tracking
 
+### Overview
+Implemented key features requested by teachers to improve exam management efficiency and result analysis. Added Exam Duplication, Question Export, and a Duration column in results with data backfilling for legacy records.
 
+### ✅ Key Features
+1.  **Exam Duplication (`Exams.jsx`)**:
+    *   **Duplicate Button**: Added "Duplicate" action to exam list.
+    *   **Logic**: Creates a deep copy of the exam (including questions/settings) with status as 'draft' and title appended with "(Copy)".
+    *   **Success Modal**: A dedicated modal appears after duplication offering to "Edit Now" or "Stay Here", streamlining the workflow.
 
-## � [2026-01-27 | 19:47] Fix: CO Maker Week Count & Print Layout
+2.  **Export Questions (`ExamEditor.jsx`)**:
+    *   **Excel Export**: Teachers can now export all questions from an exam into a clean Excel file.
+    *   **UI Update**: Improved Import/Export button styling with consistent icons and colors (Indigo/Green).
+
+3.  **Exam Results Duration (`ExamResults.jsx`)**:
+    *   **Column Update**: Replaced the static "Class" column (which was redundant) with a dynamic "Duration" column.
+    *   **Real-time Display**: Shows "Running..." for active exams and "MMm SSs" (e.g., 45m 12s) for completed ones.
+    *   **Data Backfill**: Implemented smart logic to fetch `startedAt` from session history for older exams that didn't have this data stored in the result, ensuring accurate duration calculation for past records.
+
+4.  **Bug Fixes**:
+    *   **Editor Blank Screen**: Fixed a critical `createPortal` bug that caused the Exam Editor to crash on load.
+    *   **Exam Taker**: Updated logic to ensure `startedAt` and `sessionId` are correctly stamped on new result submissions.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/Exams.jsx` | Added duplication logic & success modal |
+| `src/pages/teacher/ExamEditor.jsx` | Added Export button, fixed portal bug, styled buttons |
+| `src/pages/teacher/ExamResults.jsx` | Implemented Duration column, backfill logic, and sorting |
+| `src/pages/student/ExamTaker.jsx` | Added `startedAt` to result creation payload |
+
+### 📦 Git Commits
+*   `feat: implement exam duplication with success modal`
+*   `feat: add export questions to excel functionality`
+*   `feat: replace class column with duration in exam results`
+*   `fix: backfill missing duration data from session history`
+
+## 🐛 [2026-01-27 | 19:47] Fix: CO Maker Week Count & Print Layout
 
 ### Overview
 Addressed a critical bug in the Curriculum Overview (CO) Maker where all months were incorrectly assigned 5 weeks. Implemented dynamic week calculation logic. Also refined the Print Layout to be more compact and optimized for "Letter" paper size.
