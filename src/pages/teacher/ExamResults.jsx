@@ -383,8 +383,7 @@ export default function ExamResults() {
 
         const sessionsQuery = query(
             collection(db, 'exam_sessions'),
-            where('examId', '==', examId),
-            where('status', '==', 'in_progress')
+            where('examId', '==', examId)
         );
 
         const unsubResults = onSnapshot(resultsQuery, (snapshot) => {
@@ -415,15 +414,26 @@ export default function ExamResults() {
         const processedRegistered = Object.values(studentMap).map(student => {
             // Find results for this student
             const studentResults = results.filter(r => r.studentId === student.id);
+            const studentSessions = sessions.filter(s => s.studentId === student.id);
 
-            // Check for active session
-            const activeSession = sessions.find(s => s.studentId === student.id);
+            // Check for active session (in_progress or paused)
+            const activeSession = studentSessions.find(s => s.status === 'in_progress' || s.status === 'paused');
 
             // Sort attempts
             studentResults.sort((a, b) => (b.submittedAt?.toMillis() || 0) - (a.submittedAt?.toMillis() || 0));
 
             const latest = studentResults[0];
             const bestScore = studentResults.reduce((max, curr) => Math.max(max, curr.score), 0);
+
+            // BACKFILL: If startedAt is missing in latest attempt, try to find it in sessions
+            if (latest && !latest.startedAt && studentSessions.length > 0) {
+                // Find session that closely matches or just use the latest session
+                // Since this is "latest" attempt, we use the latest session
+                const sortedSessions = [...studentSessions].sort((a, b) => (b.startedAt?.toMillis() || 0) - (a.startedAt?.toMillis() || 0));
+                if (sortedSessions[0]) {
+                    latest.startedAt = sortedSessions[0].startedAt;
+                }
+            }
 
             // Status Logic
             let status = 'pending';
@@ -493,11 +503,26 @@ export default function ExamResults() {
         });
 
         const processedGuests = Object.values(guestMap).map(guest => {
+            // Find all sessions for this guest (studentId = guestId)
+            const guestSessions = sessions.filter(s => s.studentId === guest.id);
+
+            // Find explicit active session
+            const activeSession = guestSessions.find(s => s.status === 'in_progress' || s.status === 'paused');
+            guest.activeSession = activeSession || null;
+
             // Sort attempts
             guest.attempts.sort((a, b) => (b.submittedAt?.toMillis() || 0) - (a.submittedAt?.toMillis() || 0));
 
             const latest = guest.attempts[0];
             const bestScore = guest.attempts.reduce((max, curr) => Math.max(max, curr.score), 0);
+
+            // BACKFILL: If startedAt is missing in latest attempt, try to find it in sessions
+            if (latest && !latest.startedAt && guestSessions.length > 0) {
+                const sortedSessions = [...guestSessions].sort((a, b) => (b.startedAt?.toMillis() || 0) - (a.startedAt?.toMillis() || 0));
+                if (sortedSessions[0]) {
+                    latest.startedAt = sortedSessions[0].startedAt;
+                }
+            }
 
             // Status Logic
             let status = 'pending';
@@ -717,9 +742,15 @@ export default function ExamResults() {
                     compareA = a.name.toLowerCase();
                     compareB = b.name.toLowerCase();
                     break;
-                case 'class':
-                    compareA = classMap[a.classId]?.name || '';
-                    compareB = classMap[b.classId]?.name || '';
+                case 'duration':
+                    const getDurationMs = (s) => {
+                        if (s.latestAttempt?.startedAt && s.latestAttempt?.submittedAt) {
+                            return s.latestAttempt.submittedAt.toMillis() - s.latestAttempt.startedAt.toMillis();
+                        }
+                        return 0;
+                    };
+                    compareA = getDurationMs(a);
+                    compareB = getDurationMs(b);
                     break;
                 case 'status':
                     const statusOrder = { 'in_progress': 0, 'grading_pending': 1, 'completed': 2, 'remedial': 3, 'pending': 4 };
@@ -1073,10 +1104,10 @@ export default function ExamResults() {
                                                 )}
                                             </div>
                                         </th>
-                                        <th className="px-6 py-4 font-bold cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('class')}>
+                                        <th className="px-6 py-4 font-bold cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('duration')}>
                                             <div className="flex items-center gap-2">
-                                                Class
-                                                {sortBy === 'class' ? (
+                                                Duration
+                                                {sortBy === 'duration' ? (
                                                     sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
                                                 ) : (
                                                     <ArrowUpDown className="h-4 w-4 opacity-30" />
@@ -1174,9 +1205,21 @@ export default function ExamResults() {
                                                     </td>
 
                                                     {/* Class */}
+                                                    {/* Duration */}
                                                     <td className="px-6 py-4">
-                                                        <span className="inline-block px-3 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg">
-                                                            {classMap[student.classId]?.name || (student.isGuest ? 'Guest Access' : 'Unknown')}
+                                                        <span className="text-slate-700 text-sm font-medium">
+                                                            {(() => {
+                                                                if (student.status === 'in_progress') return <span className="text-blue-600 italic">Running...</span>;
+                                                                if (student.latestAttempt?.startedAt && student.latestAttempt?.submittedAt) {
+                                                                    const start = student.latestAttempt.startedAt.toMillis();
+                                                                    const end = student.latestAttempt.submittedAt.toMillis();
+                                                                    const diffMs = end - start;
+                                                                    const mins = Math.floor(diffMs / 60000);
+                                                                    const secs = Math.floor((diffMs % 60000) / 1000);
+                                                                    return `${mins}m ${secs}s`;
+                                                                }
+                                                                return '-';
+                                                            })()}
                                                         </span>
                                                     </td>
 

@@ -949,10 +949,20 @@ export default function ExamTaker({ isGuest = false }) {
                 localStorage.setItem(`guest_completed_${exam.id}`, 'true');
             }
 
+            // Fetch session details to get startedAt
+            let sessionStartedAt = null;
+            if (sessionId) {
+                const sessionDoc = await getDoc(doc(db, 'exam_sessions', sessionId));
+                if (sessionDoc.exists()) {
+                    sessionStartedAt = sessionDoc.data().startedAt;
+                }
+            }
+
             console.log('Adding exam result to database');
             await addDoc(collection(db, 'exam_results'), {
                 examId: exam.id,
                 studentId: studentId,
+                sessionId: sessionId, // Link to session
                 guestName: isGuest ? guestUser?.name : null,
                 guestClass: isGuest ? guestUser?.className : null,
                 guestAbsen: isGuest ? guestUser?.absen : null, // Add absen to result too
@@ -963,6 +973,7 @@ export default function ExamTaker({ isGuest = false }) {
                 totalScore: stats.autoPoints,
                 maxScore: stats.maxPoints,
                 gradingStatus: stats.hasManualQuestions ? 'pending' : 'complete',
+                startedAt: sessionStartedAt, // Include startedAt
                 submittedAt: serverTimestamp(),
                 autoSubmitted: isAutoSubmit,
                 autoSubmitNotified: false

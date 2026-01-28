@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../lib/firebase';
-import { collection, getDocs, deleteDoc, doc, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import {
     Plus,
@@ -12,7 +12,8 @@ import {
     Edit2,
     Trash2,
     Globe,
-    Users
+    Users,
+    Copy
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -26,6 +27,8 @@ export default function Exams() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [examToDelete, setExamToDelete] = useState(null);
+    const [showDuplicateSuccessModal, setShowDuplicateSuccessModal] = useState(false);
+    const [newExamId, setNewExamId] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const examsPerPage = 10;
 
@@ -77,6 +80,32 @@ export default function Exams() {
             toast.error("Failed to delete exam");
             setShowDeleteModal(false);
             setExamToDelete(null);
+        }
+    };
+
+    const handleDuplicate = async (exam) => {
+        const confirm = window.confirm(`Duplicate exam "${exam.title}"?`);
+        if (!confirm) return;
+
+        const toastId = toast.loading("Duplicating exam...");
+        try {
+            const { id, ...examData } = exam;
+            const newExam = {
+                ...examData,
+                title: `${examData.title} (Copy)`,
+                status: 'draft',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                createdBy: currentUser.uid // Ensure ownership
+            };
+
+            const docRef = await addDoc(collection(db, 'exams'), newExam);
+            setNewExamId(docRef.id);
+            setShowDuplicateSuccessModal(true);
+            toast.success("Exam duplicated!", { id: toastId });
+        } catch (error) {
+            console.error("Error duplicating exam:", error);
+            toast.error("Failed to duplicate exam", { id: toastId });
         }
     };
 
@@ -253,6 +282,16 @@ export default function Exams() {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
+                                                handleDuplicate(exam);
+                                            }}
+                                            className="p-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-600 rounded-lg transition-all"
+                                            title="Duplicate"
+                                        >
+                                            <Copy className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
                                                 navigate(`/teacher/exams/edit/${exam.id}`);
                                             }}
                                             className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-all"
@@ -368,6 +407,40 @@ export default function Exams() {
                                 className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors"
                             >
                                 Delete
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* Duplicate Success Modal */}
+            {showDuplicateSuccessModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center"
+                    >
+                        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                            <ClipboardCheck className="h-8 w-8 text-green-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Duplikasi Berhasil!</h3>
+                        <p className="text-gray-600 mb-6">
+                            Ujian baru telah dibuat sebagai draft. Apa yang ingin Anda lakukan?
+                        </p>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => navigate(`/teacher/exams/edit/${newExamId}`)}
+                                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-200"
+                            >
+                                Edit Sekarang
+                            </button>
+                            <button
+                                onClick={() => setShowDuplicateSuccessModal(false)}
+                                className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors"
+                            >
+                                Tutup & Tetap Disini
                             </button>
                         </div>
                     </motion.div>

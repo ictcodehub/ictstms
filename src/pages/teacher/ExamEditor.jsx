@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { db } from '../../lib/firebase';
 import { collection, doc, getDoc, getDocs, addDoc, updateDoc, serverTimestamp, query, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -21,7 +22,9 @@ import {
     Paperclip,
     FileDown,
     Upload,
-    AlertCircle
+    AlertCircle,
+    ChevronDown,
+    Download
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../../contexts/AuthContext';
@@ -57,6 +60,7 @@ export default function ExamEditor() {
     const [questionToDelete, setQuestionToDelete] = useState(null);
     const [showImportSuccess, setShowImportSuccess] = useState(false);
     const [importSummary, setImportSummary] = useState(0);
+    const [showClassDropdown, setShowClassDropdown] = useState(false);
 
     // Load initial data
     useEffect(() => {
@@ -421,6 +425,56 @@ export default function ExamEditor() {
         toast.success("Template berhasil didownload");
     };
 
+    const handleExportQuestions = () => {
+        if (questions.length === 0) return toast.error("Tidak ada soal untuk diexport");
+
+        // 1. Prepare Data
+        const exportData = questions.map(q => {
+            const row = {
+                'Pertanyaan': q.text,
+                'Tipe': q.type,
+                'Poin': q.points,
+                'Opsi_A': '', 'Opsi_B': '', 'Opsi_C': '', 'Opsi_D': '', 'Opsi_E': '',
+                'Jawaban_Benar': '',
+                'Jawaban_Ekspektasi': q.expectedAnswer || ''
+            };
+
+            // Map Options
+            if (q.type === 'single_choice' || q.type === 'multiple_choice') {
+                q.options.forEach((opt, idx) => {
+                    const col = ['Opsi_A', 'Opsi_B', 'Opsi_C', 'Opsi_D', 'Opsi_E'][idx];
+                    if (col) row[col] = opt.text;
+                });
+
+                // Map Correct Answers
+                if (q.type === 'single_choice') {
+                    const correctIdx = q.options.findIndex(o => o.isCorrect);
+                    row['Jawaban_Benar'] = ['A', 'B', 'C', 'D', 'E'][correctIdx] || '';
+                } else {
+                    const correctIndices = q.options.map((o, i) => o.isCorrect ? i : -1).filter(i => i !== -1);
+                    row['Jawaban_Benar'] = correctIndices.map(i => ['A', 'B', 'C', 'D', 'E'][i]).join(',');
+                }
+            } else if (q.type === 'true_false') {
+                const correct = q.options.find(o => o.isCorrect);
+                row['Jawaban_Benar'] = correct ? correct.text : '';
+            } else if (q.type === 'matching') {
+                q.options.forEach((opt, idx) => {
+                    const col = ['Opsi_A', 'Opsi_B', 'Opsi_C', 'Opsi_D', 'Opsi_E'][idx];
+                    if (col) row[col] = `${opt.left} || ${opt.right}`;
+                });
+            }
+
+            return row;
+        });
+
+        // 2. Create Workbook
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        XLSX.utils.book_append_sheet(wb, ws, "Export Soal");
+        XLSX.writeFile(wb, `Export_Soal_${examData.title || 'Untitled'}.xlsx`);
+        toast.success("Soal berhasil diexport!");
+    };
+
     const handleExcelImport = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -593,794 +647,861 @@ export default function ExamEditor() {
 
     const totalScore = questions.reduce((sum, q) => sum + (parseInt(q.points) || 0), 0);
 
-    return (
-        <div className="pb-20">
-            {/* Top Bar */}
-            <div className="bg-white border-b border-slate-200 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => navigate('/teacher/exams')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                        <ArrowLeft className="h-6 w-6 text-slate-500" />
-                    </button>
-                    <div>
-                        <h1 className="text-xl font-bold text-slate-800">{id ? 'Edit Ujian' : 'Buat Ujian Baru'}</h1>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${examData.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
-                            {examData.status === 'published' ? 'Terbit' : 'Draft'}
-                        </span>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3">
-
-                    <button
-                        onClick={() => setExamData(prev => ({ ...prev, status: prev.status === 'draft' ? 'published' : 'draft' }))}
-                        className="border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-medium transition-all"
-                    >
-                        {examData.status === 'draft' ? 'Terbitkan' : 'Jadikan Draft'}
-                    </button>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={loading}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 shadow-lg shadow-blue-200 transition-all disabled:opacity-50"
-                    >
-                        <Save className="h-4 w-4" />
-                        Simpan
-                    </button>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 py-6">
-                {/* Left: General Settings */}
-                <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                        <h3 className="font-bold text-lg text-slate-800 border-b pb-2">Info Dasar</h3>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Judul Ujian</label>
-                            <input
-                                type="text"
-                                className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
-                                value={examData.title}
-                                onChange={(e) => setExamData({ ...examData, title: e.target.value })}
-                                placeholder="Contoh: Modul 1 Matematika"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                            <textarea
-                                className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none min-h-[80px]"
-                                value={examData.description}
-                                onChange={(e) => setExamData({ ...examData, description: e.target.value })}
-                                placeholder="Petunjuk pengerjaan..."
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Durasi (Menit)</label>
-                            <input
-                                type="number"
-                                className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
-                                value={examData.duration}
-                                onChange={(e) => setExamData({ ...examData, duration: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-
-                        <div className="space-y-3 pt-4 border-t border-slate-200">
-                            <h4 className="text-sm font-semibold text-slate-700 mb-2">Randomization Options</h4>
-
-                            <label className="flex items-center justify-between p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
-                                <div>
-                                    <span className="text-sm font-medium text-slate-700">Randomize Question Order</span>
-                                    <p className="text-xs text-slate-500 mt-0.5">Shuffle questions for each student</p>
-                                </div>
-                                <input
-                                    type="checkbox"
-                                    checked={examData.randomizeQuestions}
-                                    onChange={(e) => setExamData({ ...examData, randomizeQuestions: e.target.checked })}
-                                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                                />
-                            </label>
-
-                            <label className="flex items-center justify-between p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
-                                <div>
-                                    <span className="text-sm font-medium text-slate-700">Randomize Answer Options</span>
-                                    <p className="text-xs text-slate-500 mt-0.5">Shuffle answer choices within questions</p>
-                                </div>
-                                <input
-                                    type="checkbox"
-                                    checked={examData.randomizeAnswers}
-                                    onChange={(e) => setExamData({ ...examData, randomizeAnswers: e.target.checked })}
-                                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                                />
-                            </label>
-
-                            <div className="pt-4 border-t border-slate-200">
-                                <h4 className="text-sm font-semibold text-slate-700 mb-2">Review Settings</h4>
-                                <label className="flex items-center justify-between p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
-                                    <div>
-                                        <span className="text-sm font-medium text-slate-700">Show Results to Students</span>
-                                        <p className="text-xs text-slate-500 mt-0.5">Allow students to see correct answers after submission</p>
-                                    </div>
-                                    <input
-                                        type="checkbox"
-                                        checked={examData.showResultToStudents}
-                                        onChange={(e) => setExamData({ ...examData, showResultToStudents: e.target.checked })}
-                                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </label>
-                            </div>
-
-                            <div className="pt-4 border-t border-slate-200">
-                                <h4 className="text-sm font-semibold text-slate-700 mb-2">Guest Access</h4>
-                                <label className="flex items-center justify-between p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
-                                    <div>
-                                        <span className="text-sm font-medium text-slate-700">Enable Guest Access</span>
-                                        <p className="text-xs text-slate-500 mt-0.5">Allow students to take exam without login</p>
-                                    </div>
-                                    <input
-                                        type="checkbox"
-                                        checked={examData.isGuestAllowed}
-                                        onChange={(e) => setExamData({ ...examData, isGuestAllowed: e.target.checked })}
-                                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </label>
-
-                                {examData.isGuestAllowed && id && (
-                                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                        <p className="text-xs font-semibold text-blue-700 mb-1">Public Guest Link:</p>
-                                        <div className="flex items-center gap-2">
-                                            <code className="text-xs bg-white px-2 py-1 rounded border border-blue-200 text-slate-600 flex-1 truncate">
-                                                {`${window.location.origin}/exam/guest/${id}`}
-                                            </code>
-                                            <button
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(`${window.location.origin}/exam/guest/${id}`);
-                                                    toast.success("Link copied!");
-                                                }}
-                                                className="p-1 hover:bg-blue-100 rounded text-blue-600"
-                                                title="Copy Link"
-                                            >
-                                                <Copy className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                                {examData.isGuestAllowed && !id && (
-                                    <p className="text-xs text-amber-600 mt-2 px-1">
-                                        <AlertCircle className="inline w-3 h-3 mr-1" />
-                                        Save exam first to generate guest link
-                                    </p>
-                                )}
+    return createPortal(
+        <AnimatePresence mode="wait">
+            <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="fixed inset-0 z-[9999] bg-slate-50 flex flex-col"
+            >
+                {/* Top Bar - Sticky */}
+                <div className="bg-white border-b border-slate-200 shadow-sm flex-none z-20 sticky top-0">
+                    <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => navigate('/teacher/exams')}
+                                className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500 hover:text-slate-700"
+                            >
+                                <X className="h-6 w-6" />
+                            </button>
+                            <div>
+                                <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                    {id ? 'Edit Ujian' : 'Buat Ujian Baru'}
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${examData.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                                        {examData.status === 'published' ? 'Terbit' : 'Draft'}
+                                    </span>
+                                </h1>
                             </div>
                         </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4">Participant Classes</h3>
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {classes.map(cls => (
-                                <label key={cls.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={examData.assignedClasses.includes(cls.id)}
-                                        onChange={(e) => {
-                                            if (e.target.checked) {
-                                                setExamData(prev => ({ ...prev, assignedClasses: [...prev.assignedClasses, cls.id] }));
-                                            } else {
-                                                setExamData(prev => ({ ...prev, assignedClasses: prev.assignedClasses.filter(id => id !== cls.id) }));
-                                            }
-                                        }}
-                                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-                                    />
-                                    <span className="text-slate-700">{cls.name}</span>
-                                </label>
-                            ))}
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setExamData(prev => ({ ...prev, status: prev.status === 'draft' ? 'published' : 'draft' }))}
+                                className="border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-medium transition-all"
+                            >
+                                {examData.status === 'draft' ? 'Terbitkan' : 'Jadikan Draft'}
+                            </button>
+                            <button
+                                onClick={handleSubmit}
+                                disabled={loading}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 shadow-lg shadow-blue-200 transition-all disabled:opacity-50"
+                            >
+                                {loading ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Menyimpan...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="h-4 w-4" />
+                                        Simpan
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Center/Right: Question Editor */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Import/Export Tools */}
-                    <div className="flex gap-2">
-                        <button
-                            onClick={downloadTemplate}
-                            className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-sm font-bold border border-green-200 transition-colors"
-                        >
-                            <FileDown className="h-4 w-4" /> Template Excel
-                        </button>
-                        <label className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-bold border border-blue-200 transition-colors cursor-pointer">
-                            <Upload className="h-4 w-4" /> Import Excel
-                            <input
-                                type="file"
-                                accept=".xlsx, .xls"
-                                className="hidden"
-                                onChange={handleExcelImport}
-                            />
-                        </label>
-                        <div className={`ml-auto flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold border transition-colors ${totalScore > 100 ? 'bg-red-50 text-red-700 border-red-200' :
-                            totalScore === 100 ? 'bg-green-50 text-green-700 border-green-200' :
-                                'bg-slate-50 text-slate-700 border-slate-200'
-                            }`}>
-                            <span>Total Score: {totalScore}</span>
-                        </div>
+                {/* Main Scrollable Content */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                    <div className="max-w-7xl mx-auto p-6 md:p-8 pb-32">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 py-6">
 
-                        {questions.length > 0 && (
-                            <button
-                                onClick={deleteAllQuestions}
-                                className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg text-sm font-bold border border-red-200 transition-colors"
-                            >
-                                <Trash2 className="h-4 w-4" /> Hapus Semua
-                            </button>
-                        )}
-                    </div>
+                            {/* Left: General Settings */}
+                            <div className="space-y-6">
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                                    <h3 className="font-bold text-lg text-slate-800 border-b pb-2">Info Dasar</h3>
 
-                    {/* Question List Visualizer */}
-                    <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-wrap gap-2">
-                        {questions.map((q, idx) => (
-                            <button
-                                key={q.id}
-                                onClick={() => setActiveQuestionId(q.id)}
-                                className={`w-10 h-10 rounded-lg font-bold text-sm transition-all border ${activeQuestionId === q.id
-                                    ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200'
-                                    : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'}`}
-                            >
-                                {idx + 1}
-                            </button>
-                        ))}
-                        <button
-                            onClick={addQuestion}
-                            className="w-10 h-10 rounded-lg border-2 border-dashed border-slate-300 text-slate-400 hover:text-blue-600 hover:border-blue-400 flex items-center justify-center transition-colors"
-                        >
-                            <Plus className="h-5 w-5" />
-                        </button>
-                    </div>
-
-                    {/* Active Question Editor */}
-                    <AnimatePresence mode="wait">
-                        {activeQuestionId && (() => {
-                            const question = questions.find(q => q.id === activeQuestionId);
-                            if (!question) return null;
-                            const qIndex = questions.findIndex(q => q.id === activeQuestionId);
-
-                            return (
-                                <motion.div
-                                    key={activeQuestionId}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
-                                >
-                                    <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                                        <div className="flex items-center gap-4">
-                                            <span className="text-lg font-bold text-slate-400">#{qIndex + 1}</span>
-                                            <select
-                                                value={question.type}
-                                                onChange={(e) => handleTypeChange(question.id, e.target.value)}
-                                                className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                            >
-                                                <option value="single_choice">Pilihan Ganda (1 Jawaban)</option>
-                                                <option value="multiple_choice">Pilihan Jamak (Checkbox)</option>
-                                                <option value="true_false">Benar / Salah</option>
-                                                <option value="matching">Menjodohkan</option>
-                                                <option value="short_answer">Jawaban Singkat</option>
-                                                <option value="essay">Essay</option>
-                                            </select>
-                                            <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
-                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Poin</label>
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={question.points || 0}
-                                                    onChange={(e) => updateQuestion(question.id, { points: parseInt(e.target.value) || 0 })}
-                                                    className="w-20 px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <button onClick={() => duplicateQuestion(question)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors" title="Duplikat">
-                                                <Copy className="h-4 w-4" />
-                                            </button>
-                                            <button onClick={() => deleteQuestion(question.id)} className="p-2 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Judul Ujian</label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                            value={examData.title}
+                                            onChange={(e) => setExamData({ ...examData, title: e.target.value })}
+                                            placeholder="Contoh: Modul 1 Matematika"
+                                        />
                                     </div>
 
-                                    <div className="p-6 space-y-6">
-                                        {/* Question Text */}
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-2">Pertanyaan</label>
-                                            <textarea
-                                                value={question.text}
-                                                onChange={(e) => updateQuestion(question.id, { text: e.target.value })}
-                                                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px] text-lg"
-                                                placeholder="Tulis pertanyaan di sini..."
-                                            />
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                                        <textarea
+                                            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none min-h-[80px]"
+                                            value={examData.description}
+                                            onChange={(e) => setExamData({ ...examData, description: e.target.value })}
+                                            placeholder="Petunjuk pengerjaan..."
+                                        />
+                                    </div>
 
-                                            {/* Attachment UI */}
-                                            <div className="mt-4">
-                                                <div className="flex flex-wrap gap-2 mb-3">
-                                                    {question.attachments && question.attachments.map(att => (
-                                                        <div key={att.id} className="relative group bg-slate-50 border border-slate-200 rounded-lg p-2 flex items-center gap-3 pr-8 min-w-[150px]">
-                                                            {att.type === 'image' && (
-                                                                <div className="w-10 h-10 rounded bg-slate-200 overflow-hidden flex-shrink-0">
-                                                                    <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
-                                                                </div>
-                                                            )}
-                                                            {att.type === 'video' && <Video className="w-8 h-8 text-blue-500" />}
-                                                            {att.type === 'file' && <File className="w-8 h-8 text-orange-500" />}
-                                                            {att.type === 'link' && <Link className="w-8 h-8 text-green-500" />}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Durasi (Menit)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                            value={examData.duration}
+                                            onChange={(e) => setExamData({ ...examData, duration: parseInt(e.target.value) || 0 })}
+                                        />
+                                    </div>
 
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-xs font-medium text-slate-700 truncate" title={att.name}>{att.name}</p>
-                                                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate block">
-                                                                    Lihat
-                                                                </a>
-                                                            </div>
+                                    <div className="space-y-3 pt-4 border-t border-slate-200">
+                                        <h4 className="text-sm font-semibold text-slate-700 mb-2">Randomization Options</h4>
 
-                                                            <button
-                                                                onClick={() => removeAttachment(question.id, att.id)}
-                                                                className="absolute top-1 right-1 p-1 bg-white rounded-full shadow-sm text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                                            >
-                                                                <X className="h-3 w-3" />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-
-                                                <div className="flex gap-2">
-                                                    <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
-                                                        <ImageIcon className="h-4 w-4" />
-                                                        Gambar
-                                                        <input
-                                                            type="file"
-                                                            className="hidden"
-                                                            accept="image/*"
-                                                            onChange={(e) => handleFileUpload(question.id, e.target.files[0])}
-                                                        />
-                                                    </label>
-                                                    <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
-                                                        <Paperclip className="h-4 w-4" />
-                                                        File / Dokumen
-                                                        <input
-                                                            type="file"
-                                                            className="hidden"
-                                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                                                            onChange={(e) => handleFileUpload(question.id, e.target.files[0])}
-                                                        />
-                                                    </label>
-                                                    <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
-                                                        <Video className="h-4 w-4" />
-                                                        Video
-                                                        <input
-                                                            type="file"
-                                                            className="hidden"
-                                                            accept="video/*"
-                                                            onChange={(e) => handleFileUpload(question.id, e.target.files[0])}
-                                                        />
-                                                    </label>
-                                                    <button
-                                                        onClick={() => {
-                                                            setLinkModalData({ questionId: question.id, url: '', name: '' });
-                                                            setShowLinkModal(true);
-                                                        }}
-                                                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors"
-                                                    >
-                                                        <Link className="h-4 w-4" />
-                                                        Link
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Options Editor OR Expected Answer for Essay/Short Answer */}
-                                        {(question.type === 'essay' || question.type === 'short_answer') ? (
-                                            // Essay/Short Answer: Expected Answer Editor
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <label className="block text-sm font-bold text-slate-700 mb-2">
-                                                        Expected Answer (Referensi untuk Grading)
-                                                    </label>
-                                                    <textarea
-                                                        value={question.expectedAnswer || ''}
-                                                        onChange={(e) => updateQuestion(question.id, { expectedAnswer: e.target.value })}
-                                                        placeholder="Contoh jawaban yang diharapkan dari siswa..."
-                                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px] text-sm bg-amber-50/30"
-                                                    />
-                                                    <p className="text-xs text-slate-500 mt-1">
-                                                        Expected answer akan digunakan sebagai referensi saat manual grading
-                                                    </p>
-                                                </div>
-
-                                                {question.type === 'short_answer' && (
-                                                    <div>
-                                                        <label className="block text-sm font-bold text-slate-700 mb-2">
-                                                            Character Limit (Optional)
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            min="50"
-                                                            max="1000"
-                                                            value={question.characterLimit || 200}
-                                                            onChange={(e) => updateQuestion(question.id, { characterLimit: parseInt(e.target.value) || 200 })}
-                                                            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                            placeholder="e.g., 200"
-                                                        />
-                                                        <p className="text-xs text-slate-500 mt-1">
-                                                            Batasi jumlah karakter untuk jawaban singkat
-                                                        </p>
-                                                    </div>
-                                                )}
-
-                                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                                                    <p className="text-sm text-amber-800 flex items-center gap-2">
-                                                        <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                                                        <span>
-                                                            Soal tipe {question.type === 'essay' ? 'Essay' : 'Jawaban Singkat'} memerlukan <strong>manual grading</strong> oleh guru. Siswa tidak akan mendapat nilai secara otomatis.
-                                                        </span>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            // Multiple Choice: Options Editor (existing)
+                                        <label className="flex items-center justify-between p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
                                             <div>
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <label className="block text-sm font-bold text-slate-700">Opsi Jawaban</label>
-                                                    {(question.type === 'multiple_choice' || question.type === 'matching') && (
-                                                        <div className="flex items-center gap-4">
-                                                            <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded-md border border-slate-200 hover:bg-slate-100 transition-colors" title="Jika aktif, siswa mendapat nilai sebagian untuk jawaban yang benar sebagian. Jika mati, jawaban harus benar sempurna.">
+                                                <span className="text-sm font-medium text-slate-700">Randomize Question Order</span>
+                                                <p className="text-xs text-slate-500 mt-0.5">Shuffle questions for each student</p>
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                checked={examData.randomizeQuestions}
+                                                onChange={(e) => setExamData({ ...examData, randomizeQuestions: e.target.checked })}
+                                                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </label>
+
+                                        <label className="flex items-center justify-between p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                                            <div>
+                                                <span className="text-sm font-medium text-slate-700">Randomize Answer Options</span>
+                                                <p className="text-xs text-slate-500 mt-0.5">Shuffle answer choices within questions</p>
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                checked={examData.randomizeAnswers}
+                                                onChange={(e) => setExamData({ ...examData, randomizeAnswers: e.target.checked })}
+                                                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </label>
+
+                                        <div className="pt-4 border-t border-slate-200">
+                                            <h4 className="text-sm font-semibold text-slate-700 mb-2">Review Settings</h4>
+                                            <label className="flex items-center justify-between p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                                                <div>
+                                                    <span className="text-sm font-medium text-slate-700">Show Results to Students</span>
+                                                    <p className="text-xs text-slate-500 mt-0.5">Allow students to see correct answers after submission</p>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={examData.showResultToStudents}
+                                                    onChange={(e) => setExamData({ ...examData, showResultToStudents: e.target.checked })}
+                                                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </label>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-slate-200">
+                                            <h4 className="text-sm font-semibold text-slate-700 mb-2">Guest Access</h4>
+                                            <label className="flex items-center justify-between p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+                                                <div>
+                                                    <span className="text-sm font-medium text-slate-700">Enable Guest Access</span>
+                                                    <p className="text-xs text-slate-500 mt-0.5">Allow students to take exam without login</p>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={examData.isGuestAllowed}
+                                                    onChange={(e) => setExamData({ ...examData, isGuestAllowed: e.target.checked })}
+                                                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </label>
+
+                                            {examData.isGuestAllowed && id && (
+                                                <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                                    <p className="text-xs font-semibold text-blue-700 mb-1">Public Guest Link:</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <code className="text-xs bg-white px-2 py-1 rounded border border-blue-200 text-slate-600 flex-1 truncate">
+                                                            {`${window.location.origin}/exam/guest/${id}`}
+                                                        </code>
+                                                        <button
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(`${window.location.origin}/exam/guest/${id}`);
+                                                                toast.success("Link copied!");
+                                                            }}
+                                                            className="p-1 hover:bg-blue-100 rounded text-blue-600"
+                                                            title="Copy Link"
+                                                        >
+                                                            <Copy className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {examData.isGuestAllowed && !id && (
+                                                <p className="text-xs text-amber-600 mt-2 px-1">
+                                                    <AlertCircle className="inline w-3 h-3 mr-1" />
+                                                    Save exam first to generate guest link
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                                    <h3 className="font-bold text-lg text-slate-800 border-b pb-2 mb-4">Participant Classes</h3>
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setShowClassDropdown(!showClassDropdown)}
+                                            className="w-full flex items-center justify-between px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-sm font-medium hover:bg-slate-100 transition-colors"
+                                        >
+                                            <span>
+                                                {examData.assignedClasses.length > 0
+                                                    ? `${examData.assignedClasses.length} Kelas Terpilih`
+                                                    : 'Pilih Kelas'}
+                                            </span>
+                                            <ChevronDown className={`h-5 w-5 transition-transform ${showClassDropdown ? 'rotate-180' : ''}`} />
+                                        </button>
+
+                                        <AnimatePresence>
+                                            {showClassDropdown && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto"
+                                                >
+                                                    <div className="p-2 space-y-1">
+                                                        {classes.map(cls => (
+                                                            <label key={cls.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
                                                                 <input
                                                                     type="checkbox"
-                                                                    checked={question.enablePartialScoring !== false}
-                                                                    onChange={(e) => updateQuestion(question.id, { enablePartialScoring: e.target.checked })}
-                                                                    className="rounded text-blue-600 focus:ring-blue-500"
+                                                                    checked={examData.assignedClasses.includes(cls.id)}
+                                                                    onChange={(e) => {
+                                                                        if (e.target.checked) {
+                                                                            setExamData(prev => ({ ...prev, assignedClasses: [...prev.assignedClasses, cls.id] }));
+                                                                        } else {
+                                                                            setExamData(prev => ({ ...prev, assignedClasses: prev.assignedClasses.filter(id => id !== cls.id) }));
+                                                                        }
+                                                                    }}
+                                                                    className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
                                                                 />
-                                                                Partial Scoring
+                                                                <span className="text-slate-700 text-sm font-medium">{cls.name}</span>
                                                             </label>
-                                                            {question.type === 'multiple_choice' && (
-                                                                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-                                                                    Centang semua jawaban benar
-                                                                </span>
+                                                        ))}
+                                                        {classes.length === 0 && (
+                                                            <div className="p-4 text-center text-slate-400 text-sm">
+                                                                Tidak ada kelas tersedia
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Center/Right: Question Editor */}
+                            <div className="lg:col-span-2 space-y-6">
+                                {/* Import/Export Tools */}
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={downloadTemplate}
+                                        className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-sm font-bold border border-green-200 transition-colors"
+                                    >
+                                        <FileDown className="h-4 w-4" /> Template
+                                    </button>
+                                    <label className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-bold border border-blue-200 transition-colors cursor-pointer">
+                                        <Upload className="h-4 w-4" /> Import
+                                        <input
+                                            type="file"
+                                            accept=".xlsx, .xls"
+                                            className="hidden"
+                                            onChange={handleExcelImport}
+                                        />
+                                    </label>
+                                    <button
+                                        onClick={handleExportQuestions}
+                                        className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-sm font-bold border border-indigo-200 transition-colors"
+                                        title="Export pertanyaan saat ini ke Excel"
+                                    >
+                                        <Download className="h-4 w-4" /> Export
+                                    </button>
+                                    <div className={`ml-auto flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold border transition-colors ${totalScore > 100 ? 'bg-red-50 text-red-700 border-red-200' :
+                                        totalScore === 100 ? 'bg-green-50 text-green-700 border-green-200' :
+                                            'bg-slate-50 text-slate-700 border-slate-200'
+                                        }`}>
+                                        <span>Total Score: {totalScore}</span>
+                                    </div>
+
+                                    {questions.length > 0 && (
+                                        <button
+                                            onClick={deleteAllQuestions}
+                                            className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg text-sm font-bold border border-red-200 transition-colors"
+                                        >
+                                            <Trash2 className="h-4 w-4" /> Hapus Semua
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Question List Visualizer */}
+                                <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-wrap gap-2">
+                                    {questions.map((q, idx) => (
+                                        <button
+                                            key={q.id}
+                                            onClick={() => setActiveQuestionId(q.id)}
+                                            className={`w-10 h-10 rounded-lg font-bold text-sm transition-all border ${activeQuestionId === q.id
+                                                ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200'
+                                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'}`}
+                                        >
+                                            {idx + 1}
+                                        </button>
+                                    ))}
+                                    <button
+                                        onClick={addQuestion}
+                                        className="w-10 h-10 rounded-lg border-2 border-dashed border-slate-300 text-slate-400 hover:text-blue-600 hover:border-blue-400 flex items-center justify-center transition-colors"
+                                    >
+                                        <Plus className="h-5 w-5" />
+                                    </button>
+                                </div>
+
+                                {/* Active Question Editor */}
+                                <AnimatePresence mode="wait">
+                                    {activeQuestionId && (() => {
+                                        const question = questions.find(q => q.id === activeQuestionId);
+                                        if (!question) return null;
+                                        const qIndex = questions.findIndex(q => q.id === activeQuestionId);
+
+                                        return (
+                                            <motion.div
+                                                key={activeQuestionId}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -20 }}
+                                                className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+                                            >
+                                                <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                                                    <div className="flex items-center gap-4">
+                                                        <span className="text-lg font-bold text-slate-400">#{qIndex + 1}</span>
+                                                        <select
+                                                            value={question.type}
+                                                            onChange={(e) => handleTypeChange(question.id, e.target.value)}
+                                                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        >
+                                                            <option value="single_choice">Pilihan Ganda (1 Jawaban)</option>
+                                                            <option value="multiple_choice">Pilihan Jamak (Checkbox)</option>
+                                                            <option value="true_false">Benar / Salah</option>
+                                                            <option value="matching">Menjodohkan</option>
+                                                            <option value="short_answer">Jawaban Singkat</option>
+                                                            <option value="essay">Essay</option>
+                                                        </select>
+                                                        <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+                                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Poin</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                value={question.points || 0}
+                                                                onChange={(e) => updateQuestion(question.id, { points: parseInt(e.target.value) || 0 })}
+                                                                className="w-20 px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button onClick={() => duplicateQuestion(question)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors" title="Duplikat">
+                                                            <Copy className="h-4 w-4" />
+                                                        </button>
+                                                        <button onClick={() => deleteQuestion(question.id)} className="p-2 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="p-6 space-y-6">
+                                                    {/* Question Text */}
+                                                    <div>
+                                                        <label className="block text-sm font-bold text-slate-700 mb-2">Pertanyaan</label>
+                                                        <textarea
+                                                            value={question.text}
+                                                            onChange={(e) => updateQuestion(question.id, { text: e.target.value })}
+                                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px] text-lg"
+                                                            placeholder="Tulis pertanyaan di sini..."
+                                                        />
+
+                                                        {/* Attachment UI */}
+                                                        <div className="mt-4">
+                                                            <div className="flex flex-wrap gap-2 mb-3">
+                                                                {question.attachments && question.attachments.map(att => (
+                                                                    <div key={att.id} className="relative group bg-slate-50 border border-slate-200 rounded-lg p-2 flex items-center gap-3 pr-8 min-w-[150px]">
+                                                                        {att.type === 'image' && (
+                                                                            <div className="w-10 h-10 rounded bg-slate-200 overflow-hidden flex-shrink-0">
+                                                                                <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                                                                            </div>
+                                                                        )}
+                                                                        {att.type === 'video' && <Video className="w-8 h-8 text-blue-500" />}
+                                                                        {att.type === 'file' && <File className="w-8 h-8 text-orange-500" />}
+                                                                        {att.type === 'link' && <Link className="w-8 h-8 text-green-500" />}
+
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className="text-xs font-medium text-slate-700 truncate" title={att.name}>{att.name}</p>
+                                                                            <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate block">
+                                                                                Lihat
+                                                                            </a>
+                                                                        </div>
+
+                                                                        <button
+                                                                            onClick={() => removeAttachment(question.id, att.id)}
+                                                                            className="absolute top-1 right-1 p-1 bg-white rounded-full shadow-sm text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                                                        >
+                                                                            <X className="h-3 w-3" />
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            <div className="flex gap-2">
+                                                                <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
+                                                                    <ImageIcon className="h-4 w-4" />
+                                                                    Gambar
+                                                                    <input
+                                                                        type="file"
+                                                                        className="hidden"
+                                                                        accept="image/*"
+                                                                        onChange={(e) => handleFileUpload(question.id, e.target.files[0])}
+                                                                    />
+                                                                </label>
+                                                                <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
+                                                                    <Paperclip className="h-4 w-4" />
+                                                                    File / Dokumen
+                                                                    <input
+                                                                        type="file"
+                                                                        className="hidden"
+                                                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                                                                        onChange={(e) => handleFileUpload(question.id, e.target.files[0])}
+                                                                    />
+                                                                </label>
+                                                                <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
+                                                                    <Video className="h-4 w-4" />
+                                                                    Video
+                                                                    <input
+                                                                        type="file"
+                                                                        className="hidden"
+                                                                        accept="video/*"
+                                                                        onChange={(e) => handleFileUpload(question.id, e.target.files[0])}
+                                                                    />
+                                                                </label>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setLinkModalData({ questionId: question.id, url: '', name: '' });
+                                                                        setShowLinkModal(true);
+                                                                    }}
+                                                                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors"
+                                                                >
+                                                                    <Link className="h-4 w-4" />
+                                                                    Link
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Options Editor OR Expected Answer for Essay/Short Answer */}
+                                                    {(question.type === 'essay' || question.type === 'short_answer') ? (
+                                                        // Essay/Short Answer: Expected Answer Editor
+                                                        <div className="space-y-4">
+                                                            <div>
+                                                                <label className="block text-sm font-bold text-slate-700 mb-2">
+                                                                    Expected Answer (Referensi untuk Grading)
+                                                                </label>
+                                                                <textarea
+                                                                    value={question.expectedAnswer || ''}
+                                                                    onChange={(e) => updateQuestion(question.id, { expectedAnswer: e.target.value })}
+                                                                    placeholder="Contoh jawaban yang diharapkan dari siswa..."
+                                                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px] text-sm bg-amber-50/30"
+                                                                />
+                                                                <p className="text-xs text-slate-500 mt-1">
+                                                                    Expected answer akan digunakan sebagai referensi saat manual grading
+                                                                </p>
+                                                            </div>
+
+                                                            {question.type === 'short_answer' && (
+                                                                <div>
+                                                                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                                                                        Character Limit (Optional)
+                                                                    </label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="50"
+                                                                        max="1000"
+                                                                        value={question.characterLimit || 200}
+                                                                        onChange={(e) => updateQuestion(question.id, { characterLimit: parseInt(e.target.value) || 200 })}
+                                                                        className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                        placeholder="e.g., 200"
+                                                                    />
+                                                                    <p className="text-xs text-slate-500 mt-1">
+                                                                        Batasi jumlah karakter untuk jawaban singkat
+                                                                    </p>
+                                                                </div>
                                                             )}
-                                                            {question.type === 'matching' && (
-                                                                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-                                                                    Pasangan Kiri - Kanan
-                                                                </span>
-                                                            )}
+
+                                                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                                                <p className="text-sm text-amber-800 flex items-center gap-2">
+                                                                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                                                                    <span>
+                                                                        Soal tipe {question.type === 'essay' ? 'Essay' : 'Jawaban Singkat'} memerlukan <strong>manual grading</strong> oleh guru. Siswa tidak akan mendapat nilai secara otomatis.
+                                                                    </span>
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        // Multiple Choice: Options Editor (existing)
+                                                        <div>
+                                                            <div className="flex justify-between items-center mb-2">
+                                                                <label className="block text-sm font-bold text-slate-700">Opsi Jawaban</label>
+                                                                {(question.type === 'multiple_choice' || question.type === 'matching') && (
+                                                                    <div className="flex items-center gap-4">
+                                                                        <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded-md border border-slate-200 hover:bg-slate-100 transition-colors" title="Jika aktif, siswa mendapat nilai sebagian untuk jawaban yang benar sebagian. Jika mati, jawaban harus benar sempurna.">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={question.enablePartialScoring !== false}
+                                                                                onChange={(e) => updateQuestion(question.id, { enablePartialScoring: e.target.checked })}
+                                                                                className="rounded text-blue-600 focus:ring-blue-500"
+                                                                            />
+                                                                            Partial Scoring
+                                                                        </label>
+                                                                        {question.type === 'multiple_choice' && (
+                                                                            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                                                                                Centang semua jawaban benar
+                                                                            </span>
+                                                                        )}
+                                                                        {question.type === 'matching' && (
+                                                                            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                                                                                Pasangan Kiri - Kanan
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="space-y-3">
+                                                                {question.type === 'matching' ? (
+                                                                    // Matching Editor
+                                                                    <>
+                                                                        {question.options.map((opt, idx) => (
+                                                                            <div key={opt.id} className="flex gap-4 items-center">
+                                                                                <div className="bg-slate-100 flex items-center justify-center w-8 h-8 rounded-full font-bold text-slate-500 text-xs">
+                                                                                    {idx + 1}
+                                                                                </div>
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={opt.left}
+                                                                                    onChange={(e) => {
+                                                                                        const newOpts = [...question.options];
+                                                                                        newOpts[idx].left = e.target.value;
+                                                                                        updateQuestion(question.id, { options: newOpts });
+                                                                                    }}
+                                                                                    className="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                                    placeholder="Item Kiri"
+                                                                                />
+                                                                                <span className="text-slate-400">↔</span>
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={opt.right}
+                                                                                    onChange={(e) => {
+                                                                                        const newOpts = [...question.options];
+                                                                                        newOpts[idx].right = e.target.value;
+                                                                                        updateQuestion(question.id, { options: newOpts });
+                                                                                    }}
+                                                                                    className="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                                    placeholder="Pasangan Kanan"
+                                                                                />
+                                                                                <button onClick={() => {
+                                                                                    const newOpts = question.options.filter((_, i) => i !== idx);
+                                                                                    updateQuestion(question.id, { options: newOpts });
+                                                                                }} className="text-slate-400 hover:text-red-500">
+                                                                                    <X className="h-4 w-4" />
+                                                                                </button>
+                                                                            </div>
+                                                                        ))}
+                                                                        <button
+                                                                            onClick={() => updateQuestion(question.id, { options: [...question.options, { id: crypto.randomUUID(), left: '', right: '' }] })}
+                                                                            className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1"
+                                                                        >
+                                                                            <Plus className="h-3 w-3" /> Tambah Pasangan
+                                                                        </button>
+                                                                    </>
+                                                                ) : (
+                                                                    // Standard Options (Multiple Choice / Checkbox / TrueFalse)
+                                                                    <>
+                                                                        {question.options.map((opt, idx) => (
+                                                                            <div key={opt.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${opt.isCorrect ? 'border-green-200 bg-green-50/50' : 'border-slate-200'}`}>
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        const newOpts = [...question.options];
+                                                                                        if (question.type === 'single_choice' || question.type === 'true_false') {
+                                                                                            // Clear others
+                                                                                            newOpts.forEach(o => o.isCorrect = false);
+                                                                                            newOpts[idx].isCorrect = true;
+                                                                                        } else {
+                                                                                            // Toggle
+                                                                                            newOpts[idx].isCorrect = !newOpts[idx].isCorrect;
+                                                                                        }
+                                                                                        updateQuestion(question.id, { options: newOpts });
+                                                                                    }}
+                                                                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${opt.isCorrect
+                                                                                        ? 'border-green-500 bg-green-500 text-white'
+                                                                                        : 'border-slate-300 hover:border-blue-400'
+                                                                                        }`}
+                                                                                >
+                                                                                    {opt.isCorrect && <CheckCircle2 className="h-3.5 w-3.5" />}
+                                                                                </button>
+
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={opt.text}
+                                                                                    readOnly={question.type === 'true_false'} // TF text is fixed
+                                                                                    onChange={(e) => {
+                                                                                        const newOpts = [...question.options];
+                                                                                        newOpts[idx].text = e.target.value;
+                                                                                        updateQuestion(question.id, { options: newOpts });
+                                                                                    }}
+                                                                                    className={`flex-1 bg-transparent outline-none ${opt.isCorrect ? 'text-green-800 font-medium' : 'text-slate-700'}`}
+                                                                                    placeholder={`Opsi ${idx + 1}`}
+                                                                                />
+
+                                                                                {question.type !== 'true_false' && (
+                                                                                    <button onClick={() => {
+                                                                                        const newOpts = question.options.filter((_, i) => i !== idx);
+                                                                                        updateQuestion(question.id, { options: newOpts });
+                                                                                    }} className="text-slate-400 hover:text-red-500 px-2">
+                                                                                        <X className="h-4 w-4" />
+                                                                                    </button>
+                                                                                )}
+                                                                            </div>
+                                                                        ))}
+                                                                        {question.type !== 'true_false' && (
+                                                                            <button
+                                                                                onClick={() => updateQuestion(question.id, { options: [...question.options, { id: crypto.randomUUID(), text: '', isCorrect: false }] })}
+                                                                                className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1 mt-2"
+                                                                            >
+                                                                                <Plus className="h-3 w-3" /> Tambah Opsi
+                                                                            </button>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
-
-                                                <div className="space-y-3">
-                                                    {question.type === 'matching' ? (
-                                                        // Matching Editor
-                                                        <>
-                                                            {question.options.map((opt, idx) => (
-                                                                <div key={opt.id} className="flex gap-4 items-center">
-                                                                    <div className="bg-slate-100 flex items-center justify-center w-8 h-8 rounded-full font-bold text-slate-500 text-xs">
-                                                                        {idx + 1}
-                                                                    </div>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={opt.left}
-                                                                        onChange={(e) => {
-                                                                            const newOpts = [...question.options];
-                                                                            newOpts[idx].left = e.target.value;
-                                                                            updateQuestion(question.id, { options: newOpts });
-                                                                        }}
-                                                                        className="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                                        placeholder="Item Kiri"
-                                                                    />
-                                                                    <span className="text-slate-400">↔</span>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={opt.right}
-                                                                        onChange={(e) => {
-                                                                            const newOpts = [...question.options];
-                                                                            newOpts[idx].right = e.target.value;
-                                                                            updateQuestion(question.id, { options: newOpts });
-                                                                        }}
-                                                                        className="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                                        placeholder="Pasangan Kanan"
-                                                                    />
-                                                                    <button onClick={() => {
-                                                                        const newOpts = question.options.filter((_, i) => i !== idx);
-                                                                        updateQuestion(question.id, { options: newOpts });
-                                                                    }} className="text-slate-400 hover:text-red-500">
-                                                                        <X className="h-4 w-4" />
-                                                                    </button>
-                                                                </div>
-                                                            ))}
-                                                            <button
-                                                                onClick={() => updateQuestion(question.id, { options: [...question.options, { id: crypto.randomUUID(), left: '', right: '' }] })}
-                                                                className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1"
-                                                            >
-                                                                <Plus className="h-3 w-3" /> Tambah Pasangan
-                                                            </button>
-                                                        </>
-                                                    ) : (
-                                                        // Standard Options (Multiple Choice / Checkbox / TrueFalse)
-                                                        <>
-                                                            {question.options.map((opt, idx) => (
-                                                                <div key={opt.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${opt.isCorrect ? 'border-green-200 bg-green-50/50' : 'border-slate-200'}`}>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const newOpts = [...question.options];
-                                                                            if (question.type === 'single_choice' || question.type === 'true_false') {
-                                                                                // Clear others
-                                                                                newOpts.forEach(o => o.isCorrect = false);
-                                                                                newOpts[idx].isCorrect = true;
-                                                                            } else {
-                                                                                // Toggle
-                                                                                newOpts[idx].isCorrect = !newOpts[idx].isCorrect;
-                                                                            }
-                                                                            updateQuestion(question.id, { options: newOpts });
-                                                                        }}
-                                                                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${opt.isCorrect
-                                                                            ? 'border-green-500 bg-green-500 text-white'
-                                                                            : 'border-slate-300 hover:border-blue-400'
-                                                                            }`}
-                                                                    >
-                                                                        {opt.isCorrect && <CheckCircle2 className="h-3.5 w-3.5" />}
-                                                                    </button>
-
-                                                                    <input
-                                                                        type="text"
-                                                                        value={opt.text}
-                                                                        readOnly={question.type === 'true_false'} // TF text is fixed
-                                                                        onChange={(e) => {
-                                                                            const newOpts = [...question.options];
-                                                                            newOpts[idx].text = e.target.value;
-                                                                            updateQuestion(question.id, { options: newOpts });
-                                                                        }}
-                                                                        className={`flex-1 bg-transparent outline-none ${opt.isCorrect ? 'text-green-800 font-medium' : 'text-slate-700'}`}
-                                                                        placeholder={`Opsi ${idx + 1}`}
-                                                                    />
-
-                                                                    {question.type !== 'true_false' && (
-                                                                        <button onClick={() => {
-                                                                            const newOpts = question.options.filter((_, i) => i !== idx);
-                                                                            updateQuestion(question.id, { options: newOpts });
-                                                                        }} className="text-slate-400 hover:text-red-500 px-2">
-                                                                            <X className="h-4 w-4" />
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                            {question.type !== 'true_false' && (
-                                                                <button
-                                                                    onClick={() => updateQuestion(question.id, { options: [...question.options, { id: crypto.randomUUID(), text: '', isCorrect: false }] })}
-                                                                    className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1 mt-2"
-                                                                >
-                                                                    <Plus className="h-3 w-3" /> Tambah Opsi
-                                                                </button>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </div>
+                                            </motion.div>
+                                        );
+                                    })()}
+                                    {!activeQuestionId && (
+                                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 flex flex-col items-center justify-center text-center min-h-[500px]">
+                                            <div className="bg-slate-50 p-6 rounded-full mb-6">
+                                                <FileText className="h-16 w-16 text-slate-300" />
                                             </div>
-                                        )}
-                                    </div>
-                                </motion.div>
-                            );
-                        })()}
-                        {!activeQuestionId && (
-                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 flex flex-col items-center justify-center text-center min-h-[500px]">
-                                <div className="bg-slate-50 p-6 rounded-full mb-6">
-                                    <FileText className="h-16 w-16 text-slate-300" />
-                                </div>
-                                <h3 className="text-xl font-bold text-slate-800 mb-2">Belum ada pertanyaan</h3>
-                                <p className="text-slate-500 max-w-sm mb-8">
-                                    Mulai buat ujian Anda dengan menambahkan pertanyaan baru.
-                                </p>
-                                <button
-                                    onClick={addQuestion}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold flex items-center gap-3 shadow-xl shadow-blue-200 hover:-translate-y-1 transition-all"
-                                >
-                                    <Plus className="h-6 w-6" />
-                                    Buat Pertanyaan Pertama
-                                </button>
+                                            <h3 className="text-xl font-bold text-slate-800 mb-2">Belum ada pertanyaan</h3>
+                                            <p className="text-slate-500 max-w-sm mb-8">
+                                                Mulai buat ujian Anda dengan menambahkan pertanyaan baru.
+                                            </p>
+                                            <button
+                                                onClick={addQuestion}
+                                                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold flex items-center gap-3 shadow-xl shadow-blue-200 hover:-translate-y-1 transition-all"
+                                            >
+                                                <Plus className="h-6 w-6" />
+                                                Buat Pertanyaan Pertama
+                                            </button>
+                                        </div>
+                                    )}
+                                </AnimatePresence>
                             </div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            </div>
-
-            {/* Custom Link Modal */}
-            <AnimatePresence>
-                {showLinkModal && (
-                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                                <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                    <Link className="h-5 w-5 text-blue-600" />
-                                    Tambah Link
-                                </h3>
-                                <button onClick={() => setShowLinkModal(false)} className="text-slate-400 hover:text-red-500 transition-colors">
-                                    <X className="h-5 w-5" />
-                                </button>
-                            </div>
-
-                            <div className="p-6 space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Judul Link (Opsional)</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Contoh: Video Referensi"
-                                        value={linkModalData.name}
-                                        onChange={(e) => setLinkModalData(prev => ({ ...prev, name: e.target.value }))}
-                                        className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        autoFocus
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">URL / Tautan <span className="text-red-500">*</span></label>
-                                    <input
-                                        type="url"
-                                        placeholder="https://..."
-                                        value={linkModalData.url}
-                                        onChange={(e) => setLinkModalData(prev => ({ ...prev, url: e.target.value }))}
-                                        className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
-                                <button
-                                    onClick={() => setShowLinkModal(false)}
-                                    className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (!linkModalData.url) return toast.error("URL tidak boleh kosong");
-                                        handleAddLink(linkModalData.questionId, linkModalData.url, linkModalData.name);
-                                        setShowLinkModal(false);
-                                    }}
-                                    className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition-colors"
-                                >
-                                    Simpan
-                                </button>
-                            </div>
-                        </motion.div>
+                        </div>
                     </div>
-                )}
-            </AnimatePresence>
-            {/* Delete Confirmation Modal */}
-            <AnimatePresence>
-                {showDeleteConfirmation && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
-                        >
-                            <div className="p-6 text-center space-y-4">
-                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-                                    <Trash2 className="h-8 w-8 text-red-600" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-slate-800">Hapus Semua Soal?</h3>
-                                    <p className="text-slate-500 mt-2">
-                                        Apakah Anda yakin ingin menghapus <b>{questions.length} soal</b>? <br />
-                                        Tindakan ini tidak dapat dibatalkan.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex border-t border-slate-100 bg-slate-50 p-4 gap-3">
-                                <button
-                                    onClick={() => setShowDeleteConfirmation(false)}
-                                    className="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors"
-                                >
-                                    Batal
-                                </button>
-                                <button
-                                    onClick={confirmDeleteAll}
-                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
-                                >
-                                    Ya, Hapus Semua
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-            {/* Delete Single Question Confirmation Modal */}
-            <AnimatePresence>
-                {showDeleteSingleConfirmation && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
-                        >
-                            <div className="p-6 text-center space-y-4">
-                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-                                    <Trash2 className="h-8 w-8 text-red-600" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-slate-800">Hapus Soal Ini?</h3>
-                                    <p className="text-slate-500 mt-2">
-                                        Tindakan ini tidak dapat dibatalkan. Soal akan dihapus dari daftar.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex border-t border-slate-100 bg-slate-50 p-4 gap-3">
-                                <button
-                                    onClick={() => setShowDeleteSingleConfirmation(false)}
-                                    className="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors"
-                                >
-                                    Batal
-                                </button>
-                                <button
-                                    onClick={confirmDeleteSingle}
-                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
-                                >
-                                    Hapus Soal
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                </div>
 
-            {/* Import Success Modal */}
-            <AnimatePresence>
-                {showImportSuccess && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-                    >
+                {/* Custom Link Modal */}
+                <AnimatePresence>
+                    {showLinkModal && (
+                        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                    <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                        <Link className="h-5 w-5 text-blue-600" />
+                                        Tambah Link
+                                    </h3>
+                                    <button onClick={() => setShowLinkModal(false)} className="text-slate-400 hover:text-red-500 transition-colors">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+
+                                <div className="p-6 space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Judul Link (Opsional)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Contoh: Video Referensi"
+                                            value={linkModalData.name}
+                                            onChange={(e) => setLinkModalData(prev => ({ ...prev, name: e.target.value }))}
+                                            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">URL / Tautan <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="url"
+                                            placeholder="https://..."
+                                            value={linkModalData.url}
+                                            onChange={(e) => setLinkModalData(prev => ({ ...prev, url: e.target.value }))}
+                                            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+                                    <button
+                                        onClick={() => setShowLinkModal(false)}
+                                        className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (!linkModalData.url) return toast.error("URL tidak boleh kosong");
+                                            handleAddLink(linkModalData.questionId, linkModalData.url, linkModalData.name);
+                                            setShowLinkModal(false);
+                                        }}
+                                        className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition-colors"
+                                    >
+                                        Simpan
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+                {/* Delete Confirmation Modal */}
+                <AnimatePresence>
+                    {showDeleteConfirmation && (
                         <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
                         >
-                            <div className="p-6 text-center space-y-4">
-                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                            >
+                                <div className="p-6 text-center space-y-4">
+                                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                                        <Trash2 className="h-8 w-8 text-red-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-800">Hapus Semua Soal?</h3>
+                                        <p className="text-slate-500 mt-2">
+                                            Apakah Anda yakin ingin menghapus <b>{questions.length} soal</b>? <br />
+                                            Tindakan ini tidak dapat dibatalkan.
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-slate-800">Import Berhasil!</h3>
-                                    <p className="text-slate-500 mt-2">
-                                        Berhasil menambahkan <b className="text-green-600">{importSummary} soal baru</b> ke dalam editor ujian.
-                                    </p>
+                                <div className="flex border-t border-slate-100 bg-slate-50 p-4 gap-3">
+                                    <button
+                                        onClick={() => setShowDeleteConfirmation(false)}
+                                        className="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        onClick={confirmDeleteAll}
+                                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
+                                    >
+                                        Ya, Hapus Semua
+                                    </button>
                                 </div>
-                            </div>
-                            <div className="flex border-t border-slate-100 bg-slate-50 p-4">
-                                <button
-                                    onClick={() => setShowImportSuccess(false)}
-                                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
-                                >
-                                    Oke, Lanjutkan
-                                </button>
-                            </div>
+                            </motion.div>
                         </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
+                    )}
+                </AnimatePresence>
+                {/* Delete Single Question Confirmation Modal */}
+                <AnimatePresence>
+                    {showDeleteSingleConfirmation && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                        >
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                            >
+                                <div className="p-6 text-center space-y-4">
+                                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                                        <Trash2 className="h-8 w-8 text-red-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-800">Hapus Soal Ini?</h3>
+                                        <p className="text-slate-500 mt-2">
+                                            Tindakan ini tidak dapat dibatalkan. Soal akan dihapus dari daftar.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex border-t border-slate-100 bg-slate-50 p-4 gap-3">
+                                    <button
+                                        onClick={() => setShowDeleteSingleConfirmation(false)}
+                                        className="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        onClick={confirmDeleteSingle}
+                                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
+                                    >
+                                        Hapus Soal
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Import Success Modal */}
+                <AnimatePresence>
+                    {showImportSuccess && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                        >
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+                            >
+                                <div className="p-6 text-center space-y-4">
+                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                                        <CheckCircle2 className="h-8 w-8 text-green-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-800">Import Berhasil!</h3>
+                                        <p className="text-slate-500 mt-2">
+                                            Berhasil menambahkan <b className="text-green-600">{importSummary} soal baru</b> ke dalam editor ujian.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex border-t border-slate-100 bg-slate-50 p-4">
+                                    <button
+                                        onClick={() => setShowImportSuccess(false)}
+                                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+                                    >
+                                        Oke, Lanjutkan
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.div>
+        </AnimatePresence>,
+        document.body
     );
 }
