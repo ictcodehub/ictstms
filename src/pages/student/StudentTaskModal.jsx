@@ -334,95 +334,114 @@ export default function StudentTaskModal({
                                         ) : (
                                             // VIEW MODE
                                             <div className="space-y-6">
-                                                <div className="flex items-center gap-3 pb-6 border-b border-slate-100">
-                                                    <div className="bg-emerald-100 p-2 rounded-lg">
-                                                        <CheckCircle className="h-5 w-5 text-emerald-600" />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-base font-bold text-slate-800">Submitted Answer</h4>
-                                                        <p className="text-xs text-slate-400">{submission.submittedAt ? submission.submittedAt.toDate().toLocaleString() : 'Draft'}</p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                                    <SafeHTML content={submission.content} />
-                                                </div>
-
-                                                {submission.attachments && submission.attachments.length > 0 && (
-                                                    <div className="mt-6">
-                                                        <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Attached Files</h5>
-                                                        <div className="grid gap-3 sm:grid-cols-2">
-                                                            {submission.attachments.map((att, idx) => (
-                                                                <div key={idx} className="group">
-                                                                    {att.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                                                        <div
-                                                                            className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-all cursor-pointer relative"
-                                                                            onClick={() => setLightboxImage(att.url)}
-                                                                        >
-                                                                            <div className="h-40 bg-slate-100/50 flex justify-center items-center overflow-hidden relative group-hover:bg-slate-100 transition-colors">
-                                                                                <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
-                                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-                                                                                    <div className="bg-white/20 p-2 rounded-full backdrop-blur-md border border-white/30 transform scale-90 group-hover:scale-100 transition-transform duration-200">
-                                                                                        <Maximize2 className="h-5 w-5 text-white drop-shadow-md" />
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                            <div className="px-3 py-2 bg-white flex justify-between items-center relative z-10">
-                                                                                <span className="text-xs font-bold text-slate-600 truncate max-w-[70%]">{att.name}</span>
-                                                                                <a
-                                                                                    href={att.url}
-                                                                                    download
-                                                                                    target="_blank"
-                                                                                    rel="noopener noreferrer"
-                                                                                    onClick={(e) => e.stopPropagation()}
-                                                                                >
-                                                                                    <Download className="h-4 w-4 text-slate-300 hover:text-blue-600" />
-                                                                                </a>
-                                                                            </div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <a
-                                                                            href={att.url}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 rounded-xl hover:border-blue-400 hover:shadow-md transition-all"
-                                                                        >
-                                                                            <FileText className="h-5 w-5 text-blue-500" />
-                                                                            <span className="text-sm font-bold text-slate-700 truncate">{att.name}</span>
-                                                                        </a>
-                                                                    )}
-                                                                </div>
-                                                            ))}
+                                                {task.isMaterialOnly ? (
+                                                    <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-8 text-center space-y-4">
+                                                        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600">
+                                                            <CheckCircle className="h-8 w-8" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <h3 className="text-lg font-bold text-slate-800">Review Completed</h3>
+                                                            <p className="text-slate-600">
+                                                                You have marked this learning material as done.
+                                                            </p>
+                                                            <p className="text-xs text-slate-400">
+                                                                {submission.submittedAt ? submission.submittedAt.toDate().toLocaleString() : ''}
+                                                            </p>
                                                         </div>
                                                     </div>
-                                                )}
-
-                                                {/* Grade Display */}
-                                                {submission.grade !== null && submission.grade !== undefined && (
-                                                    <div className="mt-8 bg-emerald-50 rounded-2xl p-6 border border-emerald-100">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="text-sm font-bold text-emerald-600 uppercase tracking-widest">Final Grade</span>
-                                                            <div className="flex items-baseline gap-1">
-                                                                <span className="text-3xl font-black text-emerald-700">{submission.grade}</span>
-                                                                <span className="text-sm text-emerald-500 font-bold">/100</span>
+                                                ) : (
+                                                    <>
+                                                        <div className="flex items-center gap-3 pb-6 border-b border-slate-100">
+                                                            <div className="bg-emerald-100 p-2 rounded-lg">
+                                                                <CheckCircle className="h-5 w-5 text-emerald-600" />
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="text-base font-bold text-slate-800">Submitted Answer</h4>
+                                                                <p className="text-xs text-slate-400">{submission.submittedAt ? submission.submittedAt.toDate().toLocaleString() : 'Draft'}</p>
                                                             </div>
                                                         </div>
-                                                        {submission.feedback && (
-                                                            <p className="text-sm text-emerald-800 italic mt-2">"{submission.feedback}"</p>
-                                                        )}
-                                                    </div>
-                                                )}
 
-                                                {!submission.grade && (
-                                                    <div className="mt-6 flex justify-end">
-                                                        <button
-                                                            onClick={() => startEditing(task, submission)}
-                                                            className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
-                                                        >
-                                                            <Pencil className="h-4 w-4" />
-                                                            Edit Answer
-                                                        </button>
-                                                    </div>
+                                                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                                                            <SafeHTML content={submission.content} />
+                                                        </div>
+
+                                                        {submission.attachments && submission.attachments.length > 0 && (
+                                                            <div className="mt-6">
+                                                                <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Attached Files</h5>
+                                                                <div className="grid gap-3 sm:grid-cols-2">
+                                                                    {submission.attachments.map((att, idx) => (
+                                                                        <div key={idx} className="group">
+                                                                            {att.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                                                                <div
+                                                                                    className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-all cursor-pointer relative"
+                                                                                    onClick={() => setLightboxImage(att.url)}
+                                                                                >
+                                                                                    <div className="h-40 bg-slate-100/50 flex justify-center items-center overflow-hidden relative group-hover:bg-slate-100 transition-colors">
+                                                                                        <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                                                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                                                                            <div className="bg-white/20 p-2 rounded-full backdrop-blur-md border border-white/30 transform scale-90 group-hover:scale-100 transition-transform duration-200">
+                                                                                                <Maximize2 className="h-5 w-5 text-white drop-shadow-md" />
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="px-3 py-2 bg-white flex justify-between items-center relative z-10">
+                                                                                        <span className="text-xs font-bold text-slate-600 truncate max-w-[70%]">{att.name}</span>
+                                                                                        <a
+                                                                                            href={att.url}
+                                                                                            download
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            onClick={(e) => e.stopPropagation()}
+                                                                                        >
+                                                                                            <Download className="h-4 w-4 text-slate-300 hover:text-blue-600" />
+                                                                                        </a>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <a
+                                                                                    href={att.url}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 rounded-xl hover:border-blue-400 hover:shadow-md transition-all"
+                                                                                >
+                                                                                    <FileText className="h-5 w-5 text-blue-500" />
+                                                                                    <span className="text-sm font-bold text-slate-700 truncate">{att.name}</span>
+                                                                                </a>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Grade Display */}
+                                                        {submission.grade !== null && submission.grade !== undefined && (
+                                                            <div className="mt-8 bg-emerald-50 rounded-2xl p-6 border border-emerald-100">
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <span className="text-sm font-bold text-emerald-600 uppercase tracking-widest">Final Grade</span>
+                                                                    <div className="flex items-baseline gap-1">
+                                                                        <span className="text-3xl font-black text-emerald-700">{submission.grade}</span>
+                                                                        <span className="text-sm text-emerald-500 font-bold">/100</span>
+                                                                    </div>
+                                                                </div>
+                                                                {submission.feedback && (
+                                                                    <p className="text-sm text-emerald-800 italic mt-2">"{submission.feedback}"</p>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {!submission.grade && (
+                                                            <div className="mt-6 flex justify-end">
+                                                                <button
+                                                                    onClick={() => startEditing(task, submission)}
+                                                                    className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
+                                                                >
+                                                                    <Pencil className="h-4 w-4" />
+                                                                    Edit Answer
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         )
@@ -436,90 +455,121 @@ export default function StudentTaskModal({
                                                 <h4 className="text-lg font-bold text-slate-800">Submit Your Work</h4>
                                             </div>
 
-                                            {/* Open Layout: Editor First */}
-                                            <div className="space-y-4">
-                                                <div className="rounded-xl overflow-hidden border border-slate-200 focus-within:ring-4 focus-within:ring-blue-100 focus-within:border-blue-500 transition-all bg-white shadow-sm">
-                                                    <RichTextEditor
-                                                        value={submissionText}
-                                                        onChange={setSubmissionText}
-                                                        placeholder="Write your answer or specific notes for the teacher here..."
-                                                        height={300}
-                                                        disabled={isSubmitting}
-                                                    />
-                                                </div>
-
-                                                {/* Preview Area */}
-                                                {file && (
-                                                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap gap-4 items-center mt-12 sm:mt-12"> {/* Added Top Margin roughly for toolbar */}
-                                                        {previewUrl ? (
-                                                            <div
-                                                                className="relative h-20 w-auto rounded-lg overflow-hidden border border-slate-200 shadow-sm cursor-pointer group"
-                                                                onClick={() => setLightboxImage(previewUrl)}
-                                                            >
-                                                                <img src={previewUrl} alt="Preview" className="h-full w-auto object-contain" />
-                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                    <Maximize2 className="h-4 w-4 text-white" />
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                                                                <FileText className="h-6 w-6" />
-                                                            </div>
-                                                        )}
-
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-bold text-slate-700 truncate">{file.name}</p>
-                                                            <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(0)} KB</p>
-                                                        </div>
-
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                setFile(null);
-                                                            }}
-                                                            className="p-2 hover:bg-slate-200 rounded-full text-slate-400 hover:text-red-500 transition-colors"
-                                                            title="Remove file"
-                                                        >
-                                                            <X className="h-5 w-5" />
-                                                        </button>
+                                            {task.isMaterialOnly ? (
+                                                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-8 text-center space-y-6">
+                                                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto text-blue-600">
+                                                        <FileText className="h-8 w-8" />
                                                     </div>
-                                                )}
-
-                                                {/* Toolbar: Attach & Submit */}
-                                                <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 ${!file ? 'mt-12 sm:mt-14' : ''}`}>
-                                                    <div>
-                                                        <input
-                                                            type="file"
-                                                            id={`modal-file-upload-${task.id}`}
-                                                            className="hidden"
-                                                            onChange={(e) => setFile(e.target.files[0])}
-                                                        />
-                                                        <label
-                                                            htmlFor={`modal-file-upload-${task.id}`}
-                                                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white hover:border-blue-300 hover:text-blue-600 rounded-xl cursor-pointer transition-all text-sm font-bold shadow-sm"
-                                                            title="Attach File"
-                                                        >
-                                                            <Upload className="h-4 w-4" />
-                                                            Attach File
-                                                        </label>
+                                                    <div className="space-y-2">
+                                                        <h3 className="text-xl font-bold text-slate-800">Learning Material</h3>
+                                                        <p className="text-slate-600 max-w-md mx-auto leading-relaxed">
+                                                            This task contains only learning materials. Please review the materials above, then mark it as done when you have finished reading.
+                                                        </p>
                                                     </div>
-
                                                     <button
                                                         onClick={() => onSubmit(task.id)}
-                                                        disabled={isSubmitting || !submissionText || submissionText === '<p><br></p>'}
-                                                        className="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        disabled={isSubmitting}
+                                                        className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold text-base hover:bg-blue-700 shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all flex items-center gap-2 mx-auto"
                                                     >
                                                         {isSubmitting ? (
-                                                            <div className="flex items-center gap-2">
+                                                            <>
                                                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                                Sending...
-                                                            </div>
+                                                                Processing...
+                                                            </>
                                                         ) : (
-                                                            'Submit'
+                                                            <>
+                                                                <CheckCircle className="h-5 w-5" />
+                                                                Mark as Done
+                                                            </>
                                                         )}
                                                     </button>
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                /* Open Layout: Editor First */
+                                                <div className="space-y-4">
+                                                    <div className="rounded-xl overflow-hidden border border-slate-200 focus-within:ring-4 focus-within:ring-blue-100 focus-within:border-blue-500 transition-all bg-white shadow-sm">
+                                                        <RichTextEditor
+                                                            value={submissionText}
+                                                            onChange={setSubmissionText}
+                                                            placeholder="Write your answer or specific notes for the teacher here..."
+                                                            height={300}
+                                                            disabled={isSubmitting}
+                                                        />
+                                                    </div>
+
+                                                    {/* Preview Area */}
+                                                    {file && (
+                                                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap gap-4 items-center mt-12 sm:mt-12"> {/* Added Top Margin roughly for toolbar */}
+                                                            {previewUrl ? (
+                                                                <div
+                                                                    className="relative h-20 w-auto rounded-lg overflow-hidden border border-slate-200 shadow-sm cursor-pointer group"
+                                                                    onClick={() => setLightboxImage(previewUrl)}
+                                                                >
+                                                                    <img src={previewUrl} alt="Preview" className="h-full w-auto object-contain" />
+                                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                        <Maximize2 className="h-4 w-4 text-white" />
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                                                                    <FileText className="h-6 w-6" />
+                                                                </div>
+                                                            )}
+
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-bold text-slate-700 truncate">{file.name}</p>
+                                                                <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(0)} KB</p>
+                                                            </div>
+
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    setFile(null);
+                                                                }}
+                                                                className="p-2 hover:bg-slate-200 rounded-full text-slate-400 hover:text-red-500 transition-colors"
+                                                                title="Remove file"
+                                                            >
+                                                                <X className="h-5 w-5" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Toolbar: Attach & Submit */}
+                                                    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 ${!file ? 'mt-12 sm:mt-14' : ''}`}>
+                                                        <div>
+                                                            <input
+                                                                type="file"
+                                                                id={`modal-file-upload-${task.id}`}
+                                                                className="hidden"
+                                                                onChange={(e) => setFile(e.target.files[0])}
+                                                            />
+                                                            <label
+                                                                htmlFor={`modal-file-upload-${task.id}`}
+                                                                className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white hover:border-blue-300 hover:text-blue-600 rounded-xl cursor-pointer transition-all text-sm font-bold shadow-sm"
+                                                                title="Attach File"
+                                                            >
+                                                                <Upload className="h-4 w-4" />
+                                                                Attach File
+                                                            </label>
+                                                        </div>
+
+                                                        <button
+                                                            onClick={() => onSubmit(task.id)}
+                                                            disabled={isSubmitting || !submissionText || submissionText === '<p><br></p>'}
+                                                            className="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            {isSubmitting ? (
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                                    Sending...
+                                                                </div>
+                                                            ) : (
+                                                                'Submit'
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>

@@ -91,12 +91,21 @@ export default function TasksMobile({
                         </div>
                     );
                 } else if (submission) {
-                    statusBadge = (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
-                            <Clock className="h-3.5 w-3.5" />
-                            <span>Pending Review</span>
-                        </div>
-                    );
+                    if (task.isMaterialOnly) {
+                        statusBadge = (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                <span>Completed</span>
+                            </div>
+                        );
+                    } else {
+                        statusBadge = (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>Pending Review</span>
+                            </div>
+                        );
+                    }
                 } else if (isOverdue) {
                     statusBadge = (
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
@@ -118,7 +127,7 @@ export default function TasksMobile({
                 if (isGraded) {
                     cardBgColor = "bg-white";
                 } else if (submission) {
-                    cardBgColor = "bg-amber-50/30";
+                    cardBgColor = task.isMaterialOnly ? "bg-white border-emerald-100" : "bg-amber-50/30";
                 } else {
                     cardBgColor = isOverdue ? "bg-red-50" : "bg-red-50/40";
                 }
@@ -304,7 +313,7 @@ export default function TasksMobile({
                                                             Your Submission
                                                         </span>
                                                     </div>
-                                                    {!isGraded && !editingId && (
+                                                    {!isGraded && !editingId && !task.isMaterialOnly && (
                                                         <button
                                                             onClick={() => startEditing(submission)}
                                                             className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 hover:text-amber-700 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-100"
@@ -368,41 +377,53 @@ export default function TasksMobile({
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="mb-3">
-                                                        {submission.content && (
-                                                            <>
-                                                                <p className="text-xs font-semibold text-slate-700 mb-1">Answer:</p>
-                                                                <div className="text-xs text-slate-700 bg-white rounded-lg p-3 leading-relaxed border border-slate-100 shadow-sm">
-                                                                    <SafeHTML content={submission.content} />
-                                                                </div>
-                                                            </>
-                                                        )}
-
-                                                        {/* Submission Attachments */}
-                                                        {submission.attachments && submission.attachments.length > 0 && (
-                                                            <div className="mt-3">
-                                                                <p className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                                                                    <FileText className="h-3 w-3" />
-                                                                    Attached Files:
-                                                                </p>
-                                                                <div className="grid gap-2">
-                                                                    {submission.attachments.map((att, idx) => (
-                                                                        <a
-                                                                            key={idx}
-                                                                            href={att.url}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="flex items-center gap-2 p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-                                                                        >
-                                                                            <Download className="h-3.5 w-3.5 text-blue-500" />
-                                                                            <span className="flex-1 text-xs text-slate-700 truncate">{att.name}</span>
-                                                                            <span className="text-[10px] text-slate-400">{(att.size / 1024).toFixed(0)}KB</span>
-                                                                        </a>
-                                                                    ))}
-                                                                </div>
+                                                    task.isMaterialOnly ? (
+                                                        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-6 text-center space-y-3 mb-3">
+                                                            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600">
+                                                                <CheckCircle className="h-6 w-6" />
                                                             </div>
-                                                        )}
-                                                    </div>
+                                                            <div className="space-y-1">
+                                                                <h4 className="text-sm font-bold text-slate-800">Review Completed</h4>
+                                                                <p className="text-xs text-slate-600">You have marked this material as done.</p>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="mb-3">
+                                                            {submission.content && (
+                                                                <>
+                                                                    <p className="text-xs font-semibold text-slate-700 mb-1">Answer:</p>
+                                                                    <div className="text-xs text-slate-700 bg-white rounded-lg p-3 leading-relaxed border border-slate-100 shadow-sm">
+                                                                        <SafeHTML content={submission.content} />
+                                                                    </div>
+                                                                </>
+                                                            )}
+
+                                                            {/* Submission Attachments */}
+                                                            {submission.attachments && submission.attachments.length > 0 && (
+                                                                <div className="mt-3">
+                                                                    <p className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                                                                        <FileText className="h-3 w-3" />
+                                                                        Attached Files:
+                                                                    </p>
+                                                                    <div className="grid gap-2">
+                                                                        {submission.attachments.map((att, idx) => (
+                                                                            <a
+                                                                                key={idx}
+                                                                                href={att.url}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="flex items-center gap-2 p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                                                                            >
+                                                                                <Download className="h-3.5 w-3.5 text-blue-500" />
+                                                                                <span className="flex-1 text-xs text-slate-700 truncate">{att.name}</span>
+                                                                                <span className="text-[10px] text-slate-400">{(att.size / 1024).toFixed(0)}KB</span>
+                                                                            </a>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )
                                                 )}
 
                                                 {/* Grade Display */}
@@ -448,69 +469,100 @@ export default function TasksMobile({
                                                     </div>
                                                 )}
 
-                                                <div className="space-y-3">
-                                                    <div className="mb-2">
-                                                        <input
-                                                            type="file"
-                                                            id={`mobile - file - upload - ${task.id} `}
-                                                            className="hidden"
-                                                            onChange={(e) => setFile(e.target.files[0])}
-                                                        />
-
-                                                        {!file ? (
-                                                            <label
-                                                                htmlFor={`mobile - file - upload - ${task.id} `}
-                                                                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-600 text-sm font-bold hover:bg-slate-50 cursor-pointer transition-all shadow-sm w-full"
-                                                            >
-                                                                <Upload className="h-4 w-4 text-slate-500" />
-                                                                Attach File
-                                                            </label>
-                                                        ) : (
-                                                            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-xl w-full">
-                                                                <FileText className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                                                                <span className="flex-1 text-sm text-blue-800 font-medium truncate">{file.name}</span>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.preventDefault();
-                                                                        setFile(null);
-                                                                    }}
-                                                                    className="p-1 hover:bg-blue-100 rounded-full text-blue-400 hover:text-red-500 transition-colors"
-                                                                >
-                                                                    <X className="h-4 w-4" />
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="bg-white rounded-lg overflow-hidden border border-slate-300">
-                                                        <RichTextEditor
-                                                            value={comment}
-                                                            onChange={setComment}
-                                                            placeholder="Add a comment or answer..."
-                                                            height={350}
+                                                {task.isMaterialOnly ? (
+                                                    <div className="bg-white border border-blue-100 rounded-xl p-6 text-center space-y-4">
+                                                        <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto text-blue-600">
+                                                            <FileText className="h-6 w-6" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <h4 className="text-sm font-bold text-slate-800">Learning Material</h4>
+                                                            <p className="text-xs text-slate-600 leading-relaxed">
+                                                                Please review the material above, then mark it as done.
+                                                            </p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleSubmit(task.id)}
                                                             disabled={isSubmitting}
-                                                            isMobile={true}
-                                                        />
+                                                            className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 shadow-sm transition-all flex items-center justify-center gap-2"
+                                                        >
+                                                            {isSubmitting ? (
+                                                                <>
+                                                                    <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
+                                                                    <span>Processing...</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <CheckCircle className="h-4 w-4" />
+                                                                    <span>Mark as Done</span>
+                                                                </>
+                                                            )}
+                                                        </button>
                                                     </div>
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        <div className="mb-2">
+                                                            <input
+                                                                type="file"
+                                                                id={`mobile - file - upload - ${task.id} `}
+                                                                className="hidden"
+                                                                onChange={(e) => setFile(e.target.files[0])}
+                                                            />
 
-                                                    <button
-                                                        onClick={() => handleSubmit(task.id)}
-                                                        disabled={isSubmitting}
-                                                        className="w-full px-4 py-3 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold shadow-sm"
-                                                    >
-                                                        {isSubmitting ? (
-                                                            <>
-                                                                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                                                                <span>Submitting...</span>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <Send className="h-4 w-4" />
-                                                                <span>Submit Task</span>
-                                                            </>
-                                                        )}
-                                                    </button>
-                                                </div>
+                                                            {!file ? (
+                                                                <label
+                                                                    htmlFor={`mobile - file - upload - ${task.id} `}
+                                                                    className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-600 text-sm font-bold hover:bg-slate-50 cursor-pointer transition-all shadow-sm w-full"
+                                                                >
+                                                                    <Upload className="h-4 w-4 text-slate-500" />
+                                                                    Attach File
+                                                                </label>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-xl w-full">
+                                                                    <FileText className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                                                                    <span className="flex-1 text-sm text-blue-800 font-medium truncate">{file.name}</span>
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            setFile(null);
+                                                                        }}
+                                                                        className="p-1 hover:bg-blue-100 rounded-full text-blue-400 hover:text-red-500 transition-colors"
+                                                                    >
+                                                                        <X className="h-4 w-4" />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="bg-white rounded-lg overflow-hidden border border-slate-300">
+                                                            <RichTextEditor
+                                                                value={comment}
+                                                                onChange={setComment}
+                                                                placeholder="Add a comment or answer..."
+                                                                height={350}
+                                                                disabled={isSubmitting}
+                                                                isMobile={true}
+                                                            />
+                                                        </div>
+
+                                                        <button
+                                                            onClick={() => handleSubmit(task.id)}
+                                                            disabled={isSubmitting}
+                                                            className="w-full px-4 py-3 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold shadow-sm"
+                                                        >
+                                                            {isSubmitting ? (
+                                                                <>
+                                                                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                                                    <span>Submitting...</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Send className="h-4 w-4" />
+                                                                    <span>Submit Task</span>
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

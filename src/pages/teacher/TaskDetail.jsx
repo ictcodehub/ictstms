@@ -6,7 +6,7 @@ import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp, onS
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowLeft, Users, CheckCircle2, XCircle, Hourglass,
-    Clock, Award, FileText, Filter, Ban, RefreshCw, X, Save, Edit2, Calendar, BookOpen, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, Paperclip, Download
+    Clock, Award, FileText, Filter, Ban, RefreshCw, X, Save, Edit2, Calendar, BookOpen, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, Paperclip, Download, Eye
 } from "lucide-react";
 import { LinkifiedText } from '../../utils/linkify';
 import DOMPurify from 'dompurify';
@@ -265,6 +265,17 @@ export default function TaskDetail({ task, classes = [], onBack }) {
             };
         }
 
+        if (task.isMaterialOnly) {
+            return {
+                status: 'completed',
+                label: 'Completed',
+                color: 'text-emerald-700',
+                bgColor: 'bg-emerald-50',
+                borderColor: 'border-emerald-200',
+                icon: CheckCircle2
+            };
+        }
+
         // Check for revision needed
         if (submission.status === 'needs_revision') {
             return {
@@ -520,28 +531,32 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                         </div>
                     </div>
                 </div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
-                            <FileText className="h-6 w-6 text-amber-600" />
+                {!task?.isMaterialOnly && (
+                    <>
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
+                                    <FileText className="h-6 w-6 text-amber-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 font-medium">Graded</p>
+                                    <p className="text-2xl font-bold text-slate-800">{stats.graded}</p>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-xs text-slate-500 font-medium">Graded</p>
-                            <p className="text-2xl font-bold text-slate-800">{stats.graded}</p>
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                                    <Award className="h-6 w-6 text-purple-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 font-medium">Average</p>
+                                    <p className="text-2xl font-bold text-slate-800">{stats.avgGrade}</p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
-                            <Award className="h-6 w-6 text-purple-600" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-slate-500 font-medium">Average</p>
-                            <p className="text-2xl font-bold text-slate-800">{stats.avgGrade}</p>
-                        </div>
-                    </div>
-                </div>
+                    </>
+                )}
             </div>
 
             {/* Student List */}
@@ -628,8 +643,8 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                     const cls = classes.find(c => c.id === student.classId);
 
                                     // Highlight ungraded submissions
-                                    const isUngraded = submission && (submission.grade === undefined || submission.grade === null) && submission.status !== 'needs_revision';
-                                    // Use solid yellow-50 for better visibility, but keep it subtle
+                                    const isUngraded = submission && (submission.grade === undefined || submission.grade === null) && submission.status !== 'needs_revision' && !task.isMaterialOnly;
+                                    // Use solid yellow-50 for better visibility, but keep it subtle. Material Only tasks are always "graded" (completed) effectively.
                                     const rowBgClass = isUngraded ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-slate-50/50';
 
                                     return (
@@ -685,6 +700,11 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                         <Award className="h-4 w-4" />
                                                         {submission.grade}
                                                     </div>
+                                                ) : task.isMaterialOnly && submission ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200">
+                                                        <CheckCircle className="h-3.5 w-3.5" />
+                                                        Done
+                                                    </span>
                                                 ) : (
                                                     <span className="text-slate-400">-</span>
                                                 )}
@@ -697,17 +717,23 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                     }}
                                                     disabled={!submission}
                                                     className={`p-2 rounded-xl transition-all ${submission
-                                                        ? (submission?.grade !== undefined && submission?.grade !== null
-                                                            ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-                                                            : 'text-purple-600 bg-purple-50 hover:bg-purple-100')
+                                                        ? (task.isMaterialOnly
+                                                            ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
+                                                            : (submission?.grade !== undefined && submission?.grade !== null
+                                                                ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                                                                : 'text-purple-600 bg-purple-50 hover:bg-purple-100'))
                                                         : 'text-slate-400 bg-slate-50 cursor-not-allowed'
                                                         }`}
-                                                    title={submission?.grade !== undefined && submission?.grade !== null ? 'Edit nilai' : 'Beri nilai'}
+                                                    title={task.isMaterialOnly ? 'Lihat Detail' : (submission?.grade !== undefined && submission?.grade !== null ? 'Edit nilai' : 'Beri nilai')}
                                                 >
-                                                    {submission?.grade !== undefined && submission?.grade !== null ? (
-                                                        <Edit2 className="h-4 w-4" />
+                                                    {task.isMaterialOnly ? (
+                                                        <Eye className="h-4 w-4" />
                                                     ) : (
-                                                        <Award className="h-4 w-4" />
+                                                        submission?.grade !== undefined && submission?.grade !== null ? (
+                                                            <Edit2 className="h-4 w-4" />
+                                                        ) : (
+                                                            <Award className="h-4 w-4" />
+                                                        )
                                                     )}
                                                 </button>
                                             </td>
@@ -868,6 +894,11 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                                     statusText = 'Late Submission';
                                                                 }
 
+                                                                if (task.isMaterialOnly) {
+                                                                    statusColor = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                                                                    statusText = 'Completed';
+                                                                }
+
                                                                 return (
                                                                     <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${statusColor}`}>
                                                                         {statusText}
@@ -895,6 +926,10 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                             </div>
 
                                             {/* Grading Inputs */}
+                                        </div>
+
+                                        {/* Grading Inputs */}
+                                        {!task.isMaterialOnly && (
                                             <div className="flex-1 flex flex-col min-h-0 gap-5">
                                                 <div className="flex-shrink-0">
                                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
@@ -924,36 +959,50 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                     />
                                                 </div>
                                             </div>
-                                        </div>
+                                        )}
 
-                                        {/* Footer Actions */}
-                                        <div className="p-6 pt-4 bg-white border-t border-slate-200 flex-shrink-0 z-20">
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={handleRequestRevision}
-                                                    disabled={saving || !gradeData.feedback}
-                                                    className="px-4 py-2.5 rounded-md text-orange-700 font-semibold bg-orange-50 hover:bg-orange-100 border border-orange-200 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    <RefreshCw className="h-4 w-4" />
-                                                    Ask Revision
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={handleSaveGrade}
-                                                    disabled={saving}
-                                                    className="px-4 py-2.5 bg-blue-600 text-white rounded-md font-semibold text-sm hover:bg-blue-700 transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                                                >
-                                                    {saving ? (
-                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                    ) : (
-                                                        <Save className="h-4 w-4" />
-                                                    )}
-                                                    Save Grade
-                                                </button>
+                                        {/* Material Only - Done Badge */}
+                                        {task.isMaterialOnly && (
+                                            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                                                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                                                    <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                                                </div>
+                                                <h3 className="text-lg font-bold text-emerald-800 mb-1">Review Completed</h3>
+                                                <p className="text-sm text-emerald-600 text-center max-w-xs">
+                                                    This student has marked the material as done. No grading is required.
+                                                </p>
                                             </div>
-                                        </div>
+                                        )}
+                                        {/* Footer Actions */}
+                                        {!task.isMaterialOnly && (
+                                            <div className="p-6 pt-4 bg-white border-t border-slate-200 flex-shrink-0 z-20">
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleRequestRevision}
+                                                        disabled={saving || !gradeData.feedback}
+                                                        className="px-4 py-2.5 rounded-md text-orange-700 font-semibold bg-orange-50 hover:bg-orange-100 border border-orange-200 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        <RefreshCw className="h-4 w-4" />
+                                                        Ask Revision
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleSaveGrade}
+                                                        disabled={saving}
+                                                        className="px-4 py-2.5 bg-blue-600 text-white rounded-md font-semibold text-sm hover:bg-blue-700 transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                                                    >
+                                                        {saving ? (
+                                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                        ) : (
+                                                            <Save className="h-4 w-4" />
+                                                        )}
+                                                        Save Grade
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </motion.div>
@@ -962,6 +1011,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                 </AnimatePresence>,
                 document.body
             )}
+
             {/* Task Detail Modal */}
             <AnimatePresence>
                 {showTaskDetailModal && (

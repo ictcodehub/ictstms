@@ -90,6 +90,28 @@ export default function TeacherTaskModal({
                                         <div className="h-0.5 w-24 group-focus-within:w-full bg-slate-200 group-focus-within:bg-blue-500 rounded-full transition-all duration-500 ease-out" />
                                     </div>
 
+                                    {/* Material Only Toggle */}
+                                    <div className="flex items-center gap-2">
+                                        <label className="relative inline-flex items-center cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only peer"
+                                                checked={formData.isMaterialOnly || false}
+                                                onChange={(e) => setFormData({ ...formData, isMaterialOnly: e.target.checked })}
+                                            />
+                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                            <span className="ms-3 text-sm font-bold text-slate-600 group-hover:text-blue-600 transition-colors">
+                                                Material Only (No Submission)
+                                            </span>
+                                        </label>
+                                        <div className="group relative">
+                                            <AlertCircle className="h-4 w-4 text-slate-400 cursor-help" />
+                                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-64 bg-slate-800 text-white text-xs p-2 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                                                Students only need to click "Mark as Done" without uploading files or writing answers.
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {/* Rich Description - Unified Card */}
                                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                                         <div className="border-b border-slate-100 bg-slate-50/50 px-4 py-3 flex items-center justify-between">

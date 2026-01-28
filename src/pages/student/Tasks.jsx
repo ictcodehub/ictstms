@@ -167,16 +167,22 @@ export default function Tasks() {
 
 
     const handleSubmit = async (taskId) => {
-        // Check both desktop (submissionText) and mobile (comment) inputs
-        const content = submissionText.trim() || comment.trim();
+        // Find current task to check type
+        const currentTask = tasks.find(t => t.id === taskId);
+        const isMaterialOnly = currentTask?.isMaterialOnly;
 
-        if (!content) {
+        // Check both desktop (submissionText) and mobile (comment) inputs
+        let content = submissionText.trim() || comment.trim();
+
+        if (isMaterialOnly) {
+            content = "Marked as done successfully";
+        } else if (!content) {
             showWarning('Please fill in your answer');
             return;
         }
 
         // Size check (5MB)
-        if (file && file.size > 5 * 1024 * 1024) {
+        if (!isMaterialOnly && file && file.size > 5 * 1024 * 1024) {
             showWarning("File limit is 5MB");
             return;
         }
@@ -331,6 +337,9 @@ export default function Tasks() {
         if (submission) {
             if (submission.status === 'needs_revision') {
                 return { label: 'Revision Needed', color: 'bg-pink-50 text-pink-700 border border-pink-100', icon: AlertCircle, type: 'revision' };
+            }
+            if (task.isMaterialOnly) {
+                return { label: 'Completed', color: 'bg-emerald-50 text-emerald-700 border border-emerald-100', icon: CheckCircle, type: 'graded' };
             }
             if (submission.grade !== null && submission.grade !== undefined) {
                 return { label: 'Completed', color: 'bg-emerald-50 text-emerald-700 border border-emerald-100', icon: CheckCircle, type: 'graded' };
@@ -539,6 +548,20 @@ export default function Tasks() {
                                             <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-pink-50 border border-pink-100">
                                                 <Pencil className="h-3.5 w-3.5 text-pink-600" />
                                                 <span className="text-xs font-bold text-pink-700">Action Req.</span>
+                                            </div>
+                                        );
+                                    } else if (task.isMaterialOnly && submission) {
+                                        // Material Only - Completed
+                                        statusDisplay = (
+                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                                                <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                                                <span className="text-xs font-bold text-emerald-700">Completed</span>
+                                            </div>
+                                        );
+                                        infoDisplay = (
+                                            <div className="flex w-full items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                                                <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                                                <span className="text-xs font-bold text-emerald-700">Done</span>
                                             </div>
                                         );
                                     } else if (submission && submission.submittedAt && deadlineDate) {
