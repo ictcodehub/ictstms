@@ -1,3 +1,28 @@
+## 🎨 [2026-01-28 | 19:50] Feature: Revision History & Grading Modal Polish
+
+### Overview
+Refined the Grading Modal experience by implementing a dedicated Revision History timeline and polishing the UI to remove visual clutter (dividers) and align elements precisely.
+
+### ✅ Key Features & Changes
+1.  **Revision History Tracking (`Tasks.jsx` & `TaskDetail.jsx`)**:
+    *   **Backend Logic**: Updates now use `arrayUnion` to preserve history of submissions instead of overwriting.
+    *   **Timeline UI**: Replaced standard bullets with **Custom Dashes** (`2.2px` height, `7.6px` width) for a sleek, connected look.
+    *   **Alignment**: ensuring the timeline indicators are perfectly centered on the vertical axis and flush left.
+
+2.  **Grading Modal Refinement**:
+    *   **Unified Layout**: Removed horizontal divider lines to create a seamless flow between Submission Details and Grading Inputs.
+    *   **Visual Balance**: Adjusted padding and spacing to ensure the timeline "hugs" the left side without clipping.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/TaskDetail.jsx` | Implemented Revision Timeline, Dash Styling, Layout Unification |
+| `src/pages/teacher/Tasks.jsx` | Added Revision History saving logic (`arrayUnion`) |
+
+### 📦 Git Commits
+*   `ui(grading): refine revision timeline with specific dash styling & unified layout`
+*   `feat(tasks): implement revision history tracking`
+
 ## 🚀 [2026-01-28 | 12:00] Feature: Exam Management Enhancements & Duration Tracking
 
 ### Overview

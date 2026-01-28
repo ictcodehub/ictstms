@@ -702,7 +702,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                     </div>
                                                 ) : task.isMaterialOnly && submission ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200">
-                                                        <CheckCircle className="h-3.5 w-3.5" />
+                                                        <CheckCircle2 className="h-3.5 w-3.5" />
                                                         Done
                                                     </span>
                                                 ) : (
@@ -805,11 +805,11 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                     </div>
                                 </div>
 
-                                {/* Main Grid Layout */}
-                                <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+                                {/* Main Grid Layout -> Flex Layout */}
+                                <div className="flex-1 min-h-0 flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
 
                                     {/* Left Side: Answer Viewer */}
-                                    <div className="lg:col-span-2 flex flex-col h-full min-h-0 bg-white">
+                                    <div className="flex-1 flex flex-col h-full min-h-0 bg-white min-w-0">
                                         <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
                                             <div className="min-h-full">
                                                 {currentSubmission.submission?.content ? (
@@ -864,17 +864,17 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                     </div>
 
                                     {/* Right Side: Professional Grading Panel */}
-                                    <div className="bg-slate-50/50 flex flex-col h-full min-h-0 lg:w-96 border-l border-slate-200">
+                                    <div className="bg-slate-50/50 flex flex-col h-full min-h-0 w-full lg:w-96 shrink-0 border-l border-slate-200">
 
-                                        <div className="flex-1 flex flex-col min-h-0 p-6">
+                                        <div className="flex-none p-6">
 
                                             {/* Minimalist Details Section */}
                                             <div className="flex-shrink-0 mb-6 space-y-4">
                                                 <div>
                                                     <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Submission Details</h3>
-                                                    <div className="grid grid-cols-1 gap-3">
+                                                    <div className="space-y-4">
                                                         <div className="flex justify-between items-center group">
-                                                            <span className="text-sm text-slate-500 font-medium">Status</span>
+                                                            <span className="text-sm text-slate-500 font-medium">Current Status</span>
                                                             {(() => {
                                                                 const isRevised = currentSubmission.submission?.status === 'needs_revision';
                                                                 const isGraded = currentSubmission.submission?.grade !== undefined && currentSubmission.submission?.grade !== null;
@@ -906,31 +906,50 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                                 );
                                                             })()}
                                                         </div>
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-sm text-slate-500 font-medium">Date</span>
-                                                            <span className="text-sm font-semibold text-slate-700 truncate">
-                                                                {formatDate(currentSubmission.submission?.submittedAt)}
-                                                            </span>
-                                                        </div>
-                                                        {currentSubmission.submission?.revisedAt && (
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-sm text-slate-500 font-medium">Revised</span>
-                                                                <span className="text-sm font-semibold text-orange-600 truncate">
-                                                                    {formatDate(currentSubmission.submission?.revisedAt)}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="w-full h-px bg-slate-200"></div>
-                                            </div>
 
-                                            {/* Grading Inputs */}
+                                                        {/* Revision History Section */}
+                                                        <div className="max-h-40 overflow-y-auto pl-1 py-1 pr-1 custom-scrollbar">
+                                                            <div className="relative pl-4 border-l-2 border-slate-200 ml-1 space-y-4">
+                                                                {/* Initial Submission */}
+                                                                <div className="relative">
+                                                                    <div className="absolute -left-[21px] top-[5.5px] h-[2.2px] w-[7.6px] rounded-full bg-blue-500"></div>
+                                                                    <p className="text-xs text-slate-500 font-medium mb-0.5">Submitted</p>
+                                                                    <p className="text-sm font-semibold text-slate-700">
+                                                                        {formatDate(currentSubmission.submission?.submittedAt)}
+                                                                    </p>
+                                                                </div>
+
+                                                                {/* Revisions List (Fallback to single revisedAt if history array doesn't exist) */}
+                                                                {currentSubmission.submission?.revisionHistory ? (
+                                                                    currentSubmission.submission.revisionHistory.map((rev, idx) => (
+                                                                        <div key={idx} className="relative">
+                                                                            <div className="absolute -left-[21px] top-[5.5px] h-[2.2px] w-[7.6px] rounded-full bg-orange-500"></div>
+                                                                            <p className="text-xs text-slate-500 font-medium mb-0.5">Revision {idx + 1}</p>
+                                                                            <p className="text-sm font-semibold text-slate-700">
+                                                                                {formatDate(rev.date || rev.submittedAt)}
+                                                                            </p>
+                                                                        </div>
+                                                                    ))
+                                                                ) : currentSubmission.submission?.revisedAt && (
+                                                                    <div className="relative">
+                                                                        <div className="absolute -left-[21px] top-[5.5px] h-[2.2px] w-[7.6px] rounded-full bg-orange-500"></div>
+                                                                        <p className="text-xs text-slate-500 font-medium mb-0.5">Latest Revision</p>
+                                                                        <p className="text-sm font-semibold text-slate-700">
+                                                                            {formatDate(currentSubmission.submission.revisedAt)}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
                                         </div>
 
                                         {/* Grading Inputs */}
                                         {!task.isMaterialOnly && (
-                                            <div className="flex-1 flex flex-col min-h-0 gap-5">
+                                            <div className="flex-1 flex flex-col min-h-0 gap-5 px-6 pb-6">
                                                 <div className="flex-shrink-0">
                                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                                                         Grade <span className="text-slate-400 font-normal normal-case">/ 100</span>

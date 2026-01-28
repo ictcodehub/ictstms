@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { db, storage } from '../../lib/firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, onSnapshot, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, onSnapshot, increment, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -279,15 +279,32 @@ export default function Tasks() {
 
         setSubmitting(taskId);
         try {
+            // Capture current submission data before update for history
+            const currentSubmission = submissions[taskId];
+            const historyEntry = currentSubmission ? {
+                content: currentSubmission.content,
+                submittedAt: currentSubmission.submittedAt,
+                grade: currentSubmission.grade,
+                feedback: currentSubmission.teacherComment,
+                archivedAt: new Date()
+            } : null;
+
             const submissionRef = doc(db, 'submissions', submissionId);
-            await updateDoc(submissionRef, {
+
+            const updateData = {
                 content: contentToSave.trim(),
                 revisedAt: serverTimestamp(),
                 revisionCount: increment(1),
                 // We update submittedAt to current time to reflect the "latest" submission time for deadline checks
                 submittedAt: serverTimestamp(),
                 status: 'submitted' // Reset status so teacher sees it as a new submission
-            });
+            };
+
+            if (historyEntry) {
+                updateData.revisionHistory = arrayUnion(historyEntry);
+            }
+
+            await updateDoc(submissionRef, updateData);
 
             showSuccess('Submission updated successfully!');
             setSubmissionText('');
