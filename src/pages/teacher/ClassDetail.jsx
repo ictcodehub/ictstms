@@ -264,10 +264,17 @@ export default function ClassDetail({ classData, classes, onBack }) {
         try {
             if (currentStudent) {
                 // Update existing student
+                // Ensure classIds array is updated for multi-class support
+                const currentClassIds = currentStudent.classIds || (currentStudent.classId ? [currentStudent.classId] : []);
+                const updatedClassIds = currentClassIds.includes(formData.classId)
+                    ? currentClassIds
+                    : [...currentClassIds, formData.classId];
+
                 await updateDoc(doc(db, 'users', currentStudent.id), {
                     name: formData.name,
                     email: formData.email,
-                    classId: formData.classId,
+                    classId: formData.classId, // Legacy support
+                    classIds: updatedClassIds, // Multi-class support
                     updatedAt: serverTimestamp()
                 });
                 toast.success("Student data updated successfully!");

@@ -158,6 +158,7 @@ export function AuthProvider({ children }) {
             name,
             role,
             classId: role === 'student' ? classId : null,
+            classIds: role === 'student' && classId ? [classId] : [], // NEW: Initialize as array
             createdAt: serverTimestamp()
         });
 

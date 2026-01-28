@@ -33,7 +33,7 @@ export default function Students() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [currentStudent, setCurrentStudent] = useState(null);
     const [studentToDelete, setStudentToDelete] = useState(null);
-    const [formData, setFormData] = useState({ name: '', email: '', classId: '' });
+    const [formData, setFormData] = useState({ name: '', email: '', classIds: [] }); // Changed to classIds array
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
@@ -146,7 +146,7 @@ export default function Students() {
         setFormData({
             name: student.name || '',
             email: student.email || '',
-            classId: student.classId || ''
+            classIds: student.classIds || (student.classId ? [student.classId] : []) // Support both old and new format
         });
         setCurrentStudent(student);
         setShowModal(true);
@@ -168,14 +168,15 @@ export default function Students() {
                 await updateDoc(doc(db, 'users', currentStudent.id), {
                     name: formData.name,
                     email: formData.email,
-                    classId: formData.classId,
+                    classIds: formData.classIds,
+                    classId: formData.classIds.length > 0 ? formData.classIds[0] : null, // Keep first class as primary for backward compatibility
                     updatedAt: serverTimestamp()
                 });
 
                 // Update local state
                 setStudents(students.map(s =>
                     s.id === currentStudent.id
-                        ? { ...s, ...formData }
+                        ? { ...s, ...formData, classId: formData.classIds[0] }
                         : s
                 ));
             }
@@ -435,10 +436,19 @@ export default function Students() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-white text-slate-600 border border-slate-200">
-                                                        {classesMap[student.classId] || '-'}
-                                                    </span>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {(student.classIds || (student.classId ? [student.classId] : [])).map(classId => (
+                                                            <span key={classId} className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-white text-slate-600 border border-slate-200">
+                                                                {classesMap[classId] || '-'}
+                                                            </span>
+                                                        ))}
+                                                        {(!student.classIds || student.classIds.length === 0) && !student.classId && (
+                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-400 border border-slate-200">
+                                                                No class
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">
                                                     <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${getTaskBadgeColor(stats.submitted, stats.totalTasks)}`}>
@@ -594,22 +604,35 @@ export default function Students() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Class</label>
-                                    <div className="relative">
-                                        <School className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                                        <select
-                                            required
-                                            className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-slate-50 focus:bg-white appearance-none cursor-pointer"
-                                            value={formData.classId}
-                                            onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-                                        >
-                                            {classesList.map((cls) => (
-                                                <option key={cls.id} value={cls.id}>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Classes (Select Multiple)</label>
+                                    <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2">
+                                        {classesList.map((cls) => (
+                                            <label
+                                                key={cls.id}
+                                                className="flex items-center gap-3 p-2 hover:bg-white rounded-lg cursor-pointer transition-colors"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.classIds.includes(cls.id)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setFormData({ ...formData, classIds: [...formData.classIds, cls.id] });
+                                                        } else {
+                                                            setFormData({ ...formData, classIds: formData.classIds.filter(id => id !== cls.id) });
+                                                        }
+                                                    }}
+                                                    className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500"
+                                                />
+                                                <School className="h-4 w-4 text-slate-400" />
+                                                <span className="text-sm text-slate-700">
                                                     {cls.name}{cls.subject ? ` - ${cls.subject}` : ''}
-                                                </option>
-                                            ))}
-                                        </select>
+                                                </span>
+                                            </label>
+                                        ))}
                                     </div>
+                                    {formData.classIds.length === 0 && (
+                                        <p className="text-xs text-red-500 mt-2">Please select at least one class</p>
+                                    )}
                                 </div>
 
                                 <div className="pt-4 flex gap-3">

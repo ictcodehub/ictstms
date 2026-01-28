@@ -1,5 +1,5 @@
 import { db } from '../lib/firebase';
-import { collection, doc, getDoc, setDoc, updateDoc, query, where, getDocs, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, getDocs, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 /**
  * Generate unique 6-character pause code
@@ -100,13 +100,17 @@ export const updateSessionAnswers = async (sessionId, answers) => {
  */
 export const completeExamSession = async (sessionId, finalAnswers, score) => {
     try {
+        // NEW: Delete the session instead of keeping it 'completed'. 
+        // Logic: Results are already saved in 'exam_results'. Keeping 'exam_sessions' is redundant and causes "Running" ghosts.
         const sessionRef = doc(db, 'exam_sessions', sessionId);
-        await updateDoc(sessionRef, {
-            answers: finalAnswers,
-            status: 'completed',
-            submittedAt: serverTimestamp(),
-            finalScore: score
-        });
+        await deleteDoc(sessionRef); // CLEANUP
+
+        // await updateDoc(sessionRef, {
+        //     answers: finalAnswers,
+        //     status: 'completed',
+        //     submittedAt: serverTimestamp(),
+        //     finalScore: score
+        // });
     } catch (error) {
         console.error('Error completing exam session:', error);
         throw error;

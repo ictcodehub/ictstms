@@ -75,7 +75,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if true;
       allow update: if true;
-      allow delete: if request.auth != null && getUserRole() == 'teacher';
+      allow delete: if true; // Allow anyone to delete (students delete on submit, guests delete on submit)
     }
 
     // Guest attempts collection - Public Create/Read, No Update/Delete (Immutable Log)

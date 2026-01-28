@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../../lib/firebase';
-import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Save, LayoutGrid, FileText, Link as LinkIcon, ExternalLink, AlertCircle, AlertTriangle, Send, LogOut, XCircle, ClipboardCheck } from 'lucide-react';
@@ -11,6 +11,7 @@ import { saveAnswersOffline, getOfflineAnswers, markAsSynced } from '../../utils
 import ExamOfflineIndicator from '../../components/ExamOfflineIndicator';
 import ExamResultModal from './ExamResultModal';
 import RichTextEditor from '../../components/RichTextEditor';
+import ErrorBoundary from '../../components/ErrorBoundary';
 
 import { App as CapacitorApp } from '@capacitor/app';
 
@@ -71,6 +72,10 @@ export default function ExamTaker({ isGuest = false }) {
     // Auto-submit modal
     const [showAutoSubmitModal, setShowAutoSubmitModal] = useState(false);
     const [autoSubmitInfo, setAutoSubmitInfo] = useState({ reason: '', score: 0, answeredCount: 0 });
+
+
+    // Temp state for Essay (RichText) to prevent re-renders and potential crashes
+    const [tempTextAnswer, setTempTextAnswer] = useState('');
 
 
 
@@ -165,6 +170,29 @@ export default function ExamTaker({ isGuest = false }) {
         // Return only the text values, keeping them stable
         return [...current.options].map(o => o.right).sort(() => Math.random() - 0.5);
     }, [currentQuestionWithShuffledOptions]);
+
+    // Sync tempTextAnswer when question changes
+    useEffect(() => {
+        if (!currentQuestionWithShuffledOptions) return;
+        if (currentQuestionWithShuffledOptions.type === 'essay') {
+            setTempTextAnswer(answers[currentQuestionWithShuffledOptions.id] || '');
+        }
+    }, [currentQuestionIndex, currentQuestionWithShuffledOptions?.id]); // Only change when question ID changes
+
+    // Debounced update for Essay answers to main state
+    useEffect(() => {
+        if (!currentQuestionWithShuffledOptions || currentQuestionWithShuffledOptions.type !== 'essay') return;
+
+        const timer = setTimeout(() => {
+            // Only update if different to avoid cycles
+            const currentSaved = answers[currentQuestionWithShuffledOptions.id] || '';
+            if (tempTextAnswer !== currentSaved) {
+                setAnswers(prev => ({ ...prev, [currentQuestionWithShuffledOptions.id]: tempTextAnswer }));
+            }
+        }, 500); // 500ms debounce
+
+        return () => clearTimeout(timer);
+    }, [tempTextAnswer, currentQuestionWithShuffledOptions]);
 
     useEffect(() => {
         // Guest Session Recovery
@@ -852,7 +880,8 @@ export default function ExamTaker({ isGuest = false }) {
             // Save result with violation flag
             await addDoc(collection(db, 'exam_results'), {
                 examId: exam.id,
-                studentId: studentId,
+                studentId: studentId || existingSession?.studentId || currentUser?.uid,
+                studentName: studentName || existingSession?.studentName || (currentUser?.displayName || currentUser?.email),
                 answers: answers,
                 score: finalScore, // Current score (auto-graded only)
                 autoGradedScore: stats.autoPoints,
@@ -863,7 +892,9 @@ export default function ExamTaker({ isGuest = false }) {
                 submittedAt: serverTimestamp(),
                 autoSubmitted: true,
                 autoSubmitReason: 'illegal_exit',
-                flaggedForReview: true
+                flaggedForReview: true,
+                guestName: isGuest ? (guestUser?.name || existingSession?.guestName) : null,
+                guestClass: isGuest ? (guestUser?.className || existingSession?.guestClass) : null,
             });
 
             // Exit fullscreen
@@ -901,6 +932,18 @@ export default function ExamTaker({ isGuest = false }) {
         }
 
         setShowSubmitModal(true);
+    };
+
+    // Complete exam session (delete it)
+    const completeExamSession = async (sessionId, finalAnswers, finalScore) => {
+        try {
+            const sessionRef = doc(db, 'exam_sessions', sessionId);
+            await deleteDoc(sessionRef);
+            console.log('Exam session deleted:', sessionId);
+        } catch (error) {
+            console.error('Error completing exam session:', error);
+            throw error;
+        }
     };
 
     const confirmSubmit = async (isAutoSubmit = false, answersToSubmit = null) => {
@@ -1263,131 +1306,117 @@ export default function ExamTaker({ isGuest = false }) {
                         </div>
 
                         <AnimatePresence mode="wait">
-                            <motion.div
-                                key={currentQ.id}
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                className="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 p-5 md:p-8 flex-1 flex flex-col overflow-hidden mb-4"
-                            >
-                                {/* Top Question Info (All Devices) */}
-                                <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                                        {currentQ.type === 'single_choice' ? 'Single Choice' :
-                                            currentQ.type === 'multiple_choice' ? 'Multiple Choice' :
-                                                currentQ.type === 'matching' ? 'Matching' :
-                                                    currentQ.type === 'true_false' ? 'True/False' :
-                                                        currentQ.type === 'essay' ? 'Essay' :
-                                                            currentQ.type === 'short_answer' ? 'Short Answer' : 'Question'}
-                                    </span>
-                                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
-                                        Question {currentQuestionIndex + 1}/{randomizedQuestions.length}
-                                    </span>
-                                </div>
+                            <ErrorBoundary key={currentQ.id} onRetry={() => {
+                                // Optional: logic to reset temp state or force re-render
+                                setTempTextAnswer(answers[currentQ.id] || '');
+                                window.location.reload(); // Hard reload as last resort if retry fails? No, ErrorBoundary handles UI.
+                                // Actually, just remounting Key should be enough?
+                                // The ErrorBoundary "Retry" button clears its inner error state.
+                            }}>
+                                <motion.div
+                                    key={currentQ.id}
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    className="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 p-5 md:p-8 flex-1 flex flex-col overflow-hidden mb-4"
+                                >
+                                    {/* Top Question Info (All Devices) */}
+                                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                            {currentQ.type === 'single_choice' ? 'Single Choice' :
+                                                currentQ.type === 'multiple_choice' ? 'Multiple Choice' :
+                                                    currentQ.type === 'matching' ? 'Matching' :
+                                                        currentQ.type === 'true_false' ? 'True/False' :
+                                                            currentQ.type === 'essay' ? 'Essay' :
+                                                                currentQ.type === 'short_answer' ? 'Short Answer' : 'Question'}
+                                        </span>
+                                        <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                                            Question {currentQuestionIndex + 1}/{randomizedQuestions.length}
+                                        </span>
+                                    </div>
 
-                                <div className="flex-1 overflow-y-auto">
-                                    <h2 className="text-base font-normal text-slate-800 mb-6 leading-relaxed">
-                                        <span className="font-bold">{currentQuestionIndex + 1}).</span> {currentQ.text}
-                                    </h2>
+                                    <div className="flex-1 overflow-y-auto">
+                                        <h2 className="text-base font-normal text-slate-800 mb-6 leading-relaxed">
+                                            <span className="font-bold">{currentQuestionIndex + 1}).</span> {currentQ.text}
+                                        </h2>
 
-                                    {/* Attachments Section */}
-                                    {currentQ.attachments && currentQ.attachments.length > 0 && (
-                                        <div className="mb-8 grid grid-cols-1 gap-4">
-                                            {currentQ.attachments.map((att) => (
-                                                <div key={att.id} className="overflow-hidden bg-slate-50 border border-slate-200 rounded-xl">
-                                                    {att.type === 'image' && (
-                                                        <div className="relative group">
-                                                            <img
-                                                                src={att.url}
-                                                                alt={att.name}
-                                                                className="w-full max-h-[400px] object-contain bg-slate-900/5"
-                                                            />
-                                                        </div>
-                                                    )}
-
-                                                    {att.type === 'video' && (
-                                                        <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                                                            <video controls className="w-full h-full">
-                                                                <source src={att.url} type="video/mp4" />
-                                                                Your browser does not support the video tag.
-                                                            </video>
-                                                        </div>
-                                                    )}
-
-                                                    {att.type === 'file' && (
-                                                        <a
-                                                            href={att.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex items-center gap-3 p-4 hover:bg-slate-100 transition-colors group"
-                                                        >
-                                                            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                                                                <FileText className="h-5 w-5" />
+                                        {/* Attachments Section */}
+                                        {currentQ.attachments && currentQ.attachments.length > 0 && (
+                                            <div className="mb-8 grid grid-cols-1 gap-4">
+                                                {currentQ.attachments.map((att) => (
+                                                    <div key={att.id} className="overflow-hidden bg-slate-50 border border-slate-200 rounded-xl">
+                                                        {att.type === 'image' && (
+                                                            <div className="relative group">
+                                                                <img
+                                                                    src={att.url}
+                                                                    alt={att.name}
+                                                                    className="w-full max-h-[400px] object-contain bg-slate-900/5"
+                                                                />
                                                             </div>
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{att.name}</p>
-                                                                <p className="text-xs text-slate-500">Click to view document</p>
-                                                            </div>
-                                                            <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-blue-500" />
-                                                        </a>
-                                                    )}
+                                                        )}
 
-                                                    {att.type === 'link' && (
-                                                        <a
-                                                            href={att.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex items-center gap-3 p-4 hover:bg-slate-100 transition-colors group"
-                                                        >
-                                                            <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
-                                                                <LinkIcon className="h-5 w-5" />
+                                                        {att.type === 'video' && (
+                                                            <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                                                                <video controls className="w-full h-full">
+                                                                    <source src={att.url} type="video/mp4" />
+                                                                    Your browser does not support the video tag.
+                                                                </video>
                                                             </div>
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">{att.name || att.url}</p>
-                                                                <p className="text-xs text-slate-500">{att.url}</p>
-                                                            </div>
-                                                            <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-indigo-500" />
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                                        )}
 
-                                    <div className="flex-1 space-y-3">
-                                        {/* Render Options based on Type */}
-                                        {currentQ.type === 'single_choice' || currentQ.type === 'true_false' ? (
-                                            currentQ.options.filter(opt => opt.text && opt.text.trim() !== '').map((opt, idx) => (
-                                                <button
-                                                    key={opt.id}
-                                                    onClick={() => handleSingleChoice(currentQ.id, opt.id)}
-                                                    className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${answers[currentQ.id] === opt.id
-                                                        ? 'border-green-500 bg-green-50'
-                                                        : 'border-slate-200 hover:border-slate-300 bg-white'
-                                                        }`}
-                                                >
-                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${answers[currentQ.id] === opt.id
-                                                        ? 'bg-green-500 text-white'
-                                                        : 'bg-slate-100 text-slate-600'
-                                                        }`}>
-                                                        {String.fromCharCode(65 + idx)}
+                                                        {att.type === 'file' && (
+                                                            <a
+                                                                href={att.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center gap-3 p-4 hover:bg-slate-100 transition-colors group"
+                                                            >
+                                                                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                                                                    <FileText className="h-5 w-5" />
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <p className="font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{att.name}</p>
+                                                                    <p className="text-xs text-slate-500">Click to view document</p>
+                                                                </div>
+                                                                <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-blue-500" />
+                                                            </a>
+                                                        )}
+
+                                                        {att.type === 'link' && (
+                                                            <a
+                                                                href={att.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center gap-3 p-4 hover:bg-slate-100 transition-colors group"
+                                                            >
+                                                                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                                                                    <LinkIcon className="h-5 w-5" />
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <p className="font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">{att.name || att.url}</p>
+                                                                    <p className="text-xs text-slate-500">{att.url}</p>
+                                                                </div>
+                                                                <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-indigo-500" />
+                                                            </a>
+                                                        )}
                                                     </div>
-                                                    <span className="font-medium text-slate-800">{opt.text}</span>
-                                                </button>
-                                            ))
-                                        ) : currentQ.type === 'multiple_choice' ? (
-                                            currentQ.options.filter(opt => opt.text && opt.text.trim() !== '').map((opt, idx) => {
-                                                const isSelected = (answers[currentQ.id] || []).includes(opt.id);
-                                                return (
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <div className="flex-1 space-y-3">
+                                            {/* Render Options based on Type */}
+                                            {currentQ.type === 'single_choice' || currentQ.type === 'true_false' ? (
+                                                currentQ.options.filter(opt => opt.text && opt.text.trim() !== '').map((opt, idx) => (
                                                     <button
                                                         key={opt.id}
-                                                        onClick={() => handleMultiChoice(currentQ.id, opt.id)}
-                                                        className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${isSelected
+                                                        onClick={() => handleSingleChoice(currentQ.id, opt.id)}
+                                                        className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${answers[currentQ.id] === opt.id
                                                             ? 'border-green-500 bg-green-50'
                                                             : 'border-slate-200 hover:border-slate-300 bg-white'
                                                             }`}
                                                     >
-                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${isSelected
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${answers[currentQ.id] === opt.id
                                                             ? 'bg-green-500 text-white'
                                                             : 'bg-slate-100 text-slate-600'
                                                             }`}>
@@ -1395,71 +1424,93 @@ export default function ExamTaker({ isGuest = false }) {
                                                         </div>
                                                         <span className="font-medium text-slate-800">{opt.text}</span>
                                                     </button>
-                                                );
-                                            })
-                                        ) : currentQ.type === 'matching' ? (
-                                            <div className="space-y-4">
-                                                {currentQ.options.map((pair, idx) => {
-                                                    // Get all currently selected values for this question
-                                                    const currentAnswers = answers[currentQ.id] || {};
-                                                    const selectedValues = Object.values(currentAnswers);
-                                                    const myValue = currentAnswers[pair._originalIndex ?? idx] || "";
-
+                                                ))
+                                            ) : currentQ.type === 'multiple_choice' ? (
+                                                currentQ.options.filter(opt => opt.text && opt.text.trim() !== '').map((opt, idx) => {
+                                                    const isSelected = (answers[currentQ.id] || []).includes(opt.id);
                                                     return (
-                                                        <div key={pair.id} className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center">
-                                                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 font-medium text-slate-700">
-                                                                {pair.left}
+                                                        <button
+                                                            key={opt.id}
+                                                            onClick={() => handleMultiChoice(currentQ.id, opt.id)}
+                                                            className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${isSelected
+                                                                ? 'border-green-500 bg-green-50'
+                                                                : 'border-slate-200 hover:border-slate-300 bg-white'
+                                                                }`}
+                                                        >
+                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${isSelected
+                                                                ? 'bg-green-500 text-white'
+                                                                : 'bg-slate-100 text-slate-600'
+                                                                }`}>
+                                                                {String.fromCharCode(65 + idx)}
                                                             </div>
-                                                            <div className="text-slate-400">⟶</div>
-                                                            <select
-                                                                value={myValue}
-                                                                onChange={(e) => handleMatching(currentQ.id, pair._originalIndex ?? idx, e.target.value)}
-                                                                className="p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none w-full bg-white transition-colors"
-                                                            >
-                                                                <option value="">Select Match...</option>
-                                                                {shuffledRightOptions.map((optValue, i) => {
-                                                                    // Disable if already selected AND NOT by me
-                                                                    const isTaken = selectedValues.includes(optValue) && optValue !== myValue;
-                                                                    return (
-                                                                        <option key={i} value={optValue} disabled={isTaken} className={isTaken ? 'text-slate-300' : 'text-slate-900'}>
-                                                                            {optValue}
-                                                                        </option>
-                                                                    );
-                                                                })}
-                                                            </select>
-                                                        </div>
-                                                    )
-                                                })}
-                                                <p className="text-xs text-slate-500 italic mt-2">* Select matching pair from dropdown. Used options cannot be selected again.</p>
-                                            </div>
-                                        ) : currentQ.type === 'essay' ? (
-                                            <div className="space-y-2">
-                                                <RichTextEditor
-                                                    value={tempTextAnswer}
-                                                    onChange={setTempTextAnswer}
-                                                    placeholder="Type your essay answer here..."
-                                                    height={200}
-                                                    mode="simple" // Use simplified toolbar for essays
-                                                />
-                                            </div>
-                                        ) : currentQ.type === 'short_answer' ? (
-                                            <div className="space-y-2">
-                                                <input
-                                                    type="text"
-                                                    value={answers[currentQ.id] || ''}
-                                                    onChange={(e) => handleTextAnswer(currentQ.id, e.target.value)}
-                                                    maxLength={currentQ.characterLimit || 500}
-                                                    placeholder="Type your short answer here..."
-                                                    className="w-full p-4 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
-                                                />
-                                                <p className="text-xs text-slate-500">
-                                                    {(answers[currentQ.id] || '').length} / {currentQ.characterLimit || 500} characters
-                                                </p>
-                                            </div>
-                                        ) : null}
+                                                            <span className="font-medium text-slate-800">{opt.text}</span>
+                                                        </button>
+                                                    );
+                                                })
+                                            ) : currentQ.type === 'matching' ? (
+                                                <div className="space-y-4">
+                                                    {currentQ.options.map((pair, idx) => {
+                                                        // Get all currently selected values for this question
+                                                        const currentAnswers = answers[currentQ.id] || {};
+                                                        const selectedValues = Object.values(currentAnswers);
+                                                        const myValue = currentAnswers[pair._originalIndex ?? idx] || "";
+
+                                                        return (
+                                                            <div key={pair.id} className="grid grid-cols-[1fr,auto,1fr] gap-4 items-center">
+                                                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 font-medium text-slate-700">
+                                                                    {pair.left}
+                                                                </div>
+                                                                <div className="text-slate-400">⟶</div>
+                                                                <select
+                                                                    value={myValue}
+                                                                    onChange={(e) => handleMatching(currentQ.id, pair._originalIndex ?? idx, e.target.value)}
+                                                                    className="p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none w-full bg-white transition-colors"
+                                                                >
+                                                                    <option value="">Select Match...</option>
+                                                                    {shuffledRightOptions.map((optValue, i) => {
+                                                                        // Disable if already selected AND NOT by me
+                                                                        const isTaken = selectedValues.includes(optValue) && optValue !== myValue;
+                                                                        return (
+                                                                            <option key={i} value={optValue} disabled={isTaken} className={isTaken ? 'text-slate-300' : 'text-slate-900'}>
+                                                                                {optValue}
+                                                                            </option>
+                                                                        );
+                                                                    })}
+                                                                </select>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                    <p className="text-xs text-slate-500 italic mt-2">* Select matching pair from dropdown. Used options cannot be selected again.</p>
+                                                </div>
+                                            ) : currentQ.type === 'essay' ? (
+                                                <div className="space-y-2">
+                                                    <RichTextEditor
+                                                        value={tempTextAnswer}
+                                                        onChange={setTempTextAnswer}
+                                                        placeholder="Type your essay answer here..."
+                                                        height={200}
+                                                        mode="simple" // Use simplified toolbar for essays
+                                                    />
+                                                </div>
+                                            ) : currentQ.type === 'short_answer' ? (
+                                                <div className="space-y-2">
+                                                    <input
+                                                        type="text"
+                                                        value={answers[currentQ.id] || ''}
+                                                        onChange={(e) => handleTextAnswer(currentQ.id, e.target.value)}
+                                                        maxLength={currentQ.characterLimit || 500}
+                                                        placeholder="Type your short answer here..."
+                                                        className="w-full p-4 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                                                    />
+                                                    <p className="text-xs text-slate-500">
+                                                        {(answers[currentQ.id] || '').length} / {currentQ.characterLimit || 500} characters
+                                                    </p>
+                                                </div>
+                                            ) : null}
+                                        </div>
                                     </div>
-                                </div>
-                            </motion.div>
+                                </motion.div>
+                            </ErrorBoundary>
                         </AnimatePresence>
 
                         {/* Navigation Buttons - Floating */}

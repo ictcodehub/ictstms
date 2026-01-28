@@ -304,6 +304,7 @@ export default function ExamResults() {
     const [sortBy, setSortBy] = useState('name'); // 'name' | 'class' | 'status' | 'attempts' | 'score'
     const [sortOrder, setSortOrder] = useState('asc'); // 'asc' | 'desc'
 
+
     // Selection state for Master-Detail view
     const [selectedStudentId, setSelectedStudentId] = useState(null);
 
@@ -334,7 +335,10 @@ export default function ExamResults() {
 
                 // Get Students
                 const assignedClassIds = examData.assignedClasses || [];
+                console.log('🔍 DEBUG: Assigned class IDs:', assignedClassIds);
+
                 if (assignedClassIds.length === 0) {
+                    console.log('⚠️ No assigned classes found for this exam');
                     setStudentMap({});
                     setClassMap({});
                     setLoading(false);
@@ -353,16 +357,44 @@ export default function ExamResults() {
                 });
                 setClassMap(cMap);
 
-                const studentsQuery = query(
+                // Query students using classIds array (supports multiple classes per student)
+                // Use two queries: one for new format (classIds array) and one for old format (classId string)
+                const studentsWithClassIds = query(
+                    collection(db, 'users'),
+                    where('role', '==', 'student'),
+                    where('classIds', 'array-contains-any', assignedClassIds.slice(0, 10))
+                );
+
+                const studentsWithClassId = query(
                     collection(db, 'users'),
                     where('role', '==', 'student'),
                     where('classId', 'in', assignedClassIds.slice(0, 10))
                 );
-                const studentsSnap = await getDocs(studentsQuery);
+
+                // Fetch both queries
+                const [newFormatSnap, oldFormatSnap] = await Promise.all([
+                    getDocs(studentsWithClassIds),
+                    getDocs(studentsWithClassId)
+                ]);
+
+
+
+                // Merge results and deduplicate
                 const sMap = {};
-                studentsSnap.docs.forEach(doc => {
-                    sMap[doc.id] = { id: doc.id, ...doc.data() };
+
+                newFormatSnap.docs.forEach(doc => {
+                    const studentData = { id: doc.id, ...doc.data() };
+                    sMap[doc.id] = studentData;
                 });
+
+                oldFormatSnap.docs.forEach(doc => {
+                    // Only add if not already in map (prioritize new format)
+                    if (!sMap[doc.id]) {
+                        const studentData = { id: doc.id, ...doc.data() };
+                        sMap[doc.id] = studentData;
+                    }
+                });
+
                 setStudentMap(sMap);
 
             } catch (error) {
@@ -386,6 +418,14 @@ export default function ExamResults() {
             where('examId', '==', examId)
         );
 
+        // Also listen to Exam doc for excludedStudents updates
+        const examRef = doc(db, 'exams', examId);
+        const unsubExam = onSnapshot(examRef, (doc) => {
+            if (doc.exists()) {
+                setExam(prev => ({ ...prev, ...doc.data() }));
+            }
+        });
+
         const unsubResults = onSnapshot(resultsQuery, (snapshot) => {
             const resList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setResults(resList);
@@ -405,6 +445,7 @@ export default function ExamResults() {
         return () => {
             unsubResults();
             unsubSessions();
+            unsubExam();
         };
     }, [examId]);
 
@@ -457,7 +498,7 @@ export default function ExamResults() {
         });
 
         // 2. Process Guests (Orphaned Results & Sessions)
-        const registeredIds = new Set(Object.keys(studentMap));
+        const registeredIds = new Set(Object.values(studentMap).map(s => s.id)); // Use values map source
         const guestMap = {};
 
         // Collect guests from Results
@@ -466,11 +507,11 @@ export default function ExamResults() {
                 if (!guestMap[res.studentId]) {
                     guestMap[res.studentId] = {
                         id: res.studentId,
-                        name: res.guestName || 'Guest User',
-                        email: res.guestClass || 'Guest', // Fallback
+                        name: res.studentName || res.guestName || 'Unknown Student', // Use studentName first!
+                        email: res.studentName ? (res.guestClass || 'Unlisted Class') : (res.guestClass || 'Guest'),
                         classId: 'guest',
                         role: 'guest',
-                        isGuest: true,
+                        isGuest: !!res.guestName, // Only true guest if guestName exists
                         guestClass: res.guestClass,
                         guestAbsen: res.guestAbsen,
                         attempts: [],
@@ -487,13 +528,13 @@ export default function ExamResults() {
                 if (!guestMap[sess.studentId]) {
                     guestMap[sess.studentId] = {
                         id: sess.studentId,
-                        name: sess.studentName || 'Guest User',
+                        name: sess.studentName || 'Unknown Student', // Use studentName!
                         email: 'Taking Exam...',
                         classId: 'guest',
                         role: 'guest',
-                        isGuest: true,
+                        isGuest: false, // Assume student unless proven otherwise
                         guestClass: sess.guestClass,
-                        guestAbsen: sess.guestAbsen, // Session might not have this unless we add it
+                        guestAbsen: sess.guestAbsen,
                         attempts: [],
                         activeSession: null
                     };
@@ -546,6 +587,7 @@ export default function ExamResults() {
 
         // Sort by Name
         combinedList.sort((a, b) => a.name.localeCompare(b.name));
+        console.log('✅ DEBUG: Combined student list:', combinedList);
         setStudents(combinedList);
 
     }, [results, classMap, sessions, studentMap]);
@@ -601,7 +643,8 @@ export default function ExamResults() {
         studentName: null,
         attemptNumber: null,
         isBatch: false,
-        count: 0
+        count: 0,
+
     });
 
     // Batch Delete State
@@ -646,9 +689,12 @@ export default function ExamResults() {
             isOpen: true,
             resultId,
             studentName,
-            attemptNumber: attemptNum
+            attemptNumber: attemptNum,
+            isExclusion: false
         });
     };
+
+
 
     const confirmDeleteResult = async () => {
         if (deleteModal.isBatch) {
@@ -726,6 +772,9 @@ export default function ExamResults() {
     // Filtered and sorted list
     const filteredStudents = useMemo(() => {
         const filtered = students.filter(s => {
+            // Check exclusion
+
+
             const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 s.email.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesClass = selectedClassId === 'all' || s.classId === selectedClassId;
@@ -774,6 +823,10 @@ export default function ExamResults() {
             return 0;
         });
     }, [students, searchTerm, selectedClassId, selectedStatus, sortBy, sortOrder, classMap]);
+
+    // NEW: Unhide Handler
+
+    // ... rest of the component ...
 
     const uniqueClasses = useMemo(() => {
         const classIds = new Set();
@@ -967,6 +1020,7 @@ export default function ExamResults() {
                         )}
                     </div>
                 </div>
+
             </div>
         );
     };
@@ -1272,9 +1326,27 @@ export default function ExamResults() {
 
                                                     {/* Action */}
                                                     <td className="px-6 py-4 text-center">
-                                                        <button className="p-2 hover:bg-blue-100 rounded-lg transition-colors">
-                                                            <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-blue-600" />
-                                                        </button>
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={() => setSelectedStudentId(student.id)}
+                                                                className="p-2 hover:bg-blue-100 rounded-lg transition-colors group/btn"
+                                                            >
+                                                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover/btn:text-blue-600" />
+                                                            </button>
+
+                                                            {/* Contextual Delete / Restore */}
+                                                            {student.status === 'pending' && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        // Future: maybe add archive/hide feature if needed, but for now just show empty.
+                                                                        // Or originally this was exclude.
+                                                                    }}
+                                                                    className="hidden" // Hiding the button completely
+                                                                >
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </motion.tr>
                                             ))
@@ -1407,11 +1479,15 @@ export default function ExamResults() {
                             <div className="p-6">
                                 {/* WARNING Section */}
                                 <div className="mb-4">
-                                    <p className="text-red-600 font-bold text-sm mb-2">WARNING:</p>
+                                    <p className={`font-bold text-sm mb-2 ${deleteModal.isExclusion ? 'text-orange-600' : 'text-red-600'}`}>
+                                        {deleteModal.isExclusion ? 'HIDE STUDENT:' : 'WARNING:'}
+                                    </p>
                                     <p className="text-gray-700 text-sm leading-relaxed mb-2">
-                                        {deleteModal.isBatch
-                                            ? `You are about to delete ${deleteModal.count} exam result${deleteModal.count > 1 ? 's' : ''} from multiple students.`
-                                            : `You are about to delete Attempt ${deleteModal.attemptNumber} from "${deleteModal.studentName}".`
+                                        {deleteModal.isExclusion
+                                            ? `Exclude "${deleteModal.studentName}" from this report?`
+                                            : (deleteModal.isBatch
+                                                ? `You are about to delete ${deleteModal.count} exam result${deleteModal.count > 1 ? 's' : ''} from multiple students.`
+                                                : `You are about to delete Attempt ${deleteModal.attemptNumber} from "${deleteModal.studentName}".`)
                                         }
                                     </p>
                                     <p className="text-gray-600 text-sm">
@@ -1430,7 +1506,7 @@ export default function ExamResults() {
                                 </button>
                                 <button
                                     onClick={confirmDeleteResult}
-                                    className="px-6 py-2.5 text-sm font-bold text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors shadow-sm flex items-center gap-2"
+                                    className={`px-6 py-2.5 text-sm font-bold text-white rounded-md transition-colors shadow-sm flex items-center gap-2 bg-red-600 hover:bg-red-700`}
                                 >
                                     <Trash2 className="h-4 w-4" />
                                     Yes, Delete
