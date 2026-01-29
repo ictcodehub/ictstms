@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { resetExamForAllClasses, resetExamForClass, resetExamForStudent } from '../../utils/examReset';
 import ActiveExamsMonitor from './ActiveExamsMonitor';
+import DOMPurify from 'dompurify';
 
 // --- GRADING INTERFACE COMPONENT (Moved Outside) ---
 const GradingInterface = ({
@@ -127,9 +128,12 @@ const GradingInterface = ({
                                                 : 'bg-red-50 border-red-100'
                                             }`}>
                                             {q.type === 'essay' || q.type === 'short_answer' ? (
-                                                <p className="whitespace-pre-wrap text-slate-800 font-medium font-serif leading-relaxed">
-                                                    {q.answer || <span className="text-slate-400 italic">No answer</span>}
-                                                </p>
+                                                <div
+                                                    className="whitespace-pre-wrap text-slate-800 font-medium font-serif leading-relaxed prose prose-sm max-w-none"
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: DOMPurify.sanitize(q.answer || '<span class="text-slate-400 italic">No answer</span>')
+                                                    }}
+                                                />
                                             ) : (
                                                 <div className="text-slate-800 font-medium">
                                                     {(() => {
