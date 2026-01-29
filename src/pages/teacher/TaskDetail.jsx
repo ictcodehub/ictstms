@@ -847,35 +847,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                     </div>
                                                 )}
 
-                                                {/* Extracted Links Section - Special Area for Links */}
-                                                {currentSubmission.submission?.content && extractUrls(currentSubmission.submission.content).length > 0 && (
-                                                    <div className="mt-8 border-t border-slate-100 pt-6">
-                                                        <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                                            <Link2 className="h-4 w-4 text-blue-500" />
-                                                            Detected Links
-                                                        </h4>
-                                                        <div className="grid grid-cols-1 gap-2">
-                                                            {extractUrls(currentSubmission.submission.content).map((url, idx) => (
-                                                                <a
-                                                                    key={idx}
-                                                                    href={url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="flex items-center gap-3 p-3 bg-blue-50/50 hover:bg-blue-50 border border-blue-100 rounded-xl transition-all group"
-                                                                >
-                                                                    <div className="bg-white p-2 rounded-lg border border-blue-100 shadow-sm text-blue-600">
-                                                                        <ExternalLink className="h-5 w-5" />
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <p className="text-sm font-semibold text-blue-700 truncate">{url}</p>
-                                                                        <p className="text-xs text-blue-500 font-medium">Click to open link</p>
-                                                                    </div>
-                                                                    <ChevronRight className="h-4 w-4 text-blue-300 group-hover:text-blue-500" />
-                                                                </a>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
+
 
                                                 {/* Attachments Section */}
                                                 {currentSubmission.submission?.attachments && currentSubmission.submission.attachments.length > 0 && (
@@ -912,8 +884,8 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
 
+                                    </div>
                                     {/* Right Side: Professional Grading Panel */}
                                     <div className="bg-slate-50/50 flex flex-col h-full min-h-0 w-full lg:w-96 shrink-0 border-l border-slate-200">
 
@@ -1043,42 +1015,74 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                 </p>
                                             </div>
                                         )}
-                                        {/* Footer Actions */}
-                                        {!task.isMaterialOnly && (
-                                            <div className="p-6 pt-4 bg-white border-t border-slate-200 flex-shrink-0 z-20">
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleRequestRevision}
-                                                        disabled={saving || !gradeData.feedback}
-                                                        className="px-4 py-2.5 rounded-md text-orange-700 font-semibold bg-orange-50 hover:bg-orange-100 border border-orange-200 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        <RefreshCw className="h-4 w-4" />
-                                                        Ask Revision
-                                                    </button>
 
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleSaveGrade}
-                                                        disabled={saving}
-                                                        className="px-4 py-2.5 bg-blue-600 text-white rounded-md font-semibold text-sm hover:bg-blue-700 transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                                                    >
-                                                        {saving ? (
-                                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                        ) : (
-                                                            <Save className="h-4 w-4" />
-                                                        )}
-                                                        Save Grade
-                                                    </button>
+                                    </div>
+                                </div>
+
+                                {/* Unified Footer */}
+                                <div className="border-t border-slate-200 bg-white flex flex-col lg:flex-row flex-shrink-0 z-20 relative">
+                                    {/* Left Part: Detected Links */}
+                                    <div className="flex-1 p-4 flex flex-col justify-center min-w-0 bg-white">
+                                        {currentSubmission.submission?.content && extractUrls(currentSubmission.submission.content).length > 0 && (
+                                            <div className="w-full flex flex-col md:flex-row items-center gap-3">
+                                                <div className="flex-shrink-0" title="Detected Links">
+                                                    <Link2 className="h-5 w-5 text-blue-500" />
                                                 </div>
+                                                <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                                                    {extractUrls(currentSubmission.submission.content).map((url, idx) => (
+                                                        <a
+                                                            key={idx}
+                                                            href={url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-2 p-2.5 px-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-lg transition-all group max-w-full shadow-sm"
+                                                        >
+                                                            <Link2 className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                                            <p className="text-sm font-medium text-slate-600 truncate group-hover:text-blue-700 flex-1">{url}</p>
+                                                            <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-500 flex-shrink-0" />
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Right Part: Footer Actions */}
+                                    <div className="w-full lg:w-96 p-4 flex-shrink-0 bg-white flex flex-col justify-center">
+                                        {!task.isMaterialOnly && (
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRequestRevision}
+                                                    disabled={saving || !gradeData.feedback}
+                                                    className="px-4 py-2.5 rounded-md text-orange-700 font-semibold bg-orange-50 hover:bg-orange-100 border border-orange-200 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <RefreshCw className="h-4 w-4" />
+                                                    Ask Revision
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSaveGrade}
+                                                    disabled={saving}
+                                                    className="px-4 py-2.5 bg-blue-600 text-white rounded-md font-semibold text-sm hover:bg-blue-700 transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                                                >
+                                                    {saving ? (
+                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                    ) : (
+                                                        <Save className="h-4 w-4" />
+                                                    )}
+                                                    Save Grade
+                                                </button>
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             </motion.div>
                         </div>
-                    )}
-                </AnimatePresence>,
+                    )
+                    }
+                </AnimatePresence >,
                 document.body
             )}
 

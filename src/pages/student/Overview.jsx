@@ -427,6 +427,14 @@ export default function Overview() {
                                     {/* TABLE BODY - Unified List */}
                                     <div className="space-y-3 md:space-y-0">
                                         {(() => {
+                                            // Helper to strip HTML and decode entities
+                                            const stripHtml = (html) => {
+                                                if (!html) return '';
+                                                const withSpaces = html.replace(/<\/p>|<\/div>|<br\s*\/?>/gi, ' ');
+                                                const doc = new DOMParser().parseFromString(withSpaces, 'text/html');
+                                                return doc.body.textContent || "";
+                                            };
+
                                             // 1. COMBINE & SORT
                                             const allActivities = [
                                                 ...exams.map(e => ({ type: 'exam', ...e })),
@@ -690,7 +698,7 @@ export default function Overview() {
                                                                                 submission ? 'group-hover:text-slate-900' :
                                                                                     'group-hover:text-blue-700'
                                                                                 }`} title={task.title}>{task.title}</h4>
-                                                                            <p className="text-xs text-slate-500 line-clamp-1">{task.description}</p>
+                                                                            <p className="text-xs text-slate-500 line-clamp-1">{stripHtml(task.description)}</p>
                                                                             <div className="md:hidden mt-1.5 text-xs text-slate-500">
                                                                                 <span className="font-medium">Assigned: </span>
                                                                                 <span>

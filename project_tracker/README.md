@@ -1,3 +1,25 @@
+## 🎨 [2026-01-29 | 11:00] Improvement: Task Detail Layout Refactor
+
+### Overview
+Refactored the `TaskDetail` layout based on user feedback to create a cleaner, more balanced teacher interface. Specifically focused on standardizing the footer area by unifying the "Detected Links" section with the "Grading Actions".
+
+### ✅ Key Changes
+1.  **Unified Footer (`TaskDetail.jsx`)**:
+    *   **Merged Containers**: Moved "Detected Links" (Left) and "Grading Actions" (Right) into a single flex container. This ensures they always share the same height and top border, creating a cohesive "Command Bar" look.
+    *   **Aesthetic Polish**:
+        *   **White Background**: Harmonized background colors to `bg-white` for a seamless look (removed the gray "cutout" effect).
+        *   **Compact Design**: Reduced vertical padding and optimized spacing to minimize screen real estate usage.
+        *   **Icon-Only Label**: Replaced the text "Detected Links" with a minimalist Link Icon to save space.
+        *   **Enhanced Buttons**: Increased the hit area and text size of the link buttons for better clickability.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/TaskDetail.jsx` | Implemented Unified Footer, refactored detected links UI |
+
+### 📦 Git Commits
+*   `ui(task-detail): refactor footer layout with unified container & compact detected links`
+
 ## 🔗 [2026-01-29 | 09:30 - 09:40] Feature: Smart Link Handling (Teacher & Student)
 
 ### Overview

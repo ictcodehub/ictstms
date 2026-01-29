@@ -149,9 +149,14 @@ export default function TasksMobile({
                                 </div>
 
                                 {/* Description - Clamped preview (Strip HTML for preview) */}
+                                {/* Description - Clamped preview (Strip HTML for preview) */}
                                 {task.description && (
                                     <p className="text-xs text-slate-600 mb-3 line-clamp-2">
-                                        {task.description.replace(/<[^>]+>/g, '')}
+                                        {(() => {
+                                            const withSpaces = task.description.replace(/<\/p>|<\/div>|<br\s*\/?>/gi, ' ');
+                                            const doc = new DOMParser().parseFromString(withSpaces, 'text/html');
+                                            return doc.body.textContent || "";
+                                        })()}
                                     </p>
                                 )}
 

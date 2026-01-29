@@ -3,10 +3,31 @@ import { createPortal } from 'react-dom';
 import {
     X, FileText, Link2, Image as ImageIcon, Video,
     Calendar, Clock, CheckCircle, AlertCircle,
-    Save, Paperclip, Trash2, ChevronDown
+    Save, Paperclip, Trash2, ChevronDown, ExternalLink
 } from 'lucide-react';
 import React from 'react';
 import RichTextEditor from '../../components/RichTextEditor';
+
+// Helper to extract URLs from HTML content
+const extractUrls = (html) => {
+    if (!html) return [];
+    // Parse HTML to get text content first
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const text = doc.body.textContent || "";
+
+    // Regex to find URLs
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const matches = text.match(urlRegex);
+
+    if (!matches) return [];
+
+    // Clean up trailing punctuation and return unique URLs
+    const cleanedUrls = matches.map(url => {
+        return url.replace(/[.,:;)]+$/, '');
+    });
+
+    return [...new Set(cleanedUrls)];
+};
 
 export default function TeacherTaskModal({
     isOpen,
@@ -113,17 +134,7 @@ export default function TeacherTaskModal({
                                     </div>
 
                                     {/* Rich Description - Unified Card */}
-                                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden focus-within:ring-2 focus-within:ring-blue-100 transition-all">
-                                        <div className="border-b border-slate-100 bg-slate-50/50 px-4 py-3 flex items-center justify-between">
-                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                                Task Description
-                                            </span>
-                                            <div className="flex gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-red-400/50"></div>
-                                                <div className="w-2 h-2 rounded-full bg-amber-400/50"></div>
-                                                <div className="w-2 h-2 rounded-full bg-green-400/50"></div>
-                                            </div>
-                                        </div>
+                                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden focus-within:ring-4 focus-within:ring-blue-100 focus-within:border-blue-500 transition-all">
                                         <div className="p-0">
                                             <RichTextEditor
                                                 value={formData.description}
@@ -134,6 +145,59 @@ export default function TeacherTaskModal({
                                             />
                                         </div>
                                     </div>
+
+                                    {/* Detected Links Preview (Smart Link Detection) */}
+                                    {formData.description && extractUrls(formData.description).length > 0 && (
+                                        <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                <Link2 className="h-4 w-4 text-blue-500" />
+                                                Detected Links in Description
+                                            </h4>
+                                            <div className="grid grid-cols-1 gap-2">
+                                                {extractUrls(formData.description).map((url, idx) => {
+                                                    // Check if this URL is already in resources
+                                                    const isAdded = formData.resources?.some(r => r.url === url);
+
+                                                    return (
+                                                        <div key={idx} className="flex items-center gap-3 p-3 bg-blue-50/50 hover:bg-blue-50 border border-blue-100 rounded-xl transition-all group">
+                                                            <div className="bg-white p-2 rounded-lg border border-blue-100 shadow-sm text-blue-600">
+                                                                <ExternalLink className="h-4 w-4" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-semibold text-blue-700 truncate">{url}</p>
+                                                                <p className="text-xs text-blue-500">{isAdded ? 'Added to resources' : 'Found in text'}</p>
+                                                            </div>
+                                                            {!isAdded && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const newResource = {
+                                                                            id: crypto.randomUUID(),
+                                                                            title: 'Link from Description',
+                                                                            url: url,
+                                                                            type: 'link'
+                                                                        };
+                                                                        setFormData({
+                                                                            ...formData,
+                                                                            resources: [...formData.resources, newResource]
+                                                                        });
+                                                                    }}
+                                                                    className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                                                                >
+                                                                    Add as Resource
+                                                                </button>
+                                                            )}
+                                                            {isAdded && (
+                                                                <span className="text-emerald-600 flex items-center gap-1 text-xs font-bold px-3 py-1.5 bg-emerald-50 rounded-lg">
+                                                                    <CheckCircle className="h-3.5 w-3.5" />
+                                                                    Added
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* 2. Resources & Attachments Section */}
@@ -154,7 +218,7 @@ export default function TeacherTaskModal({
                                     <div className="flex flex-wrap gap-3 mb-6">
                                         {/* Links */}
                                         {formData.resources.map((res, idx) => (
-                                            <div key={`res-${idx}`} className="group flex items-center gap-3 p-2.5 bg-white border border-slate-200 rounded-xl hover:shadow-md transition-all min-w-[200px] max-w-sm">
+                                            <div key={`res-${idx}`} className="group flex items-center gap-3 p-2.5 bg-white border border-slate-200 rounded-xl hover:shadow-md transition-all min-w-[200px] max-w-sm border-l-4 border-l-emerald-500">
                                                 <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
                                                     <Link2 className="h-4 w-4" />
                                                 </div>
@@ -172,7 +236,7 @@ export default function TeacherTaskModal({
 
                                         {/* Files */}
                                         {formData.attachments.map((att, idx) => (
-                                            <div key={`att-${idx}`} className="group flex items-center gap-3 p-2.5 bg-white border border-slate-200 rounded-xl hover:shadow-md transition-all min-w-[200px] max-w-sm">
+                                            <div key={`att-${idx}`} className="group flex items-center gap-3 p-2.5 bg-white border border-slate-200 rounded-xl hover:shadow-md transition-all min-w-[200px] max-w-sm border-l-4 border-l-blue-500">
                                                 <div className={`p-2 rounded-lg ${att.type === 'image' ? 'bg-purple-50 text-purple-600' :
                                                     att.type === 'video' ? 'bg-pink-50 text-pink-600' :
                                                         'bg-indigo-50 text-indigo-600'

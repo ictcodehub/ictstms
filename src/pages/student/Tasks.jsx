@@ -381,6 +381,14 @@ export default function Tasks() {
         return matchesSearch && matchesFilter;
     });
 
+    // Helper to strip HTML and decode entities
+    const stripHtml = (html) => {
+        if (!html) return '';
+        const withSpaces = html.replace(/<\/p>|<\/div>|<br\s*\/?>/gi, ' ');
+        const doc = new DOMParser().parseFromString(withSpaces, 'text/html');
+        return doc.body.textContent || "";
+    };
+
     return (
         <>
             <ToastContainer toasts={toasts} removeToast={removeToast} />
@@ -705,7 +713,7 @@ export default function Tasks() {
                                                             submission ? 'group-hover:text-slate-900' :
                                                                 'group-hover:text-blue-700'
                                                             }`} title={task.title}>{task.title}</h4>
-                                                        <p className="text-xs text-slate-500 line-clamp-1">{task.description}</p>
+                                                        <p className="text-xs text-slate-500 line-clamp-1">{stripHtml(task.description)}</p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-8 pl-4 flex-shrink-0">
