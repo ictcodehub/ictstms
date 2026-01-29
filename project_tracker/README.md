@@ -1,3 +1,40 @@
+## 🐛 [2026-01-29 | 14:39] Bug Fix: Student Task Submission Errors
+
+### Overview
+Fixed critical errors preventing students from submitting task answers with file attachments. Resolved three related bugs: incorrect Firebase import path, missing icon import, and missing prop in component signature.
+
+### ✅ Key Fixes
+1.  **Firebase Import Path (`StudentTaskModal.jsx`)**:
+    *   **Issue**: `Failed to resolve import "../../config/firebase"` error
+    *   **Root Cause**: File tried importing from non-existent `../../config/firebase` directory
+    *   **Solution**: Corrected import to `../../lib/firebase` (actual location)
+    *   **Impact**: Module resolution fixed, allowing component to load
+
+2.  **Missing ChevronDown Icon (`StudentTaskModal.jsx`)**:
+    *   **Issue**: `ReferenceError: ChevronDown is not defined` when modal opens
+    *   **Root Cause**: Icon used in JSX but not imported from lucide-react
+    *   **Solution**: Added `ChevronDown` to lucide-react imports
+    *   **Impact**: Task modal opens without errors
+
+3.  **Missing onSubmit Prop (`StudentTaskModal.jsx`)**:
+    *   **Issue**: `ReferenceError: onSubmit is not defined` when clicking submit button
+    *   **Root Cause**: Parent passes `onSubmit={handleSubmit}` but component didn't destructure it from props
+    *   **Solution**: Added `onSubmit` to component prop signature
+    *   **Impact**: **Submit button now works** - students can submit answers with attachments
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/student/StudentTaskModal.jsx` | Fixed import paths, added missing imports, corrected prop destructuring |
+
+### ⚠️ Known Issues
+*   **Edit Answer Bug**: When clicking "Edit Answer", both the answer content and file attachments disappear (needs investigation)
+
+### 📦 Git Commits
+*   `fix(student): resolve submission errors - import paths, missing icons & handlers`
+
+---
+
 ## 🐛 [2026-01-29 | 12:00] Bug Fix: AnimatedSplash & Link Rendering Errors
 
 ### Overview

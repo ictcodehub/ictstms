@@ -3,16 +3,16 @@ import {
     X, FileText, Download, ExternalLink, Link2,
     CheckCircle, XCircle, AlertCircle, Upload, Paperclip,
     Maximize2, Trash2, Mic, StopCircle, RefreshCw, Send, ChevronRight,
-    FileSpreadsheet, FileBarChart, Globe, Youtube, Clock, Pencil, Video
+    FileSpreadsheet, FileBarChart, Globe, Youtube, Clock, Pencil, Video, ChevronDown
 } from "lucide-react";
 import { useState, useEffect } from 'react';
 import RichTextEditor from '../../components/RichTextEditor';
 import DOMPurify from 'dompurify';
-import { db, storage } from '../../config/firebase'; // Ensure you have firebase config
+import { db, storage } from '../../lib/firebase'; // Ensure you have firebase config
 import { doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-export default function StudentTaskModal({ task, submission, onClose, onUpdate, isSubmitting }) {
+export default function StudentTaskModal({ task, submission, onClose, onSubmit, onUpdate, isSubmitting }) {
     const [isEditing, setIsEditing] = useState(false);
     const [editingTask, setEditingTask] = useState(null);
     const [submissionText, setSubmissionText] = useState('');
@@ -335,7 +335,7 @@ export default function StudentTaskModal({ task, submission, onClose, onUpdate, 
                                                             className="flex items-center gap-4 p-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-300 rounded-xl transition-all shadow-sm hover:shadow-md group h-full cursor-pointer"
                                                         >
                                                             <div className={`p-3 rounded-lg ${att.type === 'video' ? 'bg-pink-100 text-pink-600' :
-                                                                    'bg-amber-100 text-amber-600'
+                                                                'bg-amber-100 text-amber-600'
                                                                 }`}>
                                                                 {att.type === 'video' ? <Video className="h-6 w-6" /> : <FileText className="h-6 w-6" />}
                                                             </div>
