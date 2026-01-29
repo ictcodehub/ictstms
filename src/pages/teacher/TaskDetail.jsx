@@ -6,7 +6,8 @@ import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp, onS
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowLeft, Users, CheckCircle2, XCircle, Hourglass,
-    Clock, Award, FileText, Filter, Ban, RefreshCw, X, Save, Edit2, Calendar, BookOpen, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, Paperclip, Download, Eye, Link2, ExternalLink
+    Clock, Award, FileText, Filter, Ban, RefreshCw, X, Save, Edit2, Calendar, BookOpen, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, Paperclip, Download, Eye, Link2, ExternalLink,
+    FileSpreadsheet, FileBarChart, Globe, Youtube, MoreHorizontal, MessageCircle, Send, Check
 } from "lucide-react";
 import { LinkifiedText } from '../../utils/linkify';
 import DOMPurify from 'dompurify';
@@ -460,25 +461,57 @@ export default function TaskDetail({ task, classes = [], onBack }) {
         );
     };
 
-    // Helper to extract URLs from HTML content
+    // Helper to extract URLs and determining metadata
     const extractUrls = (html) => {
         if (!html) return [];
-        // Parse HTML to get text content first (to avoid parsing href attributes in existing tags if any)
         const doc = new DOMParser().parseFromString(html, 'text/html');
         const text = doc.body.textContent || "";
-
-        // Regex to find URLs
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         const matches = text.match(urlRegex);
-
         if (!matches) return [];
 
-        // Clean up trailing punctuation and return unique URLs
-        const cleanedUrls = matches.map(url => {
-            return url.replace(/[.,:;)]+$/, '');
-        });
+        const uniqueUrls = [...new Set(matches.map(url => url.replace(/[.,:;)]+$/, '')))];
 
-        return [...new Set(cleanedUrls)];
+        return uniqueUrls.map(url => {
+            let type = 'link';
+            let title = 'External Link';
+            let icon = Globe;
+            let color = 'text-slate-500';
+            let bg = 'bg-slate-50';
+            let border = 'border-slate-200';
+
+            if (url.includes('docs.google.com/spreadsheets')) {
+                type = 'sheet';
+                title = 'Google Spreadsheet';
+                icon = FileSpreadsheet;
+                color = 'text-emerald-600';
+                bg = 'bg-emerald-50';
+                border = 'border-emerald-200';
+            } else if (url.includes('docs.google.com/document')) {
+                type = 'doc';
+                title = 'Google Document';
+                icon = FileText;
+                color = 'text-blue-600';
+                bg = 'bg-blue-50';
+                border = 'border-blue-200';
+            } else if (url.includes('drive.google.com')) {
+                type = 'drive';
+                title = 'Google Drive File';
+                icon = ExternalLink;
+                color = 'text-sky-600';
+                bg = 'bg-sky-50';
+                border = 'border-sky-200';
+            } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                type = 'youtube';
+                title = 'YouTube Video';
+                icon = Youtube;
+                color = 'text-red-600';
+                bg = 'bg-red-50';
+                border = 'border-red-200';
+            }
+
+            return { url, type, title, icon, color, bg, border };
+        });
     };
 
     return (
@@ -847,8 +880,6 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                     </div>
                                                 )}
 
-
-
                                                 {/* Attachments Section */}
                                                 {currentSubmission.submission?.attachments && currentSubmission.submission.attachments.length > 0 && (
                                                     <div className="mt-8 border-t border-slate-100 pt-6">
@@ -1024,24 +1055,29 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                     {/* Left Part: Detected Links */}
                                     <div className="flex-1 p-4 flex flex-col justify-center min-w-0 bg-white">
                                         {currentSubmission.submission?.content && extractUrls(currentSubmission.submission.content).length > 0 && (
-                                            <div className="w-full flex flex-col md:flex-row items-center gap-3">
-                                                <div className="flex-shrink-0" title="Detected Links">
-                                                    <Link2 className="h-5 w-5 text-blue-500" />
-                                                </div>
-                                                <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
-                                                    {extractUrls(currentSubmission.submission.content).map((url, idx) => (
-                                                        <a
-                                                            key={idx}
-                                                            href={url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex items-center gap-2 p-2.5 px-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-lg transition-all group max-w-full shadow-sm"
-                                                        >
-                                                            <Link2 className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                                                            <p className="text-sm font-medium text-slate-600 truncate group-hover:text-blue-700 flex-1">{url}</p>
-                                                            <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-500 flex-shrink-0" />
-                                                        </a>
-                                                    ))}
+                                            <div className="w-full">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {extractUrls(currentSubmission.submission.content).map((link, idx) => {
+                                                        const Icon = link.icon;
+                                                        return (
+                                                            <a
+                                                                key={idx}
+                                                                href={link.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className={`flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-md group ${link.bg} ${link.border} bg-opacity-40 hover:bg-opacity-100`}
+                                                            >
+                                                                <div className={`p-2.5 rounded-lg bg-white border shadow-sm ${link.color} ${link.border}`}>
+                                                                    <Icon className="h-5 w-5" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h5 className={`text-sm font-bold truncate ${link.color}`}>{link.title}</h5>
+                                                                    <p className="text-xs text-slate-500 truncate mt-0.5">{link.url}</p>
+                                                                </div>
+                                                                <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-blue-500 flex-shrink-0" />
+                                                            </a>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         )}

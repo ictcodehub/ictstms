@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useEffect } from 'react';
 
-export default function AnimatedSplash({ onComplete }) {
+export default function AnimatedSplash({ onComplete = () => { } }) {
     useEffect(() => {
         // Signal completion after total animation time (reduced to 1.5s for faster startup)
         const completeTimer = setTimeout(() => {

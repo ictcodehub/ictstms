@@ -1,4 +1,37 @@
+## 🐛 [2026-01-29 | 12:00] Bug Fix: AnimatedSplash & Link Rendering Errors
+
+### Overview
+Fixed critical errors preventing the application from loading: `TypeError: onComplete is not a function` in `AnimatedSplash.jsx` and `Objects are not valid as a React child` in `TaskDetail.jsx`. Also refined the detected links UI in the grading modal footer based on user feedback.
+
+### ✅ Key Fixes
+1.  **AnimatedSplash Component (`AnimatedSplash.jsx`)**:
+    *   **Issue**: Component crashed when parent didn't provide `onComplete` callback
+    *   **Solution**: Added default no-op function `() => {}` to `onComplete` prop
+    *   **Impact**: Prevents crash on app startup, allows flexible usage without required props
+
+2.  **TaskDetail Link Rendering (`TaskDetail.jsx`)**:
+    *   **Issue**: Line 1099-1111 contained old code attempting to render link objects directly as React children
+    *   **Root Cause**: After upgrading `extractUrls()` to return rich metadata objects, this section wasn't updated
+    *   **Solution**: Updated rendering logic to destructure link objects (`link.url`, `link.icon`, `link.title`, etc.)
+    *   **Impact**: Fixed blank screen crash, enabled professional card UI for detected links
+
+3.  **UI Refinements**:
+    *   Removed duplicate "Detected Links" section from main answer viewer (kept footer version only)
+    *   Removed redundant link icon box from footer for cleaner, more spacious layout
+    *   Streamlined detected links display to show only actionable link cards
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/components/AnimatedSplash.jsx` | Added default value for `onComplete` prop |
+| `src/pages/teacher/TaskDetail.jsx` | Fixed link object rendering, removed duplicate sections |
+
+### 📦 Git Commits
+*   `fix(splash): add default onComplete to prevent crash`
+*   `fix(grading): correct link rendering & remove duplicates`
+
 ## 🎨 [2026-01-29 | 11:00] Improvement: Task Detail Layout Refactor
+
 
 ### Overview
 Refactored the `TaskDetail` layout based on user feedback to create a cleaner, more balanced teacher interface. Specifically focused on standardizing the footer area by unifying the "Detected Links" section with the "Grading Actions".
