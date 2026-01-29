@@ -146,6 +146,35 @@ export default function TaskDetail({ task, classes = [], onBack }) {
         };
     }, [task.id]);
 
+    // Sync currentSubmission with real-time submissions map
+    // This ensures that when a student updates/deletes attachments, the teacher sees it immediately
+    useEffect(() => {
+        if (showGradeModal && currentSubmission?.student && submissions) {
+            const studentId = currentSubmission.student.uid || currentSubmission.student.id;
+            const updatedSubmission = submissions[studentId];
+
+            // Only update if there are actual changes to avoid loops, 
+            // but checking deep equality is expensive. 
+            // React's setState will skip re-render if object ref is same or value is same.
+            // Since onSnapshot creates new object refs, this will trigger re-render.
+            if (updatedSubmission) {
+                // We keep the student object as is, just update the submission part
+                setCurrentSubmission(prev => {
+                    // Safety check to prevent infinite loops or unnecessary updates
+                    if (prev?.submission?.revisedAt?.seconds === updatedSubmission.revisedAt?.seconds &&
+                        prev?.submission?.attachments?.length === updatedSubmission.attachments?.length) {
+                        // Simple heuristic to avoid spamming updates if timestamps and attachment counts match
+                        // Use with caution, maybe deeper comparison is needed if content changes but not time?
+                        // Actually, Firestore onSnapshot typically only fires on real change.
+                        // Let's just update.
+                        // return prev; 
+                    }
+                    return { ...prev, submission: updatedSubmission };
+                });
+            }
+        }
+    }, [submissions, showGradeModal]); // Dependencies: submissions (updated by snapshot), modal open state
+
     const handleGradeClick = (student) => {
         const submission = submissions[student.uid] || submissions[student.id];
         setCurrentSubmission({ student, submission });
@@ -512,6 +541,27 @@ export default function TaskDetail({ task, classes = [], onBack }) {
 
             return { url, type, title, icon, color, bg, border };
         });
+    };
+
+    // Helper to handle file download manually to force download
+    const handleDownload = async (e, url, filename) => {
+        e.preventDefault();
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error("Download failed:", error);
+            window.open(url, '_blank'); // Fallback
+        }
     };
 
     return (
@@ -892,9 +942,9 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                                 <a
                                                                     key={idx}
                                                                     href={att.url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all group"
+                                                                    download={att.name}
+                                                                    onClick={(e) => handleDownload(e, att.url, att.name)}
+                                                                    className="flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all group cursor-pointer"
                                                                 >
                                                                     <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
                                                                         <FileText className="h-5 w-5 text-blue-600" />

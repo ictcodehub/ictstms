@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { db, storage } from '../../lib/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, onSnapshot, increment, arrayUnion } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LinkifiedText } from '../../utils/linkify';
@@ -269,11 +269,17 @@ export default function Tasks() {
         }
     };
 
-    const handleUpdate = async (taskId, submissionId, specificContent = null) => {
+    const handleUpdate = async (taskId, submissionId, specificContent = null, newFile = null, keptAttachments = null) => {
         const contentToSave = specificContent !== null ? specificContent : submissionText;
 
         if (!contentToSave.trim()) {
             showWarning('Please fill in your answer');
+            return;
+        }
+
+        // Size check (5MB) if new file exists
+        if (newFile && newFile.size > 5 * 1024 * 1024) {
+            showWarning("File limit is 5MB");
             return;
         }
 
@@ -300,6 +306,41 @@ export default function Tasks() {
                 status: 'submitted' // Reset status so teacher sees it as a new submission
             };
 
+            // Initialize attachments list with kept ones or empty
+            let finalAttachments = keptAttachments || [];
+
+            // Handle New File Upload if present
+            if (newFile) {
+                try {
+                    const storageRef = ref(storage, `task_submissions/${taskId}/${currentUser.uid}/${Date.now()}_${newFile.name}`);
+
+                    // Reuse upload logic (simplified for await)
+                    const uploadSnapshot = await uploadBytesResumable(storageRef, newFile);
+                    const downloadURL = await getDownloadURL(uploadSnapshot.ref);
+
+                    const newAttachment = {
+                        name: newFile.name,
+                        url: downloadURL,
+                        type: newFile.type,
+                        size: newFile.size,
+                        uploadedAt: new Date().toISOString()
+                    };
+
+                    finalAttachments.push(newAttachment);
+
+                } catch (uploadError) {
+                    console.error("Storage upload failed during update:", uploadError);
+                    showError(`File upload failed: ${uploadError.message}`);
+                    // Don't return, try to save text at least? Or fail? 
+                    // Fail is safer to avoid partial state where user thinks file is sent
+                    setSubmitting(null);
+                    return;
+                }
+            }
+
+            // Assign the final list of attachments to the update object
+            updateData.attachments = finalAttachments;
+
             if (historyEntry) {
                 updateData.revisionHistory = arrayUnion(historyEntry);
             }
@@ -310,6 +351,7 @@ export default function Tasks() {
             setSubmissionText('');
             setSubmitting(null);
             setEditingTask(null);
+            setFile(null); // Clear file state
         } catch (error) {
             console.error('Error updating submission:', error);
             showError('Failed to update submission: ' + error.message);

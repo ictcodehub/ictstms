@@ -12,23 +12,39 @@ import { db, storage } from '../../lib/firebase'; // Ensure you have firebase co
 import { doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-export default function StudentTaskModal({ task, submission, onClose, onSubmit, onUpdate, isSubmitting }) {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editingTask, setEditingTask] = useState(null);
-    const [submissionText, setSubmissionText] = useState('');
-    const [file, setFile] = useState(null);
+export default function StudentTaskModal({
+    task,
+    submission,
+    onClose,
+    onSubmit,
+    onUpdate,
+    isSubmitting,
+    // New props from parent
+    submissionText,
+    setSubmissionText,
+    file,
+    setFile,
+    editingTask,
+    startEditing,
+    cancelEditing
+}) {
     const [previewUrl, setPreviewUrl] = useState(null);
 
-    // Initialize state when modal opens or submission changes
+    // Local state to track which existing attachments are kept
+    const [keptAttachments, setKeptAttachments] = useState([]);
+
+    // Initialize kept attachments when modal opens
     useEffect(() => {
-        if (submission) {
-            setSubmissionText(submission.content || '');
-            // We don't auto-set file here because file input is for NEW files
+        if (submission && submission.attachments) {
+            setKeptAttachments(submission.attachments);
         } else {
-            setSubmissionText('');
-            setFile(null);
+            setKeptAttachments([]);
         }
     }, [submission]);
+
+    const handleRemoveAttachment = (index) => {
+        setKeptAttachments(prev => prev.filter((_, i) => i !== index));
+    };
 
     // Handle file selection preview
     useEffect(() => {
@@ -160,16 +176,7 @@ export default function StudentTaskModal({ task, submission, onClose, onSubmit, 
         }
     };
 
-    const startEditing = (task, submission) => {
-        setEditingTask(task.id);
-        setSubmissionText(submission.content);
-    };
-
-    const cancelEditing = () => {
-        setEditingTask(null);
-        setSubmissionText(submission.content);
-        setFile(null);
-    };
+    // startEditing and cancelEditing are now passed as props
 
     // Derived onSubmit handler for Edit Mode (reuses onUpdate)
     // Actually, onUpdate is passed from parent. We should use it.
@@ -431,6 +438,110 @@ export default function StudentTaskModal({ task, submission, onClose, onSubmit, 
                                                     </div>
                                                 )}
 
+                                                {/* Existing Attachments (Edit Mode - Editable) */}
+                                                {keptAttachments.length > 0 && (
+                                                    <div className="mt-6 pt-6 border-t border-slate-100">
+                                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                            <Paperclip className="h-4 w-4" />
+                                                            Existing Attachments
+                                                        </h4>
+                                                        <div className="grid gap-3 sm:grid-cols-2">
+                                                            {keptAttachments.map((att, idx) => (
+                                                                <div key={idx} className="group opacity-100 transition-opacity">
+                                                                    {att.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                                                        <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative flex items-center p-2 gap-3 group-hover:border-red-200 transition-colors">
+                                                                            <img src={att.url} alt={att.name} className="w-10 h-10 object-cover rounded-lg bg-white" />
+                                                                            <span className="text-xs font-bold text-slate-600 truncate flex-1">{att.name}</span>
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.preventDefault();
+                                                                                    handleRemoveAttachment(idx);
+                                                                                }}
+                                                                                className="p-1.5 bg-white text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg border border-slate-100 transition-all opacity-0 group-hover:opacity-100"
+                                                                                title="Remove this file"
+                                                                            >
+                                                                                <X className="h-3.5 w-3.5" />
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="flex items-center gap-3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl group-hover:border-red-200 transition-colors">
+                                                                            <FileText className="h-5 w-5 text-slate-400" />
+                                                                            <span className="text-xs font-bold text-slate-600 truncate flex-1">{att.name}</span>
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.preventDefault();
+                                                                                    handleRemoveAttachment(idx);
+                                                                                }}
+                                                                                className="p-1.5 bg-white text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg border border-slate-100 transition-all opacity-0 group-hover:opacity-100"
+                                                                                title="Remove this file"
+                                                                            >
+                                                                                <X className="h-3.5 w-3.5" />
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Edit Mode: File Upload & Preview */}
+                                                <div className="mt-6 border-t border-slate-100 pt-6">
+                                                    {/* Preview Area (Edit Mode) */}
+                                                    {file && (
+                                                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap gap-4 items-center mb-4">
+                                                            {previewUrl ? (
+                                                                <div
+                                                                    className="relative h-20 w-auto rounded-lg overflow-hidden border border-slate-200 shadow-sm cursor-pointer group"
+                                                                    onClick={() => setLightboxImage(previewUrl)}
+                                                                >
+                                                                    <img src={previewUrl} alt="Preview" className="h-full w-auto object-contain" />
+                                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                        <Maximize2 className="h-4 w-4 text-white" />
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                                                                    <FileText className="h-6 w-6" />
+                                                                </div>
+                                                            )}
+
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-bold text-slate-700 truncate">{file.name}</p>
+                                                                <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(0)} KB</p>
+                                                            </div>
+
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    setFile(null);
+                                                                }}
+                                                                className="p-2 hover:bg-slate-200 rounded-full text-slate-400 hover:text-red-500 transition-colors"
+                                                                title="Remove file"
+                                                            >
+                                                                <X className="h-5 w-5" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex items-center gap-4">
+                                                        <input
+                                                            type="file"
+                                                            id={`modal-file-upload-edit-${task.id}`}
+                                                            className="hidden"
+                                                            onChange={(e) => setFile(e.target.files[0])}
+                                                        />
+                                                        <label
+                                                            htmlFor={`modal-file-upload-edit-${task.id}`}
+                                                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white hover:border-blue-300 hover:text-blue-600 rounded-xl cursor-pointer transition-all text-sm font-bold shadow-sm"
+                                                            title="Attach File"
+                                                        >
+                                                            <Upload className="h-4 w-4" />
+                                                            Attach New File
+                                                        </label>
+                                                    </div>
+                                                </div>
+
                                                 <div className="flex justify-end gap-3 mt-14">
                                                     <button
                                                         onClick={cancelEditing}
@@ -440,7 +551,7 @@ export default function StudentTaskModal({ task, submission, onClose, onSubmit, 
                                                         Cancel
                                                     </button>
                                                     <button
-                                                        onClick={() => onUpdate(task.id, submission.id)}
+                                                        onClick={() => onUpdate(task.id, submission.id, submissionText, file, keptAttachments)}
                                                         disabled={isSubmitting || !submissionText || submissionText === '<p><br></p>'}
                                                         className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
                                                     >

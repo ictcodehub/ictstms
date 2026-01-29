@@ -1,3 +1,31 @@
+## 🖇️ [2026-01-29 | 15:30] Feature: Attachment Management & Real-time Sync
+
+### Overview
+Addressed critical limitations in the attachment system. Students can now remove attachments during edits, teachers can force-download files, and the grading interface now updates in real-time when students make changes.
+
+### ✅ Key Features & Fixes
+1.  **Student Attachment Management (`StudentTaskModal.jsx`)**:
+    *   **Remove Attachments**: Added functionality to remove existing attachments in "Edit Answer" mode.
+    *   **UI/UX**: Replaced "KEPT" badges with interactive items featuring a "Remove (X)" button.
+    *   **Logic**: Updated `Tasks.jsx` to correctly handle mixed state (keeping some old files + adding new ones) during submission updates.
+
+2.  **Teacher Grading Experience (`TaskDetail.jsx`)**:
+    *   **Force Download**: Attachments now force a download when clicked, relying on blob fetching to bypass browser's default "open in new tab" behavior for supported types (PDFs, Images).
+    *   **Real-time Sync**: Implemented `onSnapshot` synchronization for the Grading Modal. If a student adds/removes a file while the teacher is grading, the changes appear instantly without refreshing.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/student/StudentTaskModal.jsx` | Implemented attachment removal UI and state logic |
+| `src/pages/student/Tasks.jsx` | Updated `handleUpdate` to support attachment removal and mixed updates |
+| `src/pages/teacher/TaskDetail.jsx` | Added forced download logic and real-time `currentSubmission` synchronization |
+
+### 📦 Git Commits
+*   `feat(student): allow removing attachments in edit answer mode`
+*   `fix(teacher): force file download and enable real-time updates in grading modal`
+
+---
+
 ## 🐛 [2026-01-29 | 14:39] Bug Fix: Student Task Submission Errors
 
 ### Overview
