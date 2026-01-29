@@ -59,6 +59,27 @@ export default function StudentTaskModal({
         }
     }, [file]);
 
+    // Helper to extract URLs from HTML content
+    const extractUrls = (html) => {
+        if (!html) return [];
+        // Parse HTML to get text content first
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const text = doc.body.textContent || "";
+
+        // Regex to find URLs
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const matches = text.match(urlRegex);
+
+        if (!matches) return [];
+
+        // Clean up trailing punctuation and return unique URLs
+        const cleanedUrls = matches.map(url => {
+            return url.replace(/[.,:;)]+$/, '');
+        });
+
+        return [...new Set(cleanedUrls)];
+    };
+
     if (!task) return null;
 
     const isGraded = submission && submission.grade !== null && submission.grade !== undefined;
@@ -314,6 +335,36 @@ export default function StudentTaskModal({
                                                     />
                                                 </div>
 
+                                                {/* Detected Links Preview (Edit Mode) */}
+                                                {submissionText && extractUrls(submissionText).length > 0 && (
+                                                    <div className="mt-4">
+                                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                            <Link2 className="h-4 w-4 text-blue-500" />
+                                                            Detected Links
+                                                        </h4>
+                                                        <div className="grid grid-cols-1 gap-2">
+                                                            {extractUrls(submissionText).map((url, idx) => (
+                                                                <a
+                                                                    key={idx}
+                                                                    href={url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="flex items-center gap-3 p-3 bg-blue-50/50 hover:bg-blue-50 border border-blue-100 rounded-xl transition-all group"
+                                                                >
+                                                                    <div className="bg-white p-2 rounded-lg border border-blue-100 shadow-sm text-blue-600">
+                                                                        <ExternalLink className="h-4 w-4" />
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="text-sm font-semibold text-blue-700 truncate">{url}</p>
+                                                                        <p className="text-xs text-blue-500">Click to open link</p>
+                                                                    </div>
+                                                                    <ExternalLink className="h-4 w-4 text-blue-300 group-hover:text-blue-500" />
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 <div className="flex justify-end gap-3 mt-14"> {/* Added mt-14 to clear toolbar/editor space if needed */}
                                                     <button
                                                         onClick={cancelEditing}
@@ -496,6 +547,36 @@ export default function StudentTaskModal({
                                                             disabled={isSubmitting}
                                                         />
                                                     </div>
+
+                                                    {/* Detected Links Preview (Create Mode) */}
+                                                    {submissionText && extractUrls(submissionText).length > 0 && (
+                                                        <div className="mt-2">
+                                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                                <Link2 className="h-4 w-4 text-blue-500" />
+                                                                Detected Links
+                                                            </h4>
+                                                            <div className="grid grid-cols-1 gap-2">
+                                                                {extractUrls(submissionText).map((url, idx) => (
+                                                                    <a
+                                                                        key={idx}
+                                                                        href={url}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="flex items-center gap-3 p-3 bg-blue-50/50 hover:bg-blue-50 border border-blue-100 rounded-xl transition-all group"
+                                                                    >
+                                                                        <div className="bg-white p-2 rounded-lg border border-blue-100 shadow-sm text-blue-600">
+                                                                            <ExternalLink className="h-4 w-4" />
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className="text-sm font-semibold text-blue-700 truncate">{url}</p>
+                                                                            <p className="text-xs text-blue-500">Click to open link</p>
+                                                                        </div>
+                                                                        <ExternalLink className="h-4 w-4 text-blue-300 group-hover:text-blue-500" />
+                                                                    </a>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                                     {/* Preview Area */}
                                                     {file && (

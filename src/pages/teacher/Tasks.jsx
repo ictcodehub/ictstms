@@ -389,6 +389,15 @@ export default function Tasks() {
         }
     };
 
+    const stripHtml = (html) => {
+        if (!html) return '';
+        // Replace block tags with space to prevent words merging
+        const withSpaces = html.replace(/<\/p>|<\/div>|<br\s*\/?>/gi, ' ');
+        // Parse HTML to strip tags and decode entities
+        const doc = new DOMParser().parseFromString(withSpaces, 'text/html');
+        return doc.body.textContent || "";
+    };
+
     // Filter and sort logic
     const getFilteredAndSortedTasks = () => {
         let filtered = tasks;
@@ -397,7 +406,7 @@ export default function Tasks() {
         if (searchQuery) {
             filtered = filtered.filter(t =>
                 t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                t.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                (t.description && stripHtml(t.description).toLowerCase().includes(searchQuery.toLowerCase()))
             );
         }
 
@@ -620,12 +629,12 @@ export default function Tasks() {
                                                 {startIndex + index + 1}
                                             </td>
                                             <td className="pl-1 pr-6 py-4">
-                                                <div className="max-w-md">
+                                                <div className="max-w-2xl">
                                                     <h3 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors mb-1 truncate">
                                                         {task.title}
                                                     </h3>
                                                     <p className="text-xs text-slate-500 line-clamp-1 mb-2">
-                                                        {task.description || 'No description'}
+                                                        {stripHtml(task.description) || 'No description'}
                                                     </p>
                                                     <p className="text-[10px] text-blue-600 font-medium">
                                                         Diberikan: {task.createdAt

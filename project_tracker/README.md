@@ -1,3 +1,30 @@
+## 🔗 [2026-01-29 | 09:30 - 09:40] Feature: Smart Link Handling (Teacher & Student)
+
+### Overview
+Addressed user feedback regarding the difficulty of accessing student submissions that are just plain text links (e.g., Google Sheets). Implemented automatic URL detection and preview handling on both Teacher Grading and Student Submission views.
+
+### ✅ Key Features
+1.  **Teacher Grading View (`TaskDetail.jsx`)**:
+    *   **Auto Link Extraction**: Automatically scans student submission HTML content for URLs.
+    *   **Dedicated UI**: Displays a "Detected Links" section above attachments.
+    *   **Actionable**: Links are rendered as clickable cards with external link icons, making them distinct from plain text.
+
+2.  **Student Submission View (`StudentTaskModal.jsx`)**:
+    *   **Real-time Preview**: As students type or paste links into the editor, a "Detected Links" preview appears instantly below the input area.
+    *   **Validation**: Gives students immediate confidence that their link is recognized and will be accessible to the teacher.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/TaskDetail.jsx` | Added `extractUrls` helper and "Detected Links" UI section |
+| `src/pages/student/StudentTaskModal.jsx` | Implemented real-time link extraction and preview UI |
+| `src/pages/teacher/Tasks.jsx` | Fixed HTML tag display issues in task lists (Task Description) |
+
+### 📦 Git Commits
+*   `feat(grading): implement smart link detection for submissions`
+*   `feat(student): add real-time link preview in submission modal`
+*   `fix(ui): strip html tags from task description list view`
+
 ## 🧹 [2026-01-29 | 05:15] Maintenance: System-wide Debug Log Cleanup
 
 ### Overview

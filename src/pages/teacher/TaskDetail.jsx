@@ -6,7 +6,7 @@ import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp, onS
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowLeft, Users, CheckCircle2, XCircle, Hourglass,
-    Clock, Award, FileText, Filter, Ban, RefreshCw, X, Save, Edit2, Calendar, BookOpen, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, Paperclip, Download, Eye
+    Clock, Award, FileText, Filter, Ban, RefreshCw, X, Save, Edit2, Calendar, BookOpen, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, Paperclip, Download, Eye, Link2, ExternalLink
 } from "lucide-react";
 import { LinkifiedText } from '../../utils/linkify';
 import DOMPurify from 'dompurify';
@@ -460,6 +460,27 @@ export default function TaskDetail({ task, classes = [], onBack }) {
         );
     };
 
+    // Helper to extract URLs from HTML content
+    const extractUrls = (html) => {
+        if (!html) return [];
+        // Parse HTML to get text content first (to avoid parsing href attributes in existing tags if any)
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const text = doc.body.textContent || "";
+
+        // Regex to find URLs
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const matches = text.match(urlRegex);
+
+        if (!matches) return [];
+
+        // Clean up trailing punctuation and return unique URLs
+        const cleanedUrls = matches.map(url => {
+            return url.replace(/[.,:;)]+$/, '');
+        });
+
+        return [...new Set(cleanedUrls)];
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -823,6 +844,36 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                     <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                                                         <FileText className="h-12 w-12 mb-3 opacity-20" />
                                                         <p>No content submitted</p>
+                                                    </div>
+                                                )}
+
+                                                {/* Extracted Links Section - Special Area for Links */}
+                                                {currentSubmission.submission?.content && extractUrls(currentSubmission.submission.content).length > 0 && (
+                                                    <div className="mt-8 border-t border-slate-100 pt-6">
+                                                        <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                                            <Link2 className="h-4 w-4 text-blue-500" />
+                                                            Detected Links
+                                                        </h4>
+                                                        <div className="grid grid-cols-1 gap-2">
+                                                            {extractUrls(currentSubmission.submission.content).map((url, idx) => (
+                                                                <a
+                                                                    key={idx}
+                                                                    href={url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="flex items-center gap-3 p-3 bg-blue-50/50 hover:bg-blue-50 border border-blue-100 rounded-xl transition-all group"
+                                                                >
+                                                                    <div className="bg-white p-2 rounded-lg border border-blue-100 shadow-sm text-blue-600">
+                                                                        <ExternalLink className="h-5 w-5" />
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="text-sm font-semibold text-blue-700 truncate">{url}</p>
+                                                                        <p className="text-xs text-blue-500 font-medium">Click to open link</p>
+                                                                    </div>
+                                                                    <ChevronRight className="h-4 w-4 text-blue-300 group-hover:text-blue-500" />
+                                                                </a>
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                 )}
 
