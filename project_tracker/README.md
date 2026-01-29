@@ -1,3 +1,28 @@
+## 🎨 [2026-01-29 | 23:37] UI Refinements: Edit Modal & Revision History
+
+### Overview
+Refined the user interface for student task editing and teacher grading views. Fixed alignment issues in the "Edit Answer" modal, improved the attachment deletion interaction, and polished the revision history date display.
+
+### ✅ Key Features & Fixes
+1.  **Edit Answer Modal (`StudentTaskModal.jsx`)**:
+    *   **Button Alignment**: Fixed a layout issue where "Cancel" and "Save Changes" buttons were misaligned. They are now vertically aligned with the "Attach New File" button using a responsive Flexbox layout.
+    *   **Delete Attachment**: Replaced the hover-only "X" button with an always-visible **Trash** icon for clearer affordance and easier interaction on all devices.
+
+2.  **Revision History (`TaskDetail.jsx`)**:
+    *   **Date Styling**: Updated the typography for revision dates ("Submitted", "Revision X", "Latest Revision") to be smaller (`text-xs`) and less bold (`font-medium`), making the history list cleaner and less distracting.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/student/StudentTaskModal.jsx` | Fixed button alignment, updated delete attachment icon to Trash |
+| `src/pages/teacher/TaskDetail.jsx` | Styled revision history dates to be smaller and less bold |
+
+### 📦 Git Commits
+*   `ui(student): fix edit answer button alignment and refine delete attachment icon`
+*   `ui(teacher): refine typography for revision history dates`
+
+---
+
 ## 🖇️ [2026-01-29 | 22:30] Feature: Attachment Management & Real-time Sync
 
 ### Overview

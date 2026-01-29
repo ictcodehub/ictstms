@@ -457,10 +457,10 @@ export default function StudentTaskModal({
                                                                                     e.preventDefault();
                                                                                     handleRemoveAttachment(idx);
                                                                                 }}
-                                                                                className="p-1.5 bg-white text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg border border-slate-100 transition-all opacity-0 group-hover:opacity-100"
+                                                                                className="p-1.5 bg-white text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg border border-slate-100 transition-all"
                                                                                 title="Remove this file"
                                                                             >
-                                                                                <X className="h-3.5 w-3.5" />
+                                                                                <Trash2 className="h-3.5 w-3.5" />
                                                                             </button>
                                                                         </div>
                                                                     ) : (
@@ -472,10 +472,10 @@ export default function StudentTaskModal({
                                                                                     e.preventDefault();
                                                                                     handleRemoveAttachment(idx);
                                                                                 }}
-                                                                                className="p-1.5 bg-white text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg border border-slate-100 transition-all opacity-0 group-hover:opacity-100"
+                                                                                className="p-1.5 bg-white text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg border border-slate-100 transition-all"
                                                                                 title="Remove this file"
                                                                             >
-                                                                                <X className="h-3.5 w-3.5" />
+                                                                                <Trash2 className="h-3.5 w-3.5" />
                                                                             </button>
                                                                         </div>
                                                                     )}
@@ -524,39 +524,41 @@ export default function StudentTaskModal({
                                                         </div>
                                                     )}
 
-                                                    <div className="flex items-center gap-4">
-                                                        <input
-                                                            type="file"
-                                                            id={`modal-file-upload-edit-${task.id}`}
-                                                            className="hidden"
-                                                            onChange={(e) => setFile(e.target.files[0])}
-                                                        />
-                                                        <label
-                                                            htmlFor={`modal-file-upload-edit-${task.id}`}
-                                                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white hover:border-blue-300 hover:text-blue-600 rounded-xl cursor-pointer transition-all text-sm font-bold shadow-sm"
-                                                            title="Attach File"
-                                                        >
-                                                            <Upload className="h-4 w-4" />
-                                                            Attach New File
-                                                        </label>
-                                                    </div>
-                                                </div>
+                                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+                                                        <div className="flex items-center gap-4">
+                                                            <input
+                                                                type="file"
+                                                                id={`modal-file-upload-edit-${task.id}`}
+                                                                className="hidden"
+                                                                onChange={(e) => setFile(e.target.files[0])}
+                                                            />
+                                                            <label
+                                                                htmlFor={`modal-file-upload-edit-${task.id}`}
+                                                                className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white hover:border-blue-300 hover:text-blue-600 rounded-xl cursor-pointer transition-all text-sm font-bold shadow-sm"
+                                                                title="Attach File"
+                                                            >
+                                                                <Upload className="h-4 w-4" />
+                                                                Attach New File
+                                                            </label>
+                                                        </div>
 
-                                                <div className="flex justify-end gap-3 mt-14">
-                                                    <button
-                                                        onClick={cancelEditing}
-                                                        disabled={isSubmitting}
-                                                        className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors"
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                    <button
-                                                        onClick={() => onUpdate(task.id, submission.id, submissionText, file, keptAttachments)}
-                                                        disabled={isSubmitting || !submissionText || submissionText === '<p><br></p>'}
-                                                        className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
-                                                    >
-                                                        {isSubmitting ? 'Saving...' : 'Save Changes'}
-                                                    </button>
+                                                        <div className="flex justify-end gap-3 w-full sm:w-auto">
+                                                            <button
+                                                                onClick={cancelEditing}
+                                                                disabled={isSubmitting}
+                                                                className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                            <button
+                                                                onClick={() => onUpdate(task.id, submission.id, submissionText, file, keptAttachments)}
+                                                                disabled={isSubmitting || !submissionText || submissionText === '<p><br></p>'}
+                                                                className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
+                                                            >
+                                                                {isSubmitting ? 'Saving...' : 'Save Changes'}
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ) : (

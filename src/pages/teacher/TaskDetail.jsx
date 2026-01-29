@@ -1018,7 +1018,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                                 <div className="relative">
                                                                     <div className="absolute -left-[21px] top-[5.5px] h-[2.2px] w-[7.6px] rounded-full bg-blue-500"></div>
                                                                     <p className="text-xs text-slate-500 font-medium mb-0.5">Submitted</p>
-                                                                    <p className="text-sm font-semibold text-slate-700">
+                                                                    <p className="text-xs text-slate-600 font-medium">
                                                                         {formatDate(currentSubmission.submission?.submittedAt)}
                                                                     </p>
                                                                 </div>
@@ -1029,7 +1029,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                                         <div key={idx} className="relative">
                                                                             <div className="absolute -left-[21px] top-[5.5px] h-[2.2px] w-[7.6px] rounded-full bg-orange-500"></div>
                                                                             <p className="text-xs text-slate-500 font-medium mb-0.5">Revision {idx + 1}</p>
-                                                                            <p className="text-sm font-semibold text-slate-700">
+                                                                            <p className="text-xs text-slate-600 font-medium">
                                                                                 {formatDate(rev.date || rev.submittedAt)}
                                                                             </p>
                                                                         </div>
@@ -1038,7 +1038,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                                     <div className="relative">
                                                                         <div className="absolute -left-[21px] top-[5.5px] h-[2.2px] w-[7.6px] rounded-full bg-orange-500"></div>
                                                                         <p className="text-xs text-slate-500 font-medium mb-0.5">Latest Revision</p>
-                                                                        <p className="text-sm font-semibold text-slate-700">
+                                                                        <p className="text-xs text-slate-600 font-medium">
                                                                             {formatDate(currentSubmission.submission.revisedAt)}
                                                                         </p>
                                                                     </div>

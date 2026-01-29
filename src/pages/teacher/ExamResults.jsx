@@ -129,7 +129,7 @@ const GradingInterface = ({
                                             }`}>
                                             {q.type === 'essay' || q.type === 'short_answer' ? (
                                                 <div
-                                                    className="whitespace-pre-wrap text-slate-800 font-medium font-serif leading-relaxed prose prose-sm max-w-none"
+                                                    className="whitespace-pre-wrap break-words text-slate-800 font-medium font-serif leading-relaxed prose prose-sm max-w-none"
                                                     dangerouslySetInnerHTML={{
                                                         __html: DOMPurify.sanitize(q.answer || '<span class="text-slate-400 italic">No answer</span>')
                                                     }}
