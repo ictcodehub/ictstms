@@ -231,6 +231,12 @@ export default function TeacherTaskModal({
             ];
         } else if (newType === 'essay' || newType === 'short_answer') {
             updates.options = [];
+        } else if (newType === 'matching') {
+            updates.options = [
+                { id: crypto.randomUUID(), left: '', right: '' },
+                { id: crypto.randomUUID(), left: '', right: '' },
+                { id: crypto.randomUUID(), left: '', right: '' }
+            ];
         } else if (['single_choice', 'multiple_choice'].includes(newType) && !['single_choice', 'multiple_choice'].includes(currentQ.type)) {
             updates.options = [
                 { id: crypto.randomUUID(), text: '', isCorrect: false },
@@ -437,50 +443,47 @@ export default function TeacherTaskModal({
                                                                     </div>
                                                                     Pengaturan Kuis
                                                                 </h3>
-                                                                <div className="space-y-4">
-                                                                    <label className="flex items-start gap-3 cursor-pointer group">
-                                                                        <div className="relative flex items-center">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                checked={formData.randomizeQuestions || false}
-                                                                                onChange={(e) => setFormData({ ...formData, randomizeQuestions: e.target.checked })}
-                                                                                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 border-gray-300"
-                                                                            />
-                                                                        </div>
-                                                                        <div className="flex-1">
+                                                                <div className="space-y-2">
+                                                                    {/* Randomize Questions */}
+                                                                    <label className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer group">
+                                                                        <div className="flex-1 pr-4">
                                                                             <span className="block text-sm font-bold text-slate-700 group-hover:text-purple-700 transition-colors">Acak Urutan Soal</span>
-                                                                            <span className="block text-xs text-slate-500">Siswa mendapat urutan soal berbeda</span>
+                                                                            <span className="block text-xs text-slate-500 mt-0.5">Siswa mendapat urutan soal berbeda</span>
                                                                         </div>
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={formData.randomizeQuestions || false}
+                                                                            onChange={(e) => setFormData({ ...formData, randomizeQuestions: e.target.checked })}
+                                                                            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 border-gray-300"
+                                                                        />
                                                                     </label>
 
-                                                                    <label className="flex items-start gap-3 cursor-pointer group">
-                                                                        <div className="relative flex items-center">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                checked={formData.randomizeAnswers || false}
-                                                                                onChange={(e) => setFormData({ ...formData, randomizeAnswers: e.target.checked })}
-                                                                                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 border-gray-300"
-                                                                            />
-                                                                        </div>
-                                                                        <div className="flex-1">
+                                                                    {/* Randomize Options */}
+                                                                    <label className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer group">
+                                                                        <div className="flex-1 pr-4">
                                                                             <span className="block text-sm font-bold text-slate-700 group-hover:text-purple-700 transition-colors">Acak Opsi Jawaban</span>
-                                                                            <span className="block text-xs text-slate-500">Pilihan ganda akan diacak</span>
+                                                                            <span className="block text-xs text-slate-500 mt-0.5">Pilihan ganda akan diacak</span>
                                                                         </div>
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={formData.randomizeAnswers || false}
+                                                                            onChange={(e) => setFormData({ ...formData, randomizeAnswers: e.target.checked })}
+                                                                            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 border-gray-300"
+                                                                        />
                                                                     </label>
 
-                                                                    <label className="flex items-start gap-3 cursor-pointer group">
-                                                                        <div className="relative flex items-center">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                checked={formData.isGuestAllowed || false}
-                                                                                onChange={(e) => setFormData({ ...formData, isGuestAllowed: e.target.checked })}
-                                                                                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 border-gray-300"
-                                                                            />
-                                                                        </div>
-                                                                        <div className="flex-1">
+                                                                    {/* Guest Access */}
+                                                                    <label className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer group">
+                                                                        <div className="flex-1 pr-4">
                                                                             <span className="block text-sm font-bold text-slate-700 group-hover:text-purple-700 transition-colors">Guest Access</span>
-                                                                            <span className="block text-xs text-slate-500">Izinkan akses tanpa login</span>
+                                                                            <span className="block text-xs text-slate-500 mt-0.5">Izinkan akses tanpa login</span>
                                                                         </div>
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={formData.isGuestAllowed || false}
+                                                                            onChange={(e) => setFormData({ ...formData, isGuestAllowed: e.target.checked })}
+                                                                            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 border-gray-300"
+                                                                        />
                                                                     </label>
                                                                 </div>
                                                             </div>
@@ -560,6 +563,7 @@ export default function TeacherTaskModal({
                                                                                     >
                                                                                         <option value="single_choice">Pilihan Ganda (1 Jawaban)</option>
                                                                                         <option value="multiple_choice">Pilihan Jamak (Checkbox)</option>
+                                                                                        <option value="matching">Menjodohkan (Matching)</option>
                                                                                         <option value="true_false">Benar / Salah</option>
                                                                                         <option value="short_answer">Jawaban Singkat</option>
                                                                                         <option value="essay">Essay</option>
@@ -574,6 +578,8 @@ export default function TeacherTaskModal({
                                                                                             className="w-16 px-2 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-purple-500 outline-none"
                                                                                         />
                                                                                     </div>
+
+
                                                                                 </div>
                                                                                 <div className="flex items-center gap-2">
                                                                                     <button onClick={() => duplicateQuestion(question)} className="p-2 text-slate-400 hover:text-purple-600 transition-colors" title="Duplikat">
@@ -588,12 +594,12 @@ export default function TeacherTaskModal({
                                                                             <div className="p-6 space-y-6">
                                                                                 {/* Question Text */}
                                                                                 <div>
-                                                                                    <label className="block text-sm font-bold text-slate-700 mb-2">Pertanyaan</label>
+                                                                                    <label className="block text-sm font-bold text-slate-700 mb-2">Pertanyaan / Instruksi</label>
                                                                                     <textarea
                                                                                         value={question.text}
                                                                                         onChange={(e) => updateQuestion(question.id, { text: e.target.value })}
                                                                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-purple-500 outline-none min-h-[100px] text-base"
-                                                                                        placeholder="Tulis pertanyaan di sini..."
+                                                                                        placeholder={question.type === 'matching' ? "Instruksi: Pasangkan item berikut..." : "Tulis pertanyaan di sini..."}
                                                                                     />
 
                                                                                     {/* Attachment UI */}
@@ -624,28 +630,43 @@ export default function TeacherTaskModal({
                                                                                             ))}
                                                                                         </div>
 
-                                                                                        <div className="flex gap-2 flex-wrap">
-                                                                                            <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
-                                                                                                <ImageIcon className="h-4 w-4" /> Gambar
-                                                                                                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleQuestionFileUpload(question.id, e.target.files[0])} />
-                                                                                            </label>
-                                                                                            <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
-                                                                                                <Paperclip className="h-4 w-4" /> File
-                                                                                                <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" onChange={(e) => handleQuestionFileUpload(question.id, e.target.files[0])} />
-                                                                                            </label>
-                                                                                            <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
-                                                                                                <Video className="h-4 w-4" /> Video
-                                                                                                <input type="file" className="hidden" accept="video/*" onChange={(e) => handleQuestionFileUpload(question.id, e.target.files[0])} />
-                                                                                            </label>
-                                                                                            <button
-                                                                                                onClick={() => {
-                                                                                                    setLinkModalData({ questionId: question.id, url: '', name: '' });
-                                                                                                    setShowLinkModal(true);
-                                                                                                }}
-                                                                                                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors"
-                                                                                            >
-                                                                                                <LinkIcon className="h-4 w-4" /> Link
-                                                                                            </button>
+                                                                                        <div className="flex items-center justify-between flex-wrap gap-2">
+                                                                                            <div className="flex gap-2 flex-wrap">
+                                                                                                <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
+                                                                                                    <ImageIcon className="h-4 w-4" /> Gambar
+                                                                                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleQuestionFileUpload(question.id, e.target.files[0])} />
+                                                                                                </label>
+                                                                                                <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
+                                                                                                    <Paperclip className="h-4 w-4" /> File
+                                                                                                    <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" onChange={(e) => handleQuestionFileUpload(question.id, e.target.files[0])} />
+                                                                                                </label>
+                                                                                                <label className="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors">
+                                                                                                    <Video className="h-4 w-4" /> Video
+                                                                                                    <input type="file" className="hidden" accept="video/*" onChange={(e) => handleQuestionFileUpload(question.id, e.target.files[0])} />
+                                                                                                </label>
+                                                                                                <button
+                                                                                                    onClick={() => {
+                                                                                                        setLinkModalData({ questionId: question.id, url: '', name: '' });
+                                                                                                        setShowLinkModal(true);
+                                                                                                    }}
+                                                                                                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors"
+                                                                                                >
+                                                                                                    <LinkIcon className="h-4 w-4" /> Link
+                                                                                                </button>
+                                                                                            </div>
+
+                                                                                            {/* Partial Scoring Toggle (Moved Here) */}
+                                                                                            {(question.type === 'multiple_choice' || question.type === 'matching') && (
+                                                                                                <label className="flex items-center gap-2 cursor-pointer bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors" title="Jika aktif, siswa dapat poin sebagian jika jawaban tidak lengkap tapi benar">
+                                                                                                    <input
+                                                                                                        type="checkbox"
+                                                                                                        checked={question.allowPartial || false}
+                                                                                                        onChange={(e) => updateQuestion(question.id, { allowPartial: e.target.checked })}
+                                                                                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                                                                                                    />
+                                                                                                    <span className="text-xs font-bold text-blue-700">Partial Scoring</span>
+                                                                                                </label>
+                                                                                            )}
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
@@ -662,6 +683,60 @@ export default function TeacherTaskModal({
                                                                                                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-purple-500 outline-none min-h-[100px] text-sm bg-amber-50/30"
                                                                                             />
                                                                                             <p className="text-xs text-slate-500 mt-1">Hanya untuk referensi guru, tidak dilihat siswa.</p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ) : question.type === 'matching' ? (
+                                                                                    <div>
+                                                                                        <label className="block text-sm font-bold text-slate-700 mb-3">Pasangan Jawaban (Matching Pairs)</label>
+                                                                                        <div className="grid grid-cols-[1fr,auto,1fr,auto] gap-2 mb-2 px-2">
+                                                                                            <span className="text-xs font-bold text-slate-500 uppercase">Sisi Kiri (Pertanyaan)</span>
+                                                                                            <span></span>
+                                                                                            <span className="text-xs font-bold text-slate-500 uppercase">Sisi Kanan (Pasangan)</span>
+                                                                                        </div>
+                                                                                        <div className="space-y-3">
+                                                                                            {(question.options || []).map((pair, idx) => (
+                                                                                                <div key={pair.id} className="flex items-center gap-2">
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        value={pair.left || ''}
+                                                                                                        onChange={(e) => {
+                                                                                                            const newOpts = question.options.map(p => p.id === pair.id ? { ...p, left: e.target.value } : p);
+                                                                                                            updateQuestion(question.id, { options: newOpts });
+                                                                                                        }}
+                                                                                                        className="flex-1 px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+                                                                                                        placeholder="Item Kiri"
+                                                                                                    />
+                                                                                                    <span className="text-slate-400">➜</span>
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        value={pair.right || ''}
+                                                                                                        onChange={(e) => {
+                                                                                                            const newOpts = question.options.map(p => p.id === pair.id ? { ...p, right: e.target.value } : p);
+                                                                                                            updateQuestion(question.id, { options: newOpts });
+                                                                                                        }}
+                                                                                                        className="flex-1 px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+                                                                                                        placeholder="Pasangan Kanan"
+                                                                                                    />
+                                                                                                    <button
+                                                                                                        onClick={() => {
+                                                                                                            const newOpts = question.options.filter(p => p.id !== pair.id);
+                                                                                                            updateQuestion(question.id, { options: newOpts });
+                                                                                                        }}
+                                                                                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                                                                                                    >
+                                                                                                        <X className="h-4 w-4" />
+                                                                                                    </button>
+                                                                                                </div>
+                                                                                            ))}
+                                                                                            <button
+                                                                                                onClick={() => {
+                                                                                                    const newPair = { id: crypto.randomUUID(), left: '', right: '' };
+                                                                                                    updateQuestion(question.id, { options: [...(question.options || []), newPair] });
+                                                                                                }}
+                                                                                                className="text-sm text-purple-600 font-bold hover:underline flex items-center gap-1 mt-2"
+                                                                                            >
+                                                                                                <Plus className="h-4 w-4" /> Tambah Pasangan
+                                                                                            </button>
                                                                                         </div>
                                                                                     </div>
                                                                                 ) : (

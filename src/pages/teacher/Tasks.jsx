@@ -160,6 +160,24 @@ export default function Tasks() {
         setShowModal(true);
     };
 
+    const handleDuplicateTask = (task) => {
+        setFormData({
+            title: `${task.title} (Copy)`,
+            description: task.description,
+            deadline: task.deadline,
+            assignedClasses: [], // Clear classes to force re-assignment
+            resources: task.resources || [],
+            submissionInstructions: task.submissionInstructions || '',
+            attachments: task.attachments || [],
+            questions: task.questions ? task.questions.map(q => ({ ...q, id: crypto.randomUUID() })) : [] // Deep copy questions with new IDs
+        });
+        setEditingTask(null); // Set to null so it creates a NEW task
+        setUploadFile(null);
+        setLinkModalData({ url: '', name: '' });
+        setShowModal(true);
+        toast.success("Task duplicated! Please select classes and save.");
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.title || !formData.deadline || formData.assignedClasses.length === 0) {
@@ -689,6 +707,13 @@ export default function Tasks() {
                                             </td>
                                             <td className="px-6 py-4 text-center whitespace-nowrap">
                                                 <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDuplicateTask(task); }}
+                                                        className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-all"
+                                                        title="Duplicate Task"
+                                                    >
+                                                        <Copy className="h-4 w-4" />
+                                                    </button>
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); handleOpenModal(task); }}
                                                         className="text-amber-600 bg-amber-50 hover:bg-amber-100 p-2 rounded-lg transition-all"

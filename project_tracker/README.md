@@ -1,3 +1,40 @@
+## 🚀 [2026-01-30 | 20:30] Feature: Advanced Grading, Matching Questions & Smart Sorting
+
+### Overview
+This major update introduces "Matching" (Menjodohkan) question types, "Partial Scoring" capabilities, and a "Smart Sorting" mechanism for student submissions. It also refines the UI for Quiz Settings to match the Exam editor's aesthetic.
+
+### ✅ Key Features & Changes
+1.  **Advanced Grading & Question Types (`TeacherTaskModal.jsx`, `TaskDetail.jsx`)**:
+    *   **Matching Question Support**: Fully implemented the "Matching" question type for both Teachers (Create) and Students (Answer).
+    *   **Partial Scoring**: Added an **"allowPartial" toggle** (Partial Scoring) for Multiple Choice and Matching questions.
+        *   **Enabled**: Logic calculates score based on ratio of correctness (e.g., matching 2 of 3 pairs correctly awards 66% points).
+        *   **Disabled**: All-or-Nothing grading (0 points unless perfectly correct).
+    *   **UI Polish**: Moved the "Partial Scoring" toggle to the attachment row for better alignment.
+
+2.  **Smart Sorting ("Auto Sortir") (`TaskDetail.jsx`)**:
+    *   **Logic**: Implemented a new default sorting algorithm to help teachers prioritize grading.
+        1.  **Top**: Submitted & **Ungraded** (Ordered by Earliest Submit).
+        2.  **Middle**: Submitted & **Graded** (Ordered by Earliest Submit).
+        3.  **Bottom**: **Not Submitted** (Ordered Alphabetically).
+    *   **Experience**: Moving a student from "Ungraded" to "Graded" automatically shifts them down the list, keeping the teacher's focus on pending works.
+
+3.  **UI Refinements (`TeacherTaskModal.jsx`)**:
+    *   **Quiz Settings Style**: Updated the "Pengaturan Kuis" checkboxes (Randomize, Guest Access) to a clean **Card Style** with `slate-50` background and specific hover states, removing standard borders for a cleaner look.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/TaskDetail.jsx` | Implemented grading logic for Matching/Partial Scoring, and added "Smart Sort" logic |
+| `src/pages/teacher/TeacherTaskModal.jsx` | Added Matching UI, Partial Scoring toggle, and styled Quiz Settings |
+| `src/pages/student/StudentTaskModal.jsx` | Implemented "Matching" question rendering and answering UI |
+
+### 📦 Git Commits
+*   `feat(grading): implement matching question type and partial scoring logic`
+*   `feat(teacher): add smart sorting to prioritize ungraded submissions`
+*   `ui(teacher): refine quiz settings and partial scoring toggle placement`
+
+---
+
 ## 🚀 [2026-01-30 | 19:10] Feature: Table Quick Sort & Pagination
 
 ### Overview

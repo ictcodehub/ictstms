@@ -541,6 +541,38 @@ export default function StudentTaskModal({
                                                                 </label>
                                                             ))}
 
+                                                            {/* Matching Question */}
+                                                            {q.type === 'matching' && (
+                                                                <div className="space-y-3 bg-white rounded-xl border border-slate-200 p-4">
+                                                                    {q.options.map((pair) => {
+                                                                        const rightOptions = [...q.options].map(o => o.right).sort(); // Simple sort to randomize order visually
+                                                                        return (
+                                                                            <div key={pair.id} className="flex flex-col md:flex-row md:items-center gap-3 justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                                                                <div className="flex-1 font-medium text-slate-700 text-sm">{pair.left}</div>
+                                                                                <div className="hidden md:block text-slate-400">→</div>
+                                                                                <div className="block md:hidden text-center text-slate-400">↓</div>
+                                                                                <div className="flex-1 w-full md:w-auto">
+                                                                                    <select
+                                                                                        value={(localAnswers[q.id] || {})[pair.id] || ''}
+                                                                                        onChange={(e) => {
+                                                                                            const currentAns = localAnswers[q.id] || {};
+                                                                                            handleAnswerChange(q.id, { ...currentAns, [pair.id]: e.target.value });
+                                                                                        }}
+                                                                                        disabled={submission && !editingTask && editingTask !== task.id}
+                                                                                        className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                                                                                    >
+                                                                                        <option value="">Pilih Pasangan...</option>
+                                                                                        {rightOptions.map((opt, i) => (
+                                                                                            <option key={i} value={opt}>{opt}</option>
+                                                                                        ))}
+                                                                                    </select>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+
                                                             {(q.type === 'essay' || q.type === 'short_answer') && (
                                                                 <textarea
                                                                     value={localAnswers[q.id] || ''}

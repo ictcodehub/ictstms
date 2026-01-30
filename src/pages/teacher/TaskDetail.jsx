@@ -23,7 +23,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
     const [filterClass, setFilterClass] = useState('all');
-    const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
+    const [sortConfig, setSortConfig] = useState({ key: 'smart', direction: 'asc' });
     const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
 
     // Validate task object
@@ -195,9 +195,64 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                             const isCorrect = q.options.find(o => o.isCorrect)?.id === ans;
                             if (isCorrect) points = parseInt(q.points) || 0;
                         } else if (q.type === 'multiple_choice') {
-                            const correct = q.options.filter(o => o.isCorrect).map(o => o.id).sort().join(',');
-                            const studentAns = (ans || []).sort().join(',');
-                            if (correct === studentAns) points = parseInt(q.points) || 0;
+                            const maxPoints = parseInt(q.points) || 0;
+
+                            if (q.allowPartial) {
+                                // Partial Scoring Logic
+                                const validOptions = q.options.filter(o => o.isCorrect).map(o => o.id);
+                                const studentAnsArr = Array.isArray(ans) ? ans : [];
+
+                                // Count how many correct options the student selected
+                                let correctFound = 0;
+                                studentAnsArr.forEach(selectedId => {
+                                    if (validOptions.includes(selectedId)) {
+                                        correctFound++;
+                                    }
+                                });
+
+                                const totalCorrect = validOptions.length;
+
+                                if (totalCorrect > 0) {
+                                    // Simple Ratio: (Found / Total) * Points
+                                    const rawScore = (correctFound / totalCorrect) * maxPoints;
+                                    points = Math.round(rawScore * 10) / 10; // Round to 1 decimal
+                                } else {
+                                    points = 0;
+                                }
+                            } else {
+                                // Exact Match Logic (All or Nothing)
+                                const correct = q.options.filter(o => o.isCorrect).map(o => o.id).sort().join(',');
+                                const studentAns = (ans || []).sort().join(',');
+                                if (correct === studentAns) points = maxPoints;
+                            }
+                        } else if (q.type === 'matching') {
+                            // Matching Grading Logic
+                            const pairs = q.options || [];
+                            const studentAns = ans || {};
+                            let correctPairs = 0;
+
+                            pairs.forEach(pair => {
+                                // key is pair.id, value is the right-side text selected by student
+                                if (studentAns[pair.id] === pair.right) {
+                                    correctPairs++;
+                                }
+                            });
+
+                            const totalPairs = pairs.length;
+                            const maxPoints = parseInt(q.points) || 0;
+
+                            if (totalPairs > 0) {
+                                if (q.allowPartial) {
+                                    // Partial Scoring
+                                    const rawScore = (correctPairs / totalPairs) * maxPoints;
+                                    points = Math.round(rawScore * 10) / 10;
+                                } else {
+                                    // All or Nothing
+                                    points = (correctPairs === totalPairs) ? maxPoints : 0;
+                                }
+                            } else {
+                                points = 0;
+                            }
                         }
                     }
                     initialScores[q.id] = points;
@@ -456,6 +511,36 @@ export default function TaskDetail({ task, classes = [], onBack }) {
 
     const sortedStudents = [...filteredStudents].sort((a, b) => {
         let aValue, bValue;
+
+        // Custom Smart Sort Logic
+        if (sortConfig.key === 'smart') {
+            const getPriority = (student) => {
+                const sub = submissions[student.uid] || submissions[student.id];
+                if (!sub) return 3; // Not submitted (Lowest priority)
+                if (sub.grade === undefined || sub.grade === null) return 1; // Submitted & Ungraded (Highest priority)
+                return 2; // Graded (Medium priority)
+            };
+
+            const pA = getPriority(a);
+            const pB = getPriority(b);
+
+            if (pA !== pB) {
+                return pA - pB; // ASC priority (1 -> 2 -> 3)
+            }
+
+            // Same priority group sorting
+            if (pA === 3) {
+                // Not submitted -> Sort by Name
+                return (a.name?.toLowerCase() || '').localeCompare(b.name?.toLowerCase() || '');
+            } else {
+                // Submitted (Graded or Ungraded) -> Sort by Submission Date (Earliest First)
+                const subA = submissions[a.uid] || submissions[a.id];
+                const subB = submissions[b.uid] || submissions[b.id];
+                const timeA = subA?.submittedAt?.toMillis?.() || (subA?.submittedAt ? new Date(subA.submittedAt).getTime() : 0);
+                const timeB = subB?.submittedAt?.toMillis?.() || (subB?.submittedAt ? new Date(subB.submittedAt).getTime() : 0);
+                return timeA - timeB;
+            }
+        }
 
         switch (sortConfig.key) {
             case 'name':
