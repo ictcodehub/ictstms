@@ -42,7 +42,9 @@ export default function Tasks() {
         assignedClasses: [],
         resources: [],
         submissionInstructions: '',
-        attachments: []
+        submissionInstructions: '',
+        attachments: [],
+        questions: []
     });
     const [uploadFile, setUploadFile] = useState(null);
     const [showLinkModal, setShowLinkModal] = useState(false);
@@ -130,7 +132,10 @@ export default function Tasks() {
                 assignedClasses: task.assignedClasses || [],
                 resources: task.resources || [],
                 submissionInstructions: task.submissionInstructions || '',
-                attachments: task.attachments || []
+                resources: task.resources || [],
+                submissionInstructions: task.submissionInstructions || '',
+                attachments: task.attachments || [],
+                questions: task.questions || []
             });
             setFormData({
                 title: task.title,
@@ -139,13 +144,16 @@ export default function Tasks() {
                 assignedClasses: task.assignedClasses || [],
                 resources: task.resources || [],
                 submissionInstructions: task.submissionInstructions || '',
-                attachments: task.attachments || []
+                resources: task.resources || [],
+                submissionInstructions: task.submissionInstructions || '',
+                attachments: task.attachments || [],
+                questions: task.questions || []
             });
             setUploadFile(null);
             setLinkModalData({ url: '', name: '' });
         } else {
             setEditingTask(null);
-            setFormData({ title: '', description: '', deadline: '', assignedClasses: [], resources: [], submissionInstructions: '', attachments: [] });
+            setFormData({ title: '', description: '', deadline: '', assignedClasses: [], resources: [], submissionInstructions: '', attachments: [], questions: [] });
             setUploadFile(null);
             setLinkModalData({ url: '', name: '' });
         }

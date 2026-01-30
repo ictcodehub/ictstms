@@ -26,8 +26,57 @@ export default function StudentTaskModal({
     setFile,
     editingTask,
     startEditing,
-    cancelEditing
+    cancelEditing,
+    // New props for answers
+    quizAnswers,
+    setQuizAnswers
 }) {
+    const [localAnswers, setLocalAnswers] = useState({});
+
+    const [shuffledQuestions, setShuffledQuestions] = useState([]);
+
+    useEffect(() => {
+        if (task?.questions) {
+            let q = [...task.questions];
+            // 1. Shuffle Questions if enabled
+            if (task.randomizeQuestions) {
+                for (let i = q.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [q[i], q[j]] = [q[j], q[i]];
+                }
+            }
+
+            // 2. Shuffle Options for each question if enabled
+            const processedQuestions = q.map(question => {
+                if (task.randomizeAnswers && question.options) {
+                    const shuffledOptions = [...question.options];
+                    for (let i = shuffledOptions.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+                    }
+                    return { ...question, options: shuffledOptions };
+                }
+                return question;
+            });
+
+            setShuffledQuestions(processedQuestions);
+        }
+    }, [task]);
+
+    useEffect(() => {
+        if (quizAnswers) {
+            setLocalAnswers(quizAnswers);
+        } else if (submission?.answers) {
+            setLocalAnswers(submission.answers);
+            if (setQuizAnswers) setQuizAnswers(submission.answers);
+        }
+    }, [submission, quizAnswers, setQuizAnswers]);
+
+    const handleAnswerChange = (qId, answer) => {
+        const newAnswers = { ...localAnswers, [qId]: answer };
+        setLocalAnswers(newAnswers);
+        if (setQuizAnswers) setQuizAnswers(newAnswers);
+    };
     const [previewUrl, setPreviewUrl] = useState(null);
 
     // Local state to track which existing attachments are kept
@@ -373,6 +422,144 @@ export default function StudentTaskModal({
                                 </div>
                             )}
 
+                            {/* SECTION 1.5: QUIZ QUESTIONS (New Section) */}
+                            {task.questions && task.questions.length > 0 && (
+                                <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 mt-8">
+                                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                        <CheckCircle className="h-5 w-5 text-purple-600" />
+                                        Quiz Questions
+                                    </h3>
+
+                                    <div className="space-y-8">
+                                        {(shuffledQuestions.length > 0 ? shuffledQuestions : task.questions).map((q, idx) => (
+                                            <div key={q.id} className="border border-slate-100 rounded-xl p-4 bg-slate-50/50">
+                                                <div className="flex gap-4">
+                                                    <div className="flex-none w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm">
+                                                        {idx + 1}
+                                                    </div>
+                                                    <div className="flex-1 space-y-4">
+                                                        <div>
+                                                            <p className="text-slate-800 font-medium whitespace-pre-wrap">{q.text}</p>
+
+                                                            {/* Render Question Attachments */}
+                                                            {q.attachments && q.attachments.length > 0 && (
+                                                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                                                    {q.attachments.map((att, attIdx) => (
+                                                                        <div key={`${q.id}-att-${attIdx}`} className="group relative">
+                                                                            {att.type === 'image' ? (
+                                                                                <div
+                                                                                    className="relative rounded-lg overflow-hidden border border-slate-200 cursor-pointer bg-slate-50"
+                                                                                    onClick={() => setLightboxImage(att.url)}
+                                                                                >
+                                                                                    <img src={att.url} alt="Attachment" className="w-full h-32 object-cover" />
+                                                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                                                                        <Maximize2 className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 drop-shadow-md" />
+                                                                                    </div>
+                                                                                </div>
+                                                                            ) : att.type === 'video' ? (
+                                                                                <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-900">
+                                                                                    <video src={att.url} controls className="w-full h-48" />
+                                                                                </div>
+                                                                            ) : att.type === 'link' ? (
+                                                                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 bg-emerald-50 border border-emerald-100 rounded-lg hover:shadow-sm transition-all">
+                                                                                    <div className="p-1.5 bg-white rounded text-emerald-600 shadow-sm"><Link2 className="h-4 w-4" /></div>
+                                                                                    <div className="flex-1 min-w-0">
+                                                                                        <p className="text-xs font-bold text-emerald-800 truncate">{att.name || att.url}</p>
+                                                                                        <p className="text-[10px] text-emerald-600 truncate opacity-80">{att.url}</p>
+                                                                                    </div>
+                                                                                </a>
+                                                                            ) : (
+                                                                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 bg-blue-50 border border-blue-100 rounded-lg hover:shadow-sm transition-all">
+                                                                                    <div className="p-1.5 bg-white rounded text-blue-600 shadow-sm"><FileText className="h-4 w-4" /></div>
+                                                                                    <div className="flex-1 min-w-0">
+                                                                                        <p className="text-xs font-bold text-blue-800 truncate">{att.name || 'File'}</p>
+                                                                                        <p className="text-[10px] text-blue-600 truncate opacity-80">Download</p>
+                                                                                    </div>
+                                                                                </a>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+
+                                                            <div className="mt-1 text-xs font-bold text-slate-400 uppercase tracking-wide">
+                                                                {q.type.replace('_', ' ')} • {q.points} Pts
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Options / Input */}
+                                                        <div className="space-y-2">
+                                                            {(q.type === 'single_choice' || q.type === 'true_false') && q.options.map((opt) => (
+                                                                <label key={opt.id} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${localAnswers[q.id] === opt.id
+                                                                    ? 'bg-purple-50 border-purple-200 shadow-sm'
+                                                                    : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                                                    } ${(submission && !editingTask) ? 'pointer-events-none opacity-90' : ''}`}>
+                                                                    <div className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${localAnswers[q.id] === opt.id
+                                                                        ? 'border-purple-600 bg-purple-600'
+                                                                        : 'border-slate-300 bg-white'
+                                                                        }`}>
+                                                                        {localAnswers[q.id] === opt.id && <div className="w-2 h-2 rounded-full bg-white" />}
+                                                                    </div>
+                                                                    <input
+                                                                        type="radio"
+                                                                        name={`q-${q.id}`}
+                                                                        className="sr-only"
+                                                                        checked={localAnswers[q.id] === opt.id}
+                                                                        onChange={() => handleAnswerChange(q.id, opt.id)}
+                                                                        disabled={submission && !editingTask && editingTask !== task.id}
+                                                                    />
+                                                                    <span className="text-sm text-slate-700">{opt.text}</span>
+                                                                </label>
+                                                            ))}
+
+                                                            {/* Multiple Choice (Checkbox) */}
+                                                            {q.type === 'multiple_choice' && q.options.map((opt) => (
+                                                                <label key={opt.id} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${(localAnswers[q.id] || []).includes(opt.id)
+                                                                    ? 'bg-purple-50 border-purple-200 shadow-sm'
+                                                                    : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                                                    } ${(submission && !editingTask) ? 'pointer-events-none opacity-90' : ''}`}>
+                                                                    <div className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-colors ${(localAnswers[q.id] || []).includes(opt.id)
+                                                                        ? 'border-purple-600 bg-purple-600'
+                                                                        : 'border-slate-300 bg-white'
+                                                                        }`}>
+                                                                        {(localAnswers[q.id] || []).includes(opt.id) && <CheckCircle className="w-3.5 h-3.5 text-white" />}
+                                                                    </div>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="sr-only"
+                                                                        checked={(localAnswers[q.id] || []).includes(opt.id)}
+                                                                        onChange={(e) => {
+                                                                            const current = localAnswers[q.id] || [];
+                                                                            const newAns = e.target.checked
+                                                                                ? [...current, opt.id]
+                                                                                : current.filter(id => id !== opt.id);
+                                                                            handleAnswerChange(q.id, newAns);
+                                                                        }}
+                                                                        disabled={submission && !editingTask && editingTask !== task.id}
+                                                                    />
+                                                                    <span className="text-sm text-slate-700">{opt.text}</span>
+                                                                </label>
+                                                            ))}
+
+                                                            {(q.type === 'essay' || q.type === 'short_answer') && (
+                                                                <textarea
+                                                                    value={localAnswers[q.id] || ''}
+                                                                    onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                                                                    placeholder="Tulis jawaban Anda disini..."
+                                                                    rows={q.type === 'short_answer' ? 2 : 4}
+                                                                    className="w-full p-3 rounded-xl border border-slate-200 focus:border-purple-300 focus:ring-4 focus:ring-purple-50 outline-none transition-all resize-none text-sm"
+                                                                    disabled={submission && !editingTask && editingTask !== task.id}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* SECTION 2: SUBMISSION AREA */}
                             <div className="mt-8">
                                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2 px-1">
@@ -551,7 +738,7 @@ export default function StudentTaskModal({
                                                                 Cancel
                                                             </button>
                                                             <button
-                                                                onClick={() => onUpdate(task.id, submission.id, submissionText, file, keptAttachments)}
+                                                                onClick={() => onUpdate(task.id, submission.id, submissionText, file, keptAttachments, localAnswers)}
                                                                 disabled={isSubmitting || !submissionText || submissionText === '<p><br></p>'}
                                                                 className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2"
                                                             >
@@ -820,7 +1007,7 @@ export default function StudentTaskModal({
                                                         </div>
 
                                                         <button
-                                                            onClick={() => onSubmit(task.id)}
+                                                            onClick={() => onSubmit(task.id, submissionText, file, localAnswers)}
                                                             disabled={isSubmitting || !submissionText || submissionText === '<p><br></p>'}
                                                             className="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                                         >

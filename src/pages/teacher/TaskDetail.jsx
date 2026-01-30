@@ -19,6 +19,7 @@ export default function TaskDetail({ task, classes = [], onBack }) {
     const [showGradeModal, setShowGradeModal] = useState(false);
     const [currentSubmission, setCurrentSubmission] = useState(null);
     const [gradeData, setGradeData] = useState({ grade: '', feedback: '' });
+    const [questionScores, setQuestionScores] = useState({});
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
     const [filterClass, setFilterClass] = useState('all');
@@ -178,11 +179,48 @@ export default function TaskDetail({ task, classes = [], onBack }) {
     const handleGradeClick = (student) => {
         const submission = submissions[student.uid] || submissions[student.id];
         setCurrentSubmission({ student, submission });
+
+        // Initialize question scores
+        const initialScores = {};
+        if (submission) {
+            if (submission.scores) {
+                Object.assign(initialScores, submission.scores);
+            } else if (task.questions && task.questions.length > 0) {
+                // Default based on correctness if no scores saved
+                task.questions.forEach(q => {
+                    const ans = submission.answers?.[q.id];
+                    let points = 0;
+                    if (ans) {
+                        if (q.type === 'single_choice' || q.type === 'true_false') {
+                            const isCorrect = q.options.find(o => o.isCorrect)?.id === ans;
+                            if (isCorrect) points = parseInt(q.points) || 0;
+                        } else if (q.type === 'multiple_choice') {
+                            const correct = q.options.filter(o => o.isCorrect).map(o => o.id).sort().join(',');
+                            const studentAns = (ans || []).sort().join(',');
+                            if (correct === studentAns) points = parseInt(q.points) || 0;
+                        }
+                    }
+                    initialScores[q.id] = points;
+                });
+            }
+        }
+        setQuestionScores(initialScores);
+
         setGradeData({
             grade: submission?.grade?.toString() || '',
             feedback: submission?.feedback || ''
         });
         setShowGradeModal(true);
+    };
+
+    const handleQuestionScoreChange = (qId, value) => {
+        const val = value === '' ? '' : parseInt(value);
+        const updatedScores = { ...questionScores, [qId]: val };
+        setQuestionScores(updatedScores);
+
+        // Auto-calculate total grade
+        const total = Object.values(updatedScores).reduce((sum, score) => sum + (typeof score === 'number' ? score : 0), 0);
+        setGradeData(prev => ({ ...prev, grade: total }));
     };
 
     const handleSaveGrade = async () => {
@@ -203,7 +241,8 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                 grade: grade,
                 feedback: gradeData.feedback,
                 gradedAt: serverTimestamp(),
-                status: 'graded'
+                status: 'graded',
+                scores: questionScores // Save individual question scores
             });
 
             toast.success('Grade saved successfully!');
@@ -916,6 +955,110 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                     <div className="flex-1 flex flex-col h-full min-h-0 bg-white min-w-0">
                                         <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
                                             <div className="min-h-full">
+                                                {/* QUIZ RESULTS SECTION */}
+                                                {task.questions && task.questions.length > 0 && currentSubmission.submission?.answers && (
+                                                    <div className="mb-8 border-b border-slate-100 pb-8">
+                                                        <h4 className="text-sm font-bold text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                                            <CheckCircle2 className="h-5 w-5 text-purple-600" />
+                                                            Quiz Results
+                                                        </h4>
+                                                        <div className="space-y-6">
+                                                            {task.questions.map((q, idx) => {
+                                                                const studentAns = currentSubmission.submission.answers[q.id];
+                                                                // Determine correctness
+                                                                let isCorrect = false;
+                                                                let correctText = [];
+
+                                                                if (q.type === 'single_choice' || q.type === 'true_false') {
+                                                                    const correctOpt = q.options.find(o => o.isCorrect);
+                                                                    isCorrect = correctOpt?.id === studentAns;
+                                                                    correctText.push(correctOpt?.text || 'N/A');
+                                                                } else if (q.type === 'multiple_choice') {
+                                                                    const correctOpts = q.options.filter(o => o.isCorrect).map(o => o.id).sort();
+                                                                    const studentOpts = (studentAns || []).sort();
+                                                                    isCorrect = JSON.stringify(correctOpts) === JSON.stringify(studentOpts);
+                                                                    correctText = q.options.filter(o => o.isCorrect).map(o => o.text);
+                                                                } else {
+                                                                    // Essay/Short Answer - manual review
+                                                                    isCorrect = null; // Neutral
+                                                                }
+
+                                                                // Get text representation of student answer
+                                                                let studentAnsText = '-';
+                                                                if (q.type === 'essay' || q.type === 'short_answer') {
+                                                                    studentAnsText = studentAns || '(No Answer)';
+                                                                } else if (q.type === 'multiple_choice') {
+                                                                    studentAnsText = (studentAns || []).map(id => q.options.find(o => o.id === id)?.text).join(', ') || '-';
+                                                                } else {
+                                                                    studentAnsText = q.options.find(o => o.id === studentAns)?.text || '-';
+                                                                }
+
+                                                                return (
+                                                                    <div key={q.id} className={`p-4 rounded-xl border ${isCorrect === true ? 'bg-emerald-50/50 border-emerald-100' : isCorrect === false ? 'bg-red-50/50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+                                                                        <div className="flex gap-3">
+                                                                            <span className="flex-none font-bold text-slate-500">{idx + 1}.</span>
+                                                                            <div className="flex-1 space-y-2">
+                                                                                <p className="font-medium text-slate-800 text-sm whitespace-pre-wrap">{q.text}</p>
+
+                                                                                <div className="bg-white p-3 rounded-lg border border-slate-200 text-sm">
+                                                                                    <p className="text-xs font-bold text-slate-400 uppercase mb-1">Student Answer:</p>
+                                                                                    <div className={isCorrect === true ? 'text-emerald-700 font-medium' : isCorrect === false ? 'text-red-700 font-medium' : 'text-slate-700'}>
+                                                                                        {studentAnsText}
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                {isCorrect === false && (q.type !== 'essay' && q.type !== 'short_answer') && (
+                                                                                    <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100 text-sm">
+                                                                                        <p className="text-xs font-bold text-emerald-600 uppercase mb-1">Correct Answer:</p>
+                                                                                        <div className="text-emerald-800 font-medium">
+                                                                                            {correctText.join(', ')}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                <div className="mt-3 pt-3 border-t border-dashed border-slate-100 flex items-center justify-between gap-4">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        {isCorrect === true && (
+                                                                                            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
+                                                                                                <CheckCircle2 className="h-3 w-3" /> Auto: Correct
+                                                                                            </span>
+                                                                                        )}
+                                                                                        {isCorrect === false && (
+                                                                                            <span className="text-xs font-bold text-red-500 flex items-center gap-1 bg-red-50 px-2 py-1 rounded-md border border-red-100">
+                                                                                                <XCircle className="h-3 w-3" /> Auto: Incorrect
+                                                                                            </span>
+                                                                                        )}
+                                                                                        {isCorrect === null && (
+                                                                                            <span className="text-xs font-bold text-amber-500 flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
+                                                                                                <Hourglass className="h-3 w-3" /> Needs Grading
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+
+                                                                                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                                                                        <label className="text-xs font-bold text-slate-400 uppercase">Score</label>
+                                                                                        <div className="flex items-center bg-slate-50 rounded-lg p-0.5 border border-slate-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
+                                                                                            <input
+                                                                                                type="number"
+                                                                                                min="0"
+                                                                                                max={q.points}
+                                                                                                value={questionScores[q.id] ?? ''}
+                                                                                                onChange={(e) => handleQuestionScoreChange(q.id, e.target.value)}
+                                                                                                className="w-16 px-2 py-1 text-sm bg-white border border-slate-200 rounded-md text-right font-bold text-slate-700 outline-none"
+                                                                                                placeholder="0"
+                                                                                            />
+                                                                                            <span className="text-xs font-bold text-slate-400 px-2">/ {q.points} pts</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 {currentSubmission.submission?.content ? (
                                                     <div className="prose prose-slate max-w-none">
                                                         <div

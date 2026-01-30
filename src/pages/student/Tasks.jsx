@@ -166,13 +166,14 @@ export default function Tasks() {
 
 
 
-    const handleSubmit = async (taskId) => {
+    const handleSubmit = async (taskId, specificContent, specificFile, answers) => {
         // Find current task to check type
         const currentTask = tasks.find(t => t.id === taskId);
         const isMaterialOnly = currentTask?.isMaterialOnly;
 
-        // Check both desktop (submissionText) and mobile (comment) inputs
-        let content = submissionText.trim() || comment.trim();
+        // Check both desktop (submissionText) and mobile (comment) inputs, or specific arguments
+        let content = specificContent || submissionText.trim() || comment.trim();
+        const submissionFile = specificFile || file;
 
         if (isMaterialOnly) {
             content = "Marked as done successfully";
@@ -182,7 +183,7 @@ export default function Tasks() {
         }
 
         // Size check (5MB)
-        if (!isMaterialOnly && file && file.size > 5 * 1024 * 1024) {
+        if (!isMaterialOnly && submissionFile && submissionFile.size > 5 * 1024 * 1024) {
             showWarning("File limit is 5MB");
             return;
         }
@@ -194,14 +195,14 @@ export default function Tasks() {
             const userData = userDoc.docs[0].data();
 
             let attachments = [];
-            if (file) {
+            if (submissionFile) {
                 try {
 
-                    const storageRef = ref(storage, `task_submissions/${taskId}/${currentUser.uid}/${Date.now()}_${file.name}`);
+                    const storageRef = ref(storage, `task_submissions/${taskId}/${currentUser.uid}/${Date.now()}_${submissionFile.name}`);
 
                     // Promise wrapper for Resumable Upload
                     const uploadPromise = new Promise((resolve, reject) => {
-                        const uploadTask = uploadBytesResumable(storageRef, file);
+                        const uploadTask = uploadBytesResumable(storageRef, submissionFile);
 
                         uploadTask.on('state_changed',
                             (snapshot) => {
@@ -215,10 +216,10 @@ export default function Tasks() {
                                 try {
                                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                                     resolve({
-                                        name: file.name,
+                                        name: submissionFile.name,
                                         url: downloadURL,
-                                        type: file.type,
-                                        size: file.size,
+                                        type: submissionFile.type,
+                                        size: submissionFile.size,
                                         uploadedAt: new Date().toISOString()
                                     });
                                 } catch (err) {
@@ -239,25 +240,58 @@ export default function Tasks() {
                 }
             }
 
+            let autoGrade = null;
+            // Simple Auto-Grading Logic
+            if (currentTask.questions && currentTask.questions.length > 0) {
+                let totalPoints = 0;
+                let earnedPoints = 0;
+                let allObjective = true;
+
+                currentTask.questions.forEach(q => {
+                    totalPoints += (parseInt(q.points) || 0);
+                    if (q.type === 'single_choice' || q.type === 'true_false') {
+                        const correctOpt = q.options.find(o => o.isCorrect)?.id;
+                        if (correctOpt && answers[q.id] === correctOpt) {
+                            earnedPoints += (parseInt(q.points) || 0);
+                        }
+                    } else if (q.type === 'multiple_choice') {
+                        // strictly match all correct options? or partial? Let's do strict for now.
+                        const correctOpts = q.options.filter(o => o.isCorrect).map(o => o.id).sort().join(',');
+                        const studentOpts = (answers[q.id] || []).sort().join(',');
+                        if (correctOpts === studentOpts) {
+                            earnedPoints += (parseInt(q.points) || 0);
+                        }
+                    } else {
+                        // Essay/Short Answer cannot be auto-graded easily without AI or text match
+                        allObjective = false;
+                    }
+                });
+
+                if (allObjective && totalPoints > 0) {
+                    // Calculate grade 0-100
+                    autoGrade = Math.round((earnedPoints / totalPoints) * 100);
+                }
+            }
+
             await addDoc(collection(db, 'submissions'), {
                 taskId,
                 studentId: currentUser.uid,
                 studentName: userData.name,
                 content: content,
                 submittedAt: serverTimestamp(),
-                grade: null,
+                grade: autoGrade, // Set auto-grade if applicable
                 teacherComment: '',
-                attachments: attachments
+                attachments: attachments,
+                answers: answers || {}
             });
+
 
             showSuccess('Task submitted successfully!');
             setSubmissionText('');
             setComment(''); // Clear mobile input too
             setFile(null);
             setSubmitting(null);
-            setComment(''); // Clear mobile input too
-            setFile(null);
-            setSubmitting(null);
+
             if (selectedTask && selectedTask.id === taskId) {
                 // Keep modal open or close? User usually expects to see result.
                 // Let's keep it open in "View Mode" as the logic handles render.
@@ -269,7 +303,8 @@ export default function Tasks() {
         }
     };
 
-    const handleUpdate = async (taskId, submissionId, specificContent = null, newFile = null, keptAttachments = null) => {
+    const handleUpdate = async (taskId, submissionId, specificContent = null, newFile = null, keptAttachments = null, answers = null) => {
+        const currentTask = tasks.find(t => t.id === taskId);
         const contentToSave = specificContent !== null ? specificContent : submissionText;
 
         if (!contentToSave.trim()) {
@@ -292,19 +327,59 @@ export default function Tasks() {
                 submittedAt: currentSubmission.submittedAt,
                 grade: currentSubmission.grade,
                 feedback: currentSubmission.teacherComment,
-                archivedAt: new Date()
+
+                archivedAt: new Date(),
+                answers: currentSubmission.answers || {}
             } : null;
 
             const submissionRef = doc(db, 'submissions', submissionId);
+
+            let autoGrade = null;
+            // Simple Auto-Grading Logic
+            if (currentTask.questions && currentTask.questions.length > 0) {
+                let totalPoints = 0;
+                let earnedPoints = 0;
+                let allObjective = true;
+
+                currentTask.questions.forEach(q => {
+                    totalPoints += (parseInt(q.points) || 0);
+                    if (q.type === 'single_choice' || q.type === 'true_false') {
+                        const correctOpt = q.options.find(o => o.isCorrect)?.id;
+                        if (correctOpt && answers[q.id] === correctOpt) {
+                            earnedPoints += (parseInt(q.points) || 0);
+                        }
+                    } else if (q.type === 'multiple_choice') {
+                        const correctOpts = q.options.filter(o => o.isCorrect).map(o => o.id).sort().join(',');
+                        const studentOpts = (answers[q.id] || []).sort().join(',');
+                        if (correctOpts === studentOpts) {
+                            earnedPoints += (parseInt(q.points) || 0);
+                        }
+                    } else {
+                        allObjective = false;
+                    }
+                });
+
+                if (allObjective && totalPoints > 0) {
+                    autoGrade = Math.round((earnedPoints / totalPoints) * 100);
+                }
+            }
 
             const updateData = {
                 content: contentToSave.trim(),
                 revisedAt: serverTimestamp(),
                 revisionCount: increment(1),
-                // We update submittedAt to current time to reflect the "latest" submission time for deadline checks
                 submittedAt: serverTimestamp(),
-                status: 'submitted' // Reset status so teacher sees it as a new submission
+                status: 'submitted',
+                answers: answers || {},
+                grade: autoGrade !== null ? autoGrade : (updateData?.grade || null) // Keep existing grade if not auto-graded? No, reset if not auto-grade? 
+                // Actually if we edit, we should probably reset manual grade. 
+                // But if auto-grade is null (essay), we might want to set grade to null?
+                // Safe bet: If autoGrade is calculated, use it. If not, set to null (needs regrading).
             };
+
+            if (autoGrade === null && currentTask.questions?.length > 0) {
+                updateData.grade = null; // Reset grade if it requires manual review now
+            }
 
             // Initialize attachments list with kept ones or empty
             let finalAttachments = keptAttachments || [];

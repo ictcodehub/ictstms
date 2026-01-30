@@ -1,3 +1,35 @@
+## 🚀 [2026-01-30 | 18:30] Feature: Per-Question Grading & Critical Fixes
+
+### Overview
+Significantly enhanced the grading capabilities by allowing teachers to grade individual questions within a submission, with automatic total score calculation. Also resolved critical stability issues in the Student Tasks view and refined the Teacher Quiz UI.
+
+### ✅ Key Features & Fixes
+1.  **Per-Question Grading (`TaskDetail.jsx`)**:
+    -   **Individual Scoring**: Teachers can now assign scores to specific questions (e.g., Essay/Short Answer) alongside auto-graded ones.
+    -   **Auto-Summation**: The total "Grade / 100" is automatically recalculated in real-time as individual question scores are entered.
+    -   **Persistence**: Individual scores are saved to the database, allowing for detailed feedback and record-keeping on a per-question basis.
+
+2.  **Quiz UI Refinement (`TeacherTaskModal.jsx`)**:
+    -   **Default Hidden**: The "Add Quiz" section is now hidden by default to declutter the interface for non-quiz tasks.
+    -   **Toggle Logic**: Fixed the logic so the section reliably opens only when requested by the user.
+
+3.  **Critical Bug Fix (`Student/Tasks.jsx`)**:
+    -   **Crash Resolved**: Fixed a syntax error (redundant nested function) that caused the Student Tasks page to crash on load.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/teacher/TaskDetail.jsx` | Implemented per-question grading logic, state management, and score input UI |
+| `src/pages/teacher/TeacherTaskModal.jsx` | Fixed quiz section toggle behavior to be default hidden |
+| `src/pages/student/Tasks.jsx` | Fixed critical syntax error causing page crash |
+
+### 📦 Git Commits
+*   `feat(grading): implement per-question grading with auto-sum calculation`
+*   `fix(ui): ensure quiz section is hidden by default in task creator`
+*   `fix(student): resolve critical syntax error in tasks page`
+
+---
+
 ## 🎨 [2026-01-29 | 23:37] UI Refinements: Edit Modal & Revision History
 
 ### Overview
