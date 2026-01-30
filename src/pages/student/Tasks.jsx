@@ -149,7 +149,7 @@ export default function Tasks() {
         };
     }, [currentUser]);
 
-    const [sortConfig, setSortConfig] = useState({ key: 'deadline', direction: 'asc' });
+    const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
 
     // Use current tasks & submissions to build processed data
     useEffect(() => {
@@ -538,6 +538,17 @@ export default function Tasks() {
             if (submission.grade !== null && submission.grade !== undefined) {
                 return { label: 'Completed', color: 'bg-emerald-50 text-emerald-700 border border-emerald-100', icon: CheckCircle, type: 'graded' };
             }
+
+            // Check for Late Submission
+            if (task.deadline && submission.submittedAt) {
+                const submittedDate = submission.submittedAt?.toDate ? submission.submittedAt.toDate() : new Date(submission.submittedAt);
+                const deadlineDate = new Date(task.deadline);
+                // Add a small buffer (e.g. 1 minute) or strict comparison
+                if (submittedDate > deadlineDate) {
+                    return { label: 'Submitted Late', color: 'bg-orange-50 text-orange-700 border border-orange-200', icon: Clock, type: 'submitted' };
+                }
+            }
+
             return { label: 'Submitted', color: 'bg-amber-50 text-amber-700 border border-amber-100', icon: Send, type: 'submitted' };
         } else if (isOverdue) {
             return { label: 'Overdue', color: 'bg-red-50 text-red-700 border border-red-100', icon: AlertCircle, type: 'overdue' };

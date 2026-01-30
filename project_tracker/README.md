@@ -1,3 +1,29 @@
+## 🚀 [2026-01-30 | 20:45] Enhancement: Late Submission UI & Sorting
+
+### Overview
+Improved the clarity of submission statuses by adding a distinct "Submitted Late" indicator for both students and teachers. Also optimized the default sorting behavior for the Student Task list.
+
+### ✅ Key Features & Changes
+1.  **Late Submission Indicators (`Tasks.jsx`, `TaskDetail.jsx`)**:
+    *   **Student View**: Tasks submitted after the deadline now explicitly show a **"Submitted Late"** status with an **Orange** badge (previously generic "Submitted").
+    *   **Teacher View**: The Grade Submission modal also reflects this status with the same **Orange** badge, ensuring consistent communication about timeliness.
+    *   **Logic**: Enhanced date comparison logic to accurately detect late submissions based on server timestamps.
+
+2.  **Student Task Sorting (`Tasks.jsx`)**:
+    *   **Default Sort**: Changed the default sort order from "Deadline" to **"Newest Assigned"** (`createdAt` Descending). This ensures students see their most recently assigned work first.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/student/Tasks.jsx` | Updated default sort to 'newest' and added 'Submitted Late' status logic |
+| `src/pages/teacher/TaskDetail.jsx` | Synced 'Submitted Late' status logic and styling in grading modal |
+
+### 📦 Git Commits
+*   `ui(student): change default task sort to newest and add submitted late status`
+*   `ui(teacher): sync submitted late status style in grade modal`
+
+---
+
 ## 🚀 [2026-01-30 | 20:30] Feature: Advanced Grading, Matching Questions & Smart Sorting
 
 ### Overview

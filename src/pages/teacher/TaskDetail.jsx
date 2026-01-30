@@ -1210,9 +1210,11 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                             {(() => {
                                                                 const isRevised = currentSubmission.submission?.status === 'needs_revision';
                                                                 const isGraded = currentSubmission.submission?.grade !== undefined && currentSubmission.submission?.grade !== null;
-                                                                const isLate = new Date(currentSubmission.submission?.submittedAt) > new Date(task.deadline);
+                                                                const subDate = currentSubmission.submission?.submittedAt?.toDate ? currentSubmission.submission.submittedAt.toDate() : new Date(currentSubmission.submission?.submittedAt);
+                                                                const deadlineDate = new Date(task.deadline);
+                                                                const isLate = task.deadline && subDate > deadlineDate;
 
-                                                                let statusColor = 'bg-blue-100 text-blue-700 border-blue-200';
+                                                                let statusColor = 'bg-blue-50 text-blue-700 border-blue-200';
                                                                 let statusText = 'Submitted';
 
                                                                 if (isRevised) {
@@ -1222,8 +1224,8 @@ export default function TaskDetail({ task, classes = [], onBack }) {
                                                                     statusColor = 'bg-emerald-100 text-emerald-700 border-emerald-200';
                                                                     statusText = 'Graded';
                                                                 } else if (isLate) {
-                                                                    statusColor = 'bg-red-100 text-red-700 border-red-200';
-                                                                    statusText = 'Late Submission';
+                                                                    statusColor = 'bg-orange-50 text-orange-700 border-orange-200';
+                                                                    statusText = 'Submitted Late';
                                                                 }
 
                                                                 if (task.isMaterialOnly) {
