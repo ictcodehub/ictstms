@@ -4,7 +4,7 @@ import { db } from '../../lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { ClipboardCheck, Clock, CheckCircle2, AlertCircle, ArrowRight, Search, Filter, ChevronDown, Trophy, Calendar, ChevronLeft, ChevronRight, ClipboardList, ExternalLink } from 'lucide-react';
+import { ClipboardCheck, Clock, CheckCircle2, AlertCircle, ArrowRight, Search, Filter, ChevronDown, Trophy, Calendar, ChevronLeft, ChevronRight, ClipboardList, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
 import { getExamSession } from '../../utils/examSession';
@@ -99,6 +99,8 @@ export default function StudentExams() {
             where('studentId', '==', currentUser.uid)
         );
 
+        const [sortConfig, setSortConfig] = useState({ key: 'title', direction: 'asc' });
+
         const mergeAndSet = () => {
             const merged = localExams.map(exam => {
                 const attempts = localResults.filter(r => r.examId === exam.id);
@@ -107,11 +109,39 @@ export default function StudentExams() {
             });
 
             merged.sort((a, b) => {
-                const aActive = !a.attempt || (a.attempt.allowRetake);
-                const bActive = !b.attempt || (b.attempt.allowRetake);
-                if (aActive && !bActive) return -1;
-                if (!aActive && bActive) return 1;
-                return (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0);
+                let valA, valB;
+
+                switch (sortConfig.key) {
+                    case 'title':
+                        valA = a.title.toLowerCase();
+                        valB = b.title.toLowerCase();
+                        break;
+                    case 'duration':
+                        valA = parseInt(a.duration) || 0;
+                        valB = parseInt(b.duration) || 0;
+                        break;
+                    case 'status':
+                        const getStatusWeight = (exam) => {
+                            if (exam.attempt) return exam.attempt.allowRetake ? 2 : 3; // 2=Retake, 3=Completed
+                            if (examSessions[exam.id]) return 1; // In Progress
+                            if (isExamExpired(exam)) return 4; // Expired
+                            return 0; // Not Started
+                        };
+                        valA = getStatusWeight(a);
+                        valB = getStatusWeight(b);
+                        break;
+                    case 'score':
+                        valA = a.attempt ? (a.attempt.score || 0) : -1;
+                        valB = b.attempt ? (b.attempt.score || 0) : -1;
+                        break;
+                    default:
+                        valA = 0;
+                        valB = 0;
+                }
+
+                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
             });
 
             setExams(merged);
@@ -129,7 +159,7 @@ export default function StudentExams() {
         });
 
         return () => { unsubExams(); unsubResults(); };
-    }, [enrolledClassIds, currentUser]);
+    }, [enrolledClassIds, currentUser, sortConfig]);
 
     // Load exam sessions for all exams with real-time listener
     useEffect(() => {
@@ -153,6 +183,13 @@ export default function StudentExams() {
 
         return () => unsubscribe();
     }, [currentUser]);
+
+    const handleSort = (key) => {
+        setSortConfig(current => ({
+            key,
+            direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
 
     const isExamExpired = (exam) => {
         if (!exam.deadline) return false;
@@ -372,12 +409,46 @@ export default function StudentExams() {
                         <div className="flex items-center gap-3 flex-1">
                             <span className="w-6 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">No</span>
                             <div className="w-10"></div>
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exam Details</span>
+                            <div
+                                className="flex items-center gap-1 cursor-pointer group"
+                                onClick={() => handleSort('title')}
+                            >
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Exam Details</span>
+                                {sortConfig.key === 'title' ? (
+                                    sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 text-blue-600" /> : <ArrowDown className="h-3 w-3 text-blue-600" />
+                                ) : <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover:text-blue-400" />}
+                            </div>
                         </div>
                         <div className="flex items-center gap-8 pl-4">
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Duration</span>
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[120px] text-center">Status</span>
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[60px] text-center">Score</span>
+                            <div
+                                className="flex items-center justify-center gap-1 cursor-pointer group min-w-[100px]"
+                                onClick={() => handleSort('duration')}
+                            >
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Duration</span>
+                                {sortConfig.key === 'duration' ? (
+                                    sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 text-blue-600" /> : <ArrowDown className="h-3 w-3 text-blue-600" />
+                                ) : <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover:text-blue-400" />}
+                            </div>
+
+                            <div
+                                className="flex items-center justify-center gap-1 cursor-pointer group min-w-[120px]"
+                                onClick={() => handleSort('status')}
+                            >
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Status</span>
+                                {sortConfig.key === 'status' ? (
+                                    sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 text-blue-600" /> : <ArrowDown className="h-3 w-3 text-blue-600" />
+                                ) : <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover:text-blue-400" />}
+                            </div>
+
+                            <div
+                                className="flex items-center justify-center gap-1 cursor-pointer group min-w-[60px]"
+                                onClick={() => handleSort('score')}
+                            >
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Score</span>
+                                {sortConfig.key === 'score' ? (
+                                    sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 text-blue-600" /> : <ArrowDown className="h-3 w-3 text-blue-600" />
+                                ) : <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover:text-blue-400" />}
+                            </div>
                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Action</span>
                         </div>
                     </div>
@@ -685,9 +756,14 @@ export default function StudentExams() {
                     {(() => {
                         const totalItems = filteredExams.length;
                         const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+                        const startIndex = (currentPage - 1) * itemsPerPage;
+                        const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
 
                         return (
-                            <div className="bg-white px-6 py-5 border-t border-slate-200">
+                            <div className="bg-white px-6 py-4 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+                                <p className="text-sm text-slate-500">
+                                    Showing <span className="font-medium">{totalItems === 0 ? 0 : startIndex + 1}</span> - <span className="font-medium">{endIndex}</span> of <span className="font-medium">{totalItems}</span> exams
+                                </p>
                                 <Pagination
                                     currentPage={currentPage}
                                     totalPages={totalPages}

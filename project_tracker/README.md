@@ -1,3 +1,34 @@
+## 🚀 [2026-01-30 | 19:10] Feature: Table Quick Sort & Pagination
+
+### Overview
+Significantly improved the usability of student dashboards by implementing interactive "Quick Sort" headers for Tasks and Exams tables. Restored the "Sort By" dropdown for user preference while maintaining compatibility with the new sorting logic. Also aligned the pagination UI to consistency across student and teacher interfaces.
+
+### ✅ Key Features & Fixes
+1.  **Interactive Sorting (`Tasks.jsx` & `StudentExams.jsx`)**:
+    -   **Clickable Headers**: Users can now click table headers (Task Details, Status, Info/Deadline, Grade, etc.) to sort records.
+    -   **Visual Indicators**: Added directional icons (`ArrowUp`, `ArrowDown`) to show active sort state.
+    -   **Strict Column Support**: Clicking a header strictly sorts by that column's logic (e.g., Deadline sorts by urgent date, Status by importance).
+
+2.  **Sort Dropdown Restoration (`Tasks.jsx` Desktop & Mobile)**:
+    -   **Re-integration**: Restored the "Sort By" dropdown ("Deadline" vs "Newest") as per user request.
+    -   **Sync**: Dropdown now maps correctly to the new `sortConfig` state system, ensuring seamless operation between manual header clicks and dropdown selection.
+
+3.  **Pagination Consistency**:
+    -   **Standardized UI**: Updated the pagination footer in Student Tasks and Exams to match the Teacher Dashboard's "Showing X-Y of Z" format.
+
+### 📁 Files Modified
+| File | Changes |
+|------|---------|
+| `src/pages/student/Tasks.jsx` | Implemented header sorting, restored dropdown, refactored pagination |
+| `src/pages/student/StudentExams.jsx` | Implemented header sorting, refactored pagination |
+| `src/pages/student/TasksMobile.jsx` | Fixed mobile dropdown to use new sorting logic |
+
+### 📦 Git Commits
+*   `feat(student): implement interactive table quick sort and consistent pagination`
+*   `ui(student): restore sort dropdown and align with new sorting logic`
+
+---
+
 ## 🚀 [2026-01-30 | 18:30] Feature: Per-Question Grading & Critical Fixes
 
 ### Overview

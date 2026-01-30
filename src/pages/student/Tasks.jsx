@@ -5,7 +5,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LinkifiedText } from '../../utils/linkify';
-import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Search, Filter, Hourglass, Pencil, X, Save, ChevronLeft, ChevronRight, Trophy, Upload, Download, Link2, ExternalLink, Image as ImageIcon, Video } from 'lucide-react';
+import { BookOpen, Calendar, Clock, CheckCircle, AlertCircle, Send, FileText, ChevronDown, ChevronUp, Search, Filter, Hourglass, Pencil, X, Save, ChevronLeft, ChevronRight, Trophy, Upload, Download, Link2, ExternalLink, Image as ImageIcon, Video, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import ToastContainer from '../../components/ToastContainer';
 import { useToast } from '../../hooks/useToast';
 import TasksMobile from './TasksMobile';
@@ -17,6 +17,8 @@ export default function Tasks() {
     const { currentUser } = useAuth();
     const { toasts, removeToast, showSuccess, showError, showWarning } = useToast();
     const [tasks, setTasks] = useState([]);
+    const [rawTasks, setRawTasks] = useState([]); // Store raw data for client-side sorting
+    const [sortBy, setSortBy] = useState('deadline'); // 'deadline' | 'newest'
     const [submissions, setSubmissions] = useState({});
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(null);
@@ -108,8 +110,9 @@ export default function Tasks() {
                 );
 
                 unsubscribeTasks = onSnapshot(tasksQuery, (tasksSnap) => {
-                    currentTasks = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    updateTasksList(currentTasks, currentSubmissions);
+                    const fetchedTasks = tasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setRawTasks(fetchedTasks);
+                    setLoading(false);
                 });
 
                 // Setup real-time listener for submissions
@@ -123,9 +126,7 @@ export default function Tasks() {
                     submissionsSnap.forEach(doc => {
                         subs[doc.data().taskId] = { id: doc.id, ...doc.data() };
                     });
-                    currentSubmissions = subs;
                     setSubmissions(subs);
-                    updateTasksList(currentTasks, currentSubmissions);
                 });
 
             } catch (error) {
@@ -134,22 +135,6 @@ export default function Tasks() {
             }
         };
 
-        const updateTasksList = (tasksList, subs) => {
-            // Sort tasks
-            tasksList.sort((a, b) => {
-                const subA = subs[a.id];
-                const subB = subs[b.id];
-                if (!subA && subB) return -1;
-                if (subA && !subB) return 1;
-                if (!subA && !subB) {
-                    return new Date(a.deadline) - new Date(b.deadline);
-                }
-                return subB.submittedAt?.toMillis() - subA.submittedAt?.toMillis();
-            });
-
-            setTasks(tasksList);
-            setLoading(false);
-        };
 
 
         loadData();
@@ -163,6 +148,81 @@ export default function Tasks() {
             }
         };
     }, [currentUser]);
+
+    const [sortConfig, setSortConfig] = useState({ key: 'deadline', direction: 'asc' });
+
+    // Use current tasks & submissions to build processed data
+    useEffect(() => {
+        if (!rawTasks.length) {
+            setTasks([]);
+            return;
+        }
+
+        const sorted = [...rawTasks].sort((a, b) => {
+            const subA = submissions[a.id];
+            const subB = submissions[b.id];
+
+            // Primary: Status Grouping (Optional, but often desirable)
+            // If the user explicitly sorting by Grade or Info, maybe we ignore Pending?
+            // "Professional table sort" usually sorts strictly by the column clicked.
+            // BUT for tasks, we almost always want Pending on top unless sorting by something else.
+            // Let's implement Strict Column Sort when key != 'deadline' maybe?
+            // Or just Strict Column Sort always?
+            // User asked for "Quick Sort table header". Usually this implies strict column sort.
+            // Let's do Strict Column Sort for consistency.
+
+            let valA, valB;
+
+            switch (sortConfig.key) {
+                case 'title':
+                    valA = a.title.toLowerCase();
+                    valB = b.title.toLowerCase();
+                    break;
+                case 'status':
+                    // Custom order: Overdue > Pending > Revision > Submitted > Graded
+                    // We can map status to checks.
+                    const getStatusWeight = (task, sub) => {
+                        if (!sub) {
+                            return task.deadline && new Date(task.deadline) < new Date() ? 0 : 1; // Overdue=0, Pending=1
+                        }
+                        if (sub.status === 'needs_revision') return 2;
+                        if (sub.grade === null || sub.grade === undefined) return 3; // Submitted
+                        return 4; // Graded
+                    };
+                    valA = getStatusWeight(a, subA);
+                    valB = getStatusWeight(b, subB);
+                    break;
+                case 'deadline': // "Info" Column
+                    valA = a.deadline ? new Date(a.deadline).getTime() : 9999999999999;
+                    valB = b.deadline ? new Date(b.deadline).getTime() : 9999999999999;
+                    break;
+                case 'createdAt':
+                    valA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+                    valB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+                    break;
+                case 'grade':
+                    valA = subA?.grade || -1;
+                    valB = subB?.grade || -1;
+                    break;
+                default:
+                    valA = 0;
+                    valB = 0;
+            }
+
+            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        setTasks(sorted);
+    }, [rawTasks, submissions, sortConfig]);
+
+    const handleSort = (key) => {
+        setSortConfig(current => ({
+            key,
+            direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
 
 
 
@@ -539,63 +599,89 @@ export default function Tasks() {
                         />
                     </div>
                     {/* Desktop Filter */}
-                    <div className="hidden md:block relative min-w-[200px]">
-                        <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none bg-white"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="pending">Assigned</option>
-                            <option value="submitted">Submitted</option>
-                            <option value="graded">Completed</option>
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4 pointer-events-none" />
+                    <div className="hidden md:flex items-center gap-3">
+                        <div className="relative min-w-[180px]">
+                            <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+                            <select
+                                value={sortConfig.key === 'createdAt' ? 'newest' : 'deadline'}
+                                onChange={(e) => {
+                                    if (e.target.value === 'newest') {
+                                        setSortConfig({ key: 'createdAt', direction: 'desc' });
+                                    } else {
+                                        setSortConfig({ key: 'deadline', direction: 'asc' });
+                                    }
+                                }}
+                                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none bg-white font-medium text-slate-700"
+                            >
+                                <option value="deadline">Deadline (Urgent)</option>
+                                <option value="newest">Newest Assigned</option>
+                            </select>
+                            <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4 pointer-events-none" />
+                        </div>
+
+
+                        <div className="relative min-w-[200px]">
+                            <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+                            <select
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all appearance-none bg-white"
+                            >
+                                <option value="all">All Status</option>
+                                <option value="pending">Assigned</option>
+                                <option value="submitted">Submitted</option>
+                                <option value="graded">Completed</option>
+                            </select>
+                            <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4 pointer-events-none" />
+                        </div>
                     </div>
                     {/* Mobile Filter - Custom Dropdown */}
-                    <div className="md:hidden relative">
-                        <button
-                            onClick={() => setIsFilterOpen(!isFilterOpen)}
-                            className="w-full pl-9 pr-9 py-3 text-sm rounded-lg border border-slate-200 bg-white font-medium text-left relative"
-                        >
-                            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-                            <span className="text-slate-700">
-                                {filterStatus === 'all' ? 'All Status' :
-                                    filterStatus === 'pending' ? 'Assigned' :
-                                        filterStatus === 'submitted' ? 'Submitted' : 'Completed'}
-                            </span>
-                            <ChevronDown className={`absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
-                        </button>
+                    <div className="md:hidden space-y-3">
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                                className="w-full pl-9 pr-9 py-3 text-sm rounded-lg border border-slate-200 bg-white font-medium text-left relative"
+                            >
+                                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                                <span className="text-slate-700">
+                                    {(sortConfig.key === 'createdAt') ? 'Newest' : 'Deadline'} • {filterStatus === 'all' ? 'All' : filterStatus === 'pending' ? 'Assigned' : filterStatus === 'submitted' ? 'Submitted' : 'Done'}
+                                </span>
+                                <ChevronDown className={`absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+                            </button>
 
-                        {isFilterOpen && (
-                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden">
-                                <button
-                                    onClick={() => { setFilterStatus('all'); setIsFilterOpen(false); }}
-                                    className={`w-full px-3 py-2.5 text-sm text-left hover:bg-blue-50 transition-colors ${filterStatus === 'all' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700'}`}
-                                >
-                                    All Status
-                                </button>
-                                <button
-                                    onClick={() => { setFilterStatus('pending'); setIsFilterOpen(false); }}
-                                    className={`w-full px-3 py-2.5 text-sm text-left hover:bg-blue-50 transition-colors ${filterStatus === 'pending' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700'}`}
-                                >
-                                    Assigned
-                                </button>
-                                <button
-                                    onClick={() => { setFilterStatus('submitted'); setIsFilterOpen(false); }}
-                                    className={`w-full px-3 py-2.5 text-sm text-left hover:bg-blue-50 transition-colors ${filterStatus === 'submitted' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700'}`}
-                                >
-                                    Submitted
-                                </button>
-                                <button
-                                    onClick={() => { setFilterStatus('graded'); setIsFilterOpen(false); }}
-                                    className={`w-full px-3 py-2.5 text-sm text-left hover:bg-blue-50 transition-colors ${filterStatus === 'graded' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700'}`}
-                                >
-                                    Completed
-                                </button>
-                            </div>
-                        )}
+                            {isFilterOpen && (
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden p-2 space-y-2">
+                                    <div>
+                                        <p className="px-3 py-1 text-xs font-bold text-slate-400 uppercase tracking-wider">Sort By</p>
+                                        <button
+                                            onClick={() => {
+                                                setSortConfig({ key: 'deadline', direction: 'asc' });
+                                                setIsFilterOpen(false);
+                                            }}
+                                            className={`w-full px-3 py-2 text-sm text-left rounded-md ${sortConfig.key === 'deadline' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}
+                                        >
+                                            Deadline
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setSortConfig({ key: 'createdAt', direction: 'desc' });
+                                                setIsFilterOpen(false);
+                                            }}
+                                            className={`w-full px-3 py-2 text-sm text-left rounded-md ${sortConfig.key === 'createdAt' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}
+                                        >
+                                            Newest
+                                        </button>
+                                    </div>
+                                    <div className="border-t border-slate-100 pt-2">
+                                        <p className="px-3 py-1 text-xs font-bold text-slate-400 uppercase tracking-wider">Filter Status</p>
+                                        <button onClick={() => { setFilterStatus('all'); setIsFilterOpen(false); }} className={`w-full px-3 py-2 text-sm text-left rounded-md ${filterStatus === 'all' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}>All Status</button>
+                                        <button onClick={() => { setFilterStatus('pending'); setIsFilterOpen(false); }} className={`w-full px-3 py-2 text-sm text-left rounded-md ${filterStatus === 'pending' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}>Assigned</button>
+                                        <button onClick={() => { setFilterStatus('submitted'); setIsFilterOpen(false); }} className={`w-full px-3 py-2 text-sm text-left rounded-md ${filterStatus === 'submitted' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}>Submitted</button>
+                                        <button onClick={() => { setFilterStatus('graded'); setIsFilterOpen(false); }} className={`w-full px-3 py-2 text-sm text-left rounded-md ${filterStatus === 'graded' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700 hover:bg-slate-50'}`}>Completed</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -618,12 +704,46 @@ export default function Tasks() {
                             <div className="flex items-center gap-3 flex-1">
                                 <span className="w-6 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">No</span>
                                 <div className="w-10"></div>
-                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Task Details</span>
+                                <div
+                                    className="flex items-center gap-1 cursor-pointer group"
+                                    onClick={() => handleSort('title')}
+                                >
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Task Details</span>
+                                    {sortConfig.key === 'title' ? (
+                                        sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 text-blue-600" /> : <ArrowDown className="h-3 w-3 text-blue-600" />
+                                    ) : <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover:text-blue-400" />}
+                                </div>
                             </div>
                             <div className="flex items-center gap-8 pl-4">
-                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[100px] text-center">Status</span>
-                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[120px] text-center">Info</span>
-                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[60px] text-center">Grade</span>
+                                <div
+                                    className="flex items-center justify-center gap-1 cursor-pointer group min-w-[100px]"
+                                    onClick={() => handleSort('status')}
+                                >
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Status</span>
+                                    {sortConfig.key === 'status' ? (
+                                        sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 text-blue-600" /> : <ArrowDown className="h-3 w-3 text-blue-600" />
+                                    ) : <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover:text-blue-400" />}
+                                </div>
+
+                                <div
+                                    className="flex items-center justify-center gap-1 cursor-pointer group min-w-[120px]"
+                                    onClick={() => handleSort('deadline')}
+                                >
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Info</span>
+                                    {sortConfig.key === 'deadline' ? (
+                                        sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 text-blue-600" /> : <ArrowDown className="h-3 w-3 text-blue-600" />
+                                    ) : <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover:text-blue-400" />}
+                                </div>
+
+                                <div
+                                    className="flex items-center justify-center gap-1 cursor-pointer group min-w-[60px]"
+                                    onClick={() => handleSort('grade')}
+                                >
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Grade</span>
+                                    {sortConfig.key === 'grade' ? (
+                                        sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 text-blue-600" /> : <ArrowDown className="h-3 w-3 text-blue-600" />
+                                    ) : <ArrowUpDown className="h-3 w-3 text-slate-300 group-hover:text-blue-400" />}
+                                </div>
                                 <span className="w-5"></span> {/* Space for expand icon */}
                             </div>
                         </div>
@@ -913,9 +1033,14 @@ export default function Tasks() {
                             (() => {
                                 const totalItems = filteredTasks.length;
                                 const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+                                const startIndex = (currentPage - 1) * itemsPerPage;
+                                const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
 
                                 return (
-                                    <div className="bg-white px-6 py-5 border-t border-slate-200">
+                                    <div className="bg-white px-6 py-4 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+                                        <p className="text-sm text-slate-500">
+                                            Showing <span className="font-medium">{totalItems === 0 ? 0 : startIndex + 1}</span> - <span className="font-medium">{endIndex}</span> of <span className="font-medium">{totalItems}</span> tasks
+                                        </p>
                                         <Pagination
                                             currentPage={currentPage}
                                             totalPages={totalPages}
@@ -925,6 +1050,7 @@ export default function Tasks() {
                                 );
                             })()
                         }
+
                     </div >
                 )
                 }
